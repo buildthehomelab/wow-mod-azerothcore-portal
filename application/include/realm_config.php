@@ -8,6 +8,7 @@
 class realm_config
 {
     const PORTALKEEPER_URL = 'https://github.com/Hisha/Portalkeeper/releases/latest';
+    const LOGIN_TWEAK_FILE = 'login_tweak.zip';
 
     private static $loaded = false;
     private static $sections = null;
@@ -135,6 +136,12 @@ class realm_config
         $html .= '<li>' . $e($t('portalkeeper_step2', 'Download the realm file:')) . ' <a href="' . $e($url) . '" download="' . $e($file_name) . '">' . $e($file_name) . '</a></li>';
         $html .= '<li>' . $e($t('portalkeeper_step3', 'Put it in your Portalkeeper realms folder:')) . ' <code>%APPDATA%\\Portalkeeper\\realms</code> (Windows) / <code>~/.config/Portalkeeper/realms</code> (Linux)</li>';
         $html .= '<li>' . $e($t('portalkeeper_step4', 'Start Portalkeeper, choose your WoW 3.3.5a folder and click ENTER REALM.')) . '</li>';
+        // Optional extra published next to realm.conf.
+        $tweak = self::LOGIN_TWEAK_FILE;
+        if (is_file(dirname(self::$file) . '/' . $tweak)) {
+            $tweak_url = rtrim((string)get_config('realm_conf_base_url'), '/') . '/' . rawurlencode($tweak);
+            $html .= '<li>' . $e($t('portalkeeper_step5', 'Optional: to have the game remember your password, download')) . ' <a href="' . $e($tweak_url) . '" download="' . $e($tweak) . '">' . $e($tweak) . '</a>.</li>';
+        }
         $html .= '</ol>';
 
         return $html . '</div>';
