@@ -56,8 +56,13 @@ Generate a password, e.g. with `openssl rand -base64 24`. Put it in two places:
 | `LANGUAGE` | Default site language: `english`, `persian`, `italian`, `chinese-simplified`, `chinese-traditional`, `swedish`, `french`, `german`, `spanish`, `korean`, `russian` or `portugues`. Players can still switch language on the site. |
 | `PATCH_URL` | Optional. Download link for a client patch, shown in the "How to connect" section. |
 | `DISABLE_TOP_PLAYERS` / `DISABLE_ONLINE_PLAYERS` / `DISABLE_CHANGEPASSWORD` | Set any of these to `true` to hide that page. |
+| `REALM_ID` | The realm's ID in `acore_auth.realmlist`. Leave at `1` unless you run more than one realm. |
+| `MULTIPLE_EMAIL_USE` | Set to `true` to let several accounts register with the same email address. |
+| `CAPTCHA_TYPE` | `0` built-in image captcha (default), `1` hCaptcha, `2` reCAPTCHA v2, `3` Cloudflare Turnstile, `4` off. |
+| `CAPTCHA_KEY` / `CAPTCHA_SECRET` | Site key and secret key from your captcha provider. Only needed for types 1–3. |
 | `DB_USER` / `DB_PASS` | Leave `DB_USER` as `wow_register` unless you changed it in the SQL file. |
-| `SMTP_*` | Optional. Only needed for "forgot password" emails. |
+| `DB_PORT` | AzerothCore's MySQL port inside the Docker network. Leave at `3306` unless you changed it. |
+| `SMTP_*` | Optional. Only needed for "forgot password" emails. `SMTP_SECURE` is `tls` (default, usually port 587) or `ssl` (usually port 465). |
 | `DEBUG_MODE` | Set to `true` to show PHP errors while troubleshooting. Turn it back off afterwards. |
 
 ### 5. Create the database user
@@ -101,7 +106,7 @@ If you only changed `.env` (template, title, and so on), `docker compose up -d` 
 - Served only through Traefik over HTTPS. No ports are published.
 - Apache blocks direct access to `application/`, `docker/`, dotfiles and Markdown files ([docker/apache-security.conf](docker/apache-security.conf)).
 - Locked to AzerothCore with SRP6, using a least-privilege database user instead of root.
-- Uses the built-in image captcha, so there are no third-party captcha keys to set up.
+- Uses the built-in image captcha by default, so there are no third-party captcha keys to set up. You can switch to hCaptcha, reCAPTCHA or Turnstile with `CAPTCHA_TYPE`.
 - **Vote system is off,** because it alters `acore_auth.account` and creates new tables.
 - **"Forgot password" needs extra access.** On first use the app adds a `restore_key` column to `acore_auth.account`, which needs `ALTER` on that table. The default database user doesn't have that permission.
 

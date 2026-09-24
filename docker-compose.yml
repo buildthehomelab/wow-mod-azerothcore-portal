@@ -22,13 +22,19 @@ services:
       CONTACT_EMAIL: ${CONTACT_EMAIL:-}
       TEMPLATE: ${TEMPLATE:-icecrown}
       REALMLIST: ${REALMLIST:-127.0.0.1}
+      REALM_ID: ${REALM_ID:-1}
       REALM_NAME: ${REALM_NAME:-AzerothCore}
       LANGUAGE: ${LANGUAGE:-english}
       PATCH_URL: ${PATCH_URL:-}
       DISABLE_TOP_PLAYERS: ${DISABLE_TOP_PLAYERS:-false}
       DISABLE_ONLINE_PLAYERS: ${DISABLE_ONLINE_PLAYERS:-false}
       DISABLE_CHANGEPASSWORD: ${DISABLE_CHANGEPASSWORD:-false}
+      MULTIPLE_EMAIL_USE: ${MULTIPLE_EMAIL_USE:-false}
+      CAPTCHA_TYPE: ${CAPTCHA_TYPE:-0}
+      CAPTCHA_KEY: ${CAPTCHA_KEY:-}
+      CAPTCHA_SECRET: ${CAPTCHA_SECRET:-}
       DB_HOST: ac-database
+      DB_PORT: ${DB_PORT:-3306}
       DB_USER: ${DB_USER:-wow_register}
       DB_PASS: ${DB_PASS:?set DB_PASS in .env}
       DB_AUTH_NAME: acore_auth
@@ -36,6 +42,7 @@ services:
       DEBUG_MODE: ${DEBUG_MODE:-false}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-tls}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-}
