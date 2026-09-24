@@ -162,7 +162,41 @@ These steps assume AzerothCore runs from the [azerothcore-wotlk](https://github.
 
 With `REALMLIST` and `REALM_NAME` left empty in `.env`, the site uses the realm's address and name from `realm.conf`, so you only have to set them in one place.
 
-Everything in that folder is public, so only point it at a folder that holds public files. Other modules that write public files there, such as news or armory feeds, are served at `/realm/<file>` too. Directory listings and PHP are turned off for that path. The files need to be readable by other users (e.g. mode `644`) so the web server can read them.
+Everything in that folder is public, so only point it at a folder that holds public files. Other modules that write public files there, such as the [armory](#armory-mod-realm-armory) or a news feed, are served at `/realm/<file>` too. Directory listings and PHP are turned off for that path. The files need to be readable by other users (e.g. mode `644`) so the web server can read them.
+
+### Armory (mod-realm-armory)
+
+[mod-realm-armory](https://github.com/Hisha/mod-realm-armory) publishes a character roster (`index.json`) and one profile per character (`characters/<guid>.json`) for Portalkeeper's Armory tab. Like mod-realm-config, it only writes files. Have it write into an `armory` folder inside the same `realm-public` folder, and the portal serves them at `https://SERVICE_NAME.DOMAIN/realm/armory/`. No portal changes or extra mounts are needed.
+
+1. **Add the module** next to mod-realm-config and rebuild AzerothCore:
+
+   ```bash
+   cd ~/azerothcore-wotlk/modules
+   git clone https://github.com/Hisha/mod-realm-armory.git
+   ```
+
+2. **Configure it.** Copy `modules/mod-realm-armory/conf/mod_realm_armory.conf.dist` to `env/dist/etc/modules/mod_realm_armory.conf` and set the output folder. The shipped file has someone else's path in it, so this line has to change:
+
+   ```ini
+   RealmArmory.OutputDirectory = "/azerothcore/env/dist/realm-public/armory"
+   RealmArmory.IncludePlayerbots = 0
+   ```
+
+   `IncludePlayerbots = 0` keeps playerbots out of the roster. Leave the other settings at their defaults unless you need them.
+
+3. **Rebuild and start AzerothCore** with `docker compose up -d --build`. The module publishes on startup and then every 15 minutes (`RealmArmory.UpdateIntervalMinutes`). To publish right away, type `realmarmory publish` in the worldserver console.
+
+4. **Point Portalkeeper at it** through mod-realm-config, so it shows up in players' realm file:
+
+   ```sql
+   UPDATE acore_world.mod_realm_config
+   SET armory_url = 'https://register.example.com/realm/armory/index.json'
+   WHERE id = 1;
+   ```
+
+5. **Check it:** open `https://SERVICE_NAME.DOMAIN/realm/armory/index.json` in a browser. You should see the roster, and your `.realm.conf` should now have `ArmoryURL=` set under `[Services]`.
+
+The module doesn't delete profile files for characters that are deleted or drop out of the roster, so `characters/<guid>.json` for those stays reachable until you remove it from `realm-public/armory/characters/`. Character names, gear and appearance are public by design. No account names, emails or IPs are included.
 
 ## Managing accounts
 
@@ -209,7 +243,7 @@ If you only changed `.env` (title, contact email, closing registration and so on
 - Apache blocks direct access to `application/`, `docker/`, dotfiles and Markdown files ([docker/apache-security.conf](docker/apache-security.conf)).
 - Locked to AzerothCore with SRP6, using a least-privilege database user instead of root.
 - Uses the built-in image captcha by default, so there are no third-party captcha keys to set up. You can switch to hCaptcha, reCAPTCHA or Turnstile with `CAPTCHA_TYPE`.
-- Can host [mod-realm-config](https://github.com/Hisha/mod-realm-config)'s `realm.conf` and show Portalkeeper setup steps.
+- Can host [mod-realm-config](https://github.com/Hisha/mod-realm-config)'s `realm.conf` and [mod-realm-armory](https://github.com/Hisha/mod-realm-armory)'s JSON for Portalkeeper, and shows Portalkeeper setup steps.
 - **Vote system is off,** because it alters `acore_auth.account` and creates new tables.
 - **No email.** Registering only asks for a username and password, and accounts get an empty email. "Restore password" and two-factor auth are turned off because they need SMTP. See [Managing accounts](#managing-accounts) for resetting passwords.
 
