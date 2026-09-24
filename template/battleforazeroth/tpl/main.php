@@ -334,6 +334,7 @@ require_once 'header.php'; ?>
     </div>
 </div>
 
+<?php if (!get_config('disable_top_players')) { ?>
 <div class="promotion-section">
     <div class="container">
         <div class="row">
@@ -464,6 +465,7 @@ require_once 'header.php'; ?>
         </div>
     </div>
 </div>
+<?php } ?>
 <?php if (!get_config('disable_online_players')) { ?>
 <div class="media-section spad">
     <div class="overlay"></div>

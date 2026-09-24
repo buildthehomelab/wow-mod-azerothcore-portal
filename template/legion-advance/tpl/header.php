@@ -70,7 +70,7 @@
                                 src="<?php echo $antiXss->xss_clean(get_config("baseurl")); ?>/template/<?php echo $antiXss->xss_clean(get_config("template")); ?>/assets/img/icon.png"
                                 alt="" class="img-fluid"></a></li>
                 <li><a href="#register"><?php elang('register');  ?></a></li>
-                <li><a href="#server-status"><?php elang('server_status');  ?></a></li>
+                <?php if (!get_config('disable_online_players') || !get_config('disable_top_players')) { ?><li><a href="#server-status"><?php elang('server_status');  ?></a></li><?php } ?>
                 <li><a href="#contact"><?php elang('contact');  ?></a></li>
             </ul>
         </nav>

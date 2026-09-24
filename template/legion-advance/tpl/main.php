@@ -272,8 +272,10 @@ require_once 'rules.php';
         </div>
     </div>
 </section>
+<?php if (!get_config('disable_online_players') || !get_config('disable_top_players')) { ?>
 <section id="server-status" class="contact section-bg">
     <div class="container">
+        <?php if (!get_config('disable_online_players')) { ?>
         <div class="section-title" data-aos="fade-up" data-aos-delay="100">
             <h2><?php elang('server_status'); ?></h2>
             <p><?php elang('online_players'); ?>:</p>
@@ -298,6 +300,8 @@ require_once 'rules.php';
                 } ?>
             </div>
         </div>
+        <?php } ?>
+        <?php if (!get_config('disable_top_players')) { ?>
         <div class="section-title" data-aos="fade-up" data-aos-delay="100">
             <h2><?php elang('top_players'); ?></h2>
         </div>
@@ -452,8 +456,10 @@ require_once 'rules.php';
                 } ?>
             </div>
         </div>
+        <?php } ?>
     </div>
 </section>
+<?php } ?>
 <?php
 require_once 'faq.php';
 require_once 'contact.php';
