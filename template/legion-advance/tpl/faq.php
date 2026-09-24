@@ -18,7 +18,6 @@
                 <div id="faq1" class="collapse" data-parent=".faq-list">
                     <p>
                         <?php elang('answer'); ?> 1
-                    <p><?php elang('edit_on'); ?> <b>"/template/advance/tpl/faq.php"</b>.</p>
                     </p>
                 </div>
             </li>

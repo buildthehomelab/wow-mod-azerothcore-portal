@@ -14,5 +14,4 @@
     <li><?php elang('rule'); ?> 1.</li>
     <li><?php elang('rule'); ?> 2.</li>
     <li><?php elang('rule'); ?> 3.</li>
-    <li><?php elang('edit_on'); ?> <b>"/template/<?php echo $antiXss->xss_clean(get_config("template")); ?>/tpl/rules.php"</b>.</li>
 </ul>

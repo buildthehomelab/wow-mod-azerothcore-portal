@@ -44,7 +44,6 @@
                     <p><i class="fa fa-check"></i><?php elang('fixed_spells'); ?>: <b>95%</b></p>
                     <p><i class="fa fa-check"></i><?php elang('fixed_dungeons'); ?>: <b>99%</b></p>
                     <p><i class="fa fa-check"></i><?php elang('fixed_instances'); ?>: <b>99%</b></p>
-                    <p style="font-size: 11px;"><?php elang('edit_on'); ?>: <code>/template/battleforazeroth/server-info.conf</code></p>
                 </div>
             </div>
         </div>

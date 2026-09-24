@@ -62,8 +62,6 @@ require_once 'header.php'; ?>
                             text, This is a sample text, This is a sample text, This is a sample text, This is a
                             sample text, This is a sample text.
                         </p>
-                        <p><?php elang('edit_on'); ?> template/<?php echo $antiXss->xss_clean(get_config("template")); ?>
-                            /tpl/main.php</p>
                     </div>
                     <div class="tab-pane fade in <?php echo(!(empty($error_error) && empty($success_msg)) ? 'active' : ''); ?>"
                          id="pills-register">

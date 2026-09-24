@@ -27,9 +27,6 @@
                                 <p>
                                     <?php elang('rule'); ?> 1
                                 </p>
-                                <p>
-                                    <?php elang('edit_on'); ?> <b>"/template/advance/tpl/rules.php"</b>.
-                                </p>
                             </div>
                         </li>
                         <li data-aos="fade-up" data-aos-delay="200">

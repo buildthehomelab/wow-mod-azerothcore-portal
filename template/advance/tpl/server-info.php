@@ -34,9 +34,6 @@
                             <li><i class="bx bx-check-double"></i><?php elang('fixed_dungeons'); ?>: <b>99%</b></li>
                             <li><i class="bx bx-check-double"></i><?php elang('fixed_instances'); ?>: <b>99%</b></li>
                         </ul>
-                        <p>
-                            <?php elang('edit_on'); ?> <b>"/template/advance/tpl/server-info.php"</b>.
-                        </p>
                     </div>
                 </div>
             </div>

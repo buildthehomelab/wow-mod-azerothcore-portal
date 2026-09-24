@@ -20,7 +20,6 @@
         sample text, This is a sample text, This is a sample text, This is a sample text, This is a sample text, This is
         a sample text.
     </p>
-    <p><?php elang('edit_on'); ?> template/<?php echo $antiXss->xss_clean(get_config("template")); ?>/tpl/posts.php</p>
 </div>
 <div class="box1" style="margin-top: 10px;">
     <?php elang('welcome_message'); ?>
@@ -36,5 +35,4 @@
         sample text, This is a sample text, This is a sample text, This is a sample text, This is a sample text, This is
         a sample text.
     </p>
-    <p><?php elang('edit_on'); ?> template/<?php echo $antiXss->xss_clean(get_config("template")); ?>/tpl/posts.php</p>
 </div>
