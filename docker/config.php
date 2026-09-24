@@ -14,6 +14,7 @@ $bool = static fn(string $key, bool $default) => filter_var($env($key, $default 
 // Basic
 $config['baseurl'] = rtrim($env('BASE_URL', 'http://localhost:8080'), '/');
 $config['page_title'] = $env('SITE_TITLE', 'Simple Register');
+$config['contact_email'] = $env('CONTACT_EMAIL', ''); // shown on the contact page; hidden when empty
 $config['language'] = $env('LANGUAGE', 'english');
 $config['supported_langs'] = [
     'english' => 'English',

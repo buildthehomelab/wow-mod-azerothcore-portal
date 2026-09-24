@@ -21,11 +21,13 @@
                             <p>City, Country</p>
                         </div>
 
+                        <?php if (!empty(get_config('contact_email'))) { $contact_email = htmlspecialchars(get_config('contact_email')); ?>
                         <div class="email">
                             <i class="icofont-envelope"></i>
                             <h4><?php elang('email'); ?>:</h4>
-                            <p>info@example.com</p>
+                            <p><a href="mailto:<?php echo $contact_email; ?>"><?php echo $contact_email; ?></a></p>
                         </div>
+                        <?php } ?>
                         <div class="phone">
                             <i class="icofont-phone"></i>
                             <h4><?php elang('call'); ?>:</h4>

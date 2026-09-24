@@ -51,6 +51,7 @@ Generate a password, e.g. with `openssl rand -base64 24`. Put it in two places:
 | `REALMLIST` | The address players put in `realmlist.wtf`: your server's public IP or hostname. |
 | `REALM_NAME` | Realm name shown on the site. |
 | `SITE_TITLE` | Title shown in the browser tab and header. |
+| `CONTACT_EMAIL` | Email address shown on the contact page. Leave empty to hide it. |
 | `TEMPLATE` | `icecrown` (default), `light`, `advance`, `kaelthas`, `battleforazeroth`, `legion` or `legion-advance`. |
 | `LANGUAGE` | Default site language: `english`, `persian`, `italian`, `chinese-simplified`, `chinese-traditional`, `swedish`, `french`, `german`, `spanish`, `korean`, `russian` or `portugues`. Players can still switch language on the site. |
 | `PATCH_URL` | Optional. Download link for a client patch, shown in the "How to connect" section. |

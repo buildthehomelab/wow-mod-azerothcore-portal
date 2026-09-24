@@ -7,6 +7,8 @@
  */
 ?>
 <div class="content_box1" style="line-height: 1.5;">
-    <p><?php elang('email'); ?> : info@my.com</p>
+    <?php if (!empty(get_config('contact_email'))) { $contact_email = htmlspecialchars(get_config('contact_email')); ?>
+    <p><?php elang('email'); ?> : <a href="mailto:<?php echo $contact_email; ?>" style="color: #00FF00;"><?php echo $contact_email; ?></a></p>
+    <?php } ?>
     <p><?php elang('edit_on'); ?> template/<?php echo $antiXss->xss_clean(get_config("template")); ?>/tpl/contactus.php</p>
 </div>

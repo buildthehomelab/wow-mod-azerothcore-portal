@@ -10,6 +10,7 @@
 // Basic Configuration - Adjust to match your website's details.
 $config['baseurl'] = "http://localhost"; //  Must be a valid URL to prevent issues with loading images and templates.
 $config['page_title'] = "Simple Register"; // The title of your website as displayed in the browser tab.
+$config['contact_email'] = ''; // Email shown on the contact page. Leave empty to hide it.
 $config['language'] = "english"; // The default language for your website.
 $config['supported_langs'] = [ // Define supported languages here. You can remove any language you do not support.
     // To disable the language changer, set as: $config['supported_langs'] = false;
