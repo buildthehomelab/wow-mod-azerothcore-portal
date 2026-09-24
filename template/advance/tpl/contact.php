@@ -13,7 +13,7 @@
                 <p><?php elang('edit_on'); ?> <b>"/template/advance/tpl/contact.php"</b>.</p>
             </div>
             <div class="row">
-                <div class="col-lg-4">
+                <div class="col-lg-12">
                     <div class="info d-flex flex-column justify-content-center" data-aos="fade-right">
                         <div class="address">
                             <i class="icofont-google-map"></i>
@@ -32,10 +32,6 @@
                             <p>+98 915 620 9344</p>
                         </div>
                     </div>
-                </div>
-                <div class="col-lg-8 mt-5 mt-lg-0" data-aos="fade-left" data-aos-delay="100">
-                    <iframe src="https://discordapp.com/widget?id=376650959532589057&theme=dark"
-                            style="border:0;width: 100%; height: 100%;"></iframe>
                 </div>
             </div>
         </div>
