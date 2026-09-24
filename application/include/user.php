@@ -13,7 +13,7 @@ class user
 
     public static function post_handler()
     {
-        if (!empty($_GET['restore']) && !empty($_GET['key'])) {
+        if (empty(get_config('disable_restorepassword')) && !empty($_GET['restore']) && !empty($_GET['key'])) {
             self::restorepassword_setnewpw($_GET['restore'], $_GET['key']);
         }
 
@@ -34,7 +34,9 @@ class user
                 self::normal_register();
                 self::normal_changepass();
             }
-            self::restorepassword();
+            if (empty(get_config('disable_restorepassword'))) {
+                self::restorepassword();
+            }
             if (empty(get_config('captcha_type'))) {
                 unset($_SESSION['captcha']);
                 self::$captcha = new CaptchaBuilder;

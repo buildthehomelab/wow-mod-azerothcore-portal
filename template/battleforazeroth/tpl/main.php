@@ -101,10 +101,12 @@ require_once 'header.php'; ?>
                                         </div>
                                     <?php } ?>
                                     <div class="text-center" style="margin-top: 10px;">
+                                        <?php if (empty(get_config('disable_restorepassword'))) { ?>
                                         <button type="button" class="site-btn-login" data-toggle="modal"
                                                 data-target="#restorepassword-modal">
                                             <?php elang('restore_password'); ?>
                                         </button>
+                                        <?php } ?>
                                     </div>
                                     <?php if (get_config('2fa_support')) { ?>
                                         <div class="text-center" style="margin-top: 10px;">
@@ -225,6 +227,7 @@ require_once 'header.php'; ?>
                                             </div>
                                         </div>
                                     <?php } ?>
+                                    <?php if (empty(get_config('disable_restorepassword'))) { ?>
                                     <div class="modal" id="restorepassword-modal">
                                         <div class="modal-dialog">
                                             <div class="modal-content">
@@ -265,6 +268,7 @@ require_once 'header.php'; ?>
                                             </div>
                                         </div>
                                     </div>
+                                    <?php } ?>
                                     <div class="modal" id="changepassword-modal">
                                         <div class="modal-dialog">
                                             <div class="modal-content">

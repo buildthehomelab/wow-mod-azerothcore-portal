@@ -52,14 +52,8 @@ $config['disable_changepassword'] = $bool('DISABLE_CHANGEPASSWORD', false);
 $config['multiple_email_use'] = $bool('MULTIPLE_EMAIL_USE', false);
 $config['template'] = $env('TEMPLATE', 'icecrown'); // light, advance, icecrown, kaelthas, battleforazeroth, legion, legion-advance
 
-// SMTP - only needed for "forgot password" emails
-$config['smtp_host'] = $env('SMTP_HOST', '');
-$config['smtp_port'] = (int) $env('SMTP_PORT', 587);
-$config['smtp_auth'] = true;
-$config['smtp_user'] = $env('SMTP_USER', '');
-$config['smtp_pass'] = $env('SMTP_PASS', '');
-$config['smtp_secure'] = $env('SMTP_SECURE', 'tls');
-$config['smtp_mail'] = $env('SMTP_FROM', 'no-reply@example.com');
+// No email: password restore (and 2FA, below) need SMTP, so they're turned off
+$config['disable_restorepassword'] = true;
 
 // Vote system off: enabling it makes the app ALTER acore_auth.account and create a votes table
 $config['vote_system'] = false;

@@ -77,6 +77,7 @@ $config['srp6_version'] = 2;
 // Feature Toggles - Control whether certain pages or features should be disabled.
 $config['disable_top_players'] = false; // Set to true to hide the top players page.
 $config['disable_online_players'] = false; // Set to true to hide the online players page.
+$config['disable_restorepassword'] = false; // Set to true to hide "restore password" (it needs the SMTP settings below).
 $config['disable_changepassword'] = false; // Set to true to disable password changes.
 
 // Multiple Email Account Creation - Configure whether to allow multiple accounts to be created with the same email address.

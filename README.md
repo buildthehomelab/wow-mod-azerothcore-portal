@@ -63,7 +63,6 @@ Generate a password, e.g. with `openssl rand -base64 24`. Put it in two places:
 | `CAPTCHA_KEY` / `CAPTCHA_SECRET` | Site key and secret key from your captcha provider. Only needed for types 1–3. |
 | `DB_USER` / `DB_PASS` | Leave `DB_USER` as `wow_register` unless you changed it in the SQL file. |
 | `DB_PORT` | AzerothCore's MySQL port inside the Docker network. Leave at `3306` unless you changed it. |
-| `SMTP_*` | Optional. Only needed for "forgot password" emails. `SMTP_SECURE` is `tls` (default, usually port 587) or `ssl` (usually port 465). |
 | `REALM_CONFIG_DIR` | Optional. Host folder mod-realm-config writes `<realm_key>.realm.conf` to. See [below](#portalkeeper-and-mod-realm-config). |
 | `DEBUG_MODE` | Set to `true` to show PHP errors while troubleshooting. Turn it back off afterwards. |
 
@@ -192,7 +191,7 @@ If you only changed `.env` (template, title, and so on), `docker compose up -d` 
 - Uses the built-in image captcha by default, so there are no third-party captcha keys to set up. You can switch to hCaptcha, reCAPTCHA or Turnstile with `CAPTCHA_TYPE`.
 - Can host [mod-realm-config](https://github.com/Hisha/mod-realm-config)'s `realm.conf` and show Portalkeeper setup steps.
 - **Vote system is off,** because it alters `acore_auth.account` and creates new tables.
-- **"Forgot password" needs extra access.** On first use the app adds a `restore_key` column to `acore_auth.account`, which needs `ALTER` on that table. The default database user doesn't have that permission.
+- **No email.** "Restore password" and two-factor auth are turned off because they need SMTP. Players can still change their password if they know the current one. If someone forgets theirs, reset it from the worldserver console (`account set password <user> <new> <new>`).
 
 ## Credits and license
 

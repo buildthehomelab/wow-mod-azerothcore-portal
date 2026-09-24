@@ -42,12 +42,6 @@ services:
       DB_AUTH_NAME: acore_auth
       DB_CHARACTERS_NAME: acore_characters
       DEBUG_MODE: ${DEBUG_MODE:-false}
-      SMTP_HOST: ${SMTP_HOST:-}
-      SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_SECURE: ${SMTP_SECURE:-tls}
-      SMTP_USER: ${SMTP_USER:-}
-      SMTP_PASS: ${SMTP_PASS:-}
-      SMTP_FROM: ${SMTP_FROM:-}
     volumes:
       # mod-realm-config output directory (realm.conf), served read-only at /realm/
       - ${REALM_CONFIG_DIR:-./realm-data}:/var/www/html/realm:ro
