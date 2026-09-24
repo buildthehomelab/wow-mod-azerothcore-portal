@@ -1,0 +1,10 @@
+.git
+.github
+.env
+.env.*
+screenshots
+docker-compose.yml
+application/vendor
+application/config/config.php
+**/.DS_Store
+docker/create-db-user.sql

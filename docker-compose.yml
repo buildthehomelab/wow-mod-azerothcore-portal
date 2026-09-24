@@ -1,0 +1,46 @@
+# WoWSimpleRegistration for AzerothCore, served over HTTPS by Traefik.
+# Start AzerothCore first (it creates ac-network), then: docker compose up -d --build
+name: wow-register
+
+services:
+  wow-register:
+    container_name: wow-register
+    build: .
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${TRAEFIK_NETWORK:?set TRAEFIK_NETWORK in .env}"
+      - "traefik.http.routers.${SERVICE_NAME}.rule=Host(`${SERVICE_NAME}.${DOMAIN}`)"
+      - "traefik.http.routers.${SERVICE_NAME}.entrypoints=websecure"
+      - "traefik.http.routers.${SERVICE_NAME}.tls=true"
+      - "traefik.http.routers.${SERVICE_NAME}.tls.certresolver=letsencrypt"
+      - "traefik.http.services.${SERVICE_NAME}.loadbalancer.server.port=80"
+    # No published ports: all traffic comes in through Traefik over HTTPS.
+    environment:
+      BASE_URL: https://${SERVICE_NAME}.${DOMAIN}
+      SITE_TITLE: ${SITE_TITLE:-Simple Register}
+      TEMPLATE: ${TEMPLATE:-icecrown}
+      REALMLIST: ${REALMLIST:-127.0.0.1}
+      REALM_NAME: ${REALM_NAME:-AzerothCore}
+      DB_HOST: ac-database
+      DB_USER: ${DB_USER:-wow_register}
+      DB_PASS: ${DB_PASS:?set DB_PASS in .env}
+      DB_AUTH_NAME: acore_auth
+      DB_CHARACTERS_NAME: acore_characters
+      DEBUG_MODE: ${DEBUG_MODE:-false}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+    networks:
+      - ac-network   # to reach ac-database
+      - traefik      # so Traefik can reach this container
+
+networks:
+  ac-network:
+    external: true
+    name: ${AC_NETWORK_NAME:-ix-azerothcore_ac-network}
+  traefik:
+    external: true
+    name: ${TRAEFIK_NETWORK}

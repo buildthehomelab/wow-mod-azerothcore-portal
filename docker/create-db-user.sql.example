@@ -1,0 +1,7 @@
+-- MySQL user for the registration page (instead of root).
+-- Copy to create-db-user.sql, set the password (same as DB_PASS in .env), then run:
+--   docker exec -i ac-database mysql -uroot -p < docker/create-db-user.sql
+CREATE USER IF NOT EXISTS 'wow_register'@'%' IDENTIFIED BY 'CHANGE_ME';
+GRANT SELECT, INSERT, UPDATE ON acore_auth.account  TO 'wow_register'@'%';
+GRANT SELECT                 ON acore_characters.*  TO 'wow_register'@'%';
+FLUSH PRIVILEGES;
