@@ -1,233 +1,108 @@
-# 🌍 Simple Registration Page for TrinityCore/AzerothCore/AshamaneCore/CMangos
+# AzerothCore Registration Portal
 
-Create a versatile website for your game server with this easy-to-use script, featuring compatibility with major server cores.
+A player registration website for an [AzerothCore](https://www.azerothcore.org) (WotLK 3.3.5a) server, packaged to run in Docker behind [Traefik](https://traefik.io) with HTTPS.
 
-Supported Cores:
+Players can create an account, change their password, see who's online and check the top players. Accounts are written straight into `acore_auth.account` using SRP6 (salt + verifier), the same way AzerothCore does it, so you don't need to enable SOAP.
 
-- [AzerothCore](http://azerothcore.org)
-- [TrinityCore](http://TrinityCore.org)
-- [AshamaneCore](https://github.com/AshamaneProject/AshamaneCore/)
-- [CMangos](https://github.com/cmangos/)
+This is a Docker-focused fork of [masterking32/WoWSimpleRegistration](https://github.com/masterking32/WoWSimpleRegistration). All the PHP and the templates come from that project.
 
-### ⭐ If you liked the project, feel free to give it a shining star. ⭐
+![IceCrown template](screenshots/i1.jpg)
 
-<a href="https://github.com/masterking32/WoWSimpleRegistration">
-   <img title="Star on GitHub" src="https://img.shields.io/github/stars/masterking32/WoWSimpleRegistration.svg?style=social&label=Star">
-</a>
-<a href="https://github.com/masterking32/WoWSimpleRegistration/fork">
-   <img title="Fork on GitHub" src="https://img.shields.io/github/forks/masterking32/WoWSimpleRegistration.svg?style=social&label=Fork">
-</a>
+## Requirements
 
-## 🖱️ Prerequisites
+- **AzerothCore running in Docker** on the same machine. The portal joins AzerothCore's Docker network and connects to the `ac-database` container directly, so no MySQL port has to be exposed.
+- **Traefik** running in Docker, with a `websecure` entrypoint and a `letsencrypt` certificate resolver.
+- **A DNS record** pointing at the server, e.g. `register.example.com`.
+- Docker with the Compose plugin.
 
-Ensure PHP version 8.0 or higher is installed and the following extensions are enabled:
+## Setup
 
-- [GMP Extension](https://www.php.net/manual/en/book.gmp.php)
-- [GD Extension](https://www.php.net/manual/en/book.image.php)
-- [ZIP Extension](https://www.php.net/manual/en/book.zip.php)
-- [Soap Extension](https://www.php.net/manual/en/book.soap.php)
-- [Mbstring Extension](https://www.php.net/manual/en/book.mbstring.php)
-- [PDO Extension](https://www.php.net/manual/en/book.pdo.php)
-- [PDO-MySQL Extension](https://www.php.net/manual/en/ref.pdo-mysql.php)
+### 1. Clone the repo on your server
 
-## ⚙️ Installation Guide (Last version - PHP 8)
-
-1. Fulfill the above prerequisites on your server.
-
-2. Obtain the project files:
-
-   - Download and unzip the project, or clone it using Git:
-
-     ```bash
-     git clone https://github.com/masterking32/WoWSimpleRegistration
-     ```
-
-3. Install [Composer](https://getcomposer.org/download/).
-
-4. Navigate to the project directory and then go to the `application/` directory.
-
-5. Run the following command to install the required dependencies:
-
-   ```bash
-   composer install
-   ```
-
-6. Navigate to the `application/config/` directory and rename the file `config.php.sample` to `config.php`.
-
-7. Edit the newly renamed `config.php` file, inserting your server details. Note that if using the "Image Captcha" feature, PHP's GD2 module must be enabled.
-
-8. Once the configuration is complete, your registration page should be operational.
-
-## 🔧 PHP 7 Version Download
-
-For those requiring PHP 7 support, please use the [last compatible commit for PHP 7](https://github.com/masterking32/WoWSimpleRegistration/tree/32a1e7e6bc31f2ed6ed1d83f64d1ae62aeab9d32). Follow these steps to clone the repository at the specific commit:
-
-```sh
-git clone https://github.com/masterking32/WoWSimpleRegistration
-cd WoWSimpleRegistration
-git checkout 32a1e7e6bc31f2ed6ed1d83f64d1ae62aeab9d32
+```bash
+git clone https://github.com/buildthehomelab/wow-mod-azerothcore-portal.git
+cd wow-mod-azerothcore-portal
 ```
 
-# 🪛 Debugging
+### 2. Create your config files
 
-Encountering a blank page can be a common issue, typically indicating a hidden error that needs to be diagnosed. To facilitate troubleshooting, enable `debug_mode` in the configuration file.
+```bash
+cp .env.example .env
+cp docker/create-db-user.sql.example docker/create-db-user.sql
+```
 
-Here’s how to enable debug mode:
+Both files are gitignored and are not copied into the Docker image.
 
-- Open the `config.php` file.
-- Locate the `$config['debug_mode']` parameter.
-- Set it to `true` to enable debug mode.
+### 3. Pick a database password
 
-⚠️ **Important: Remember to disable debug mode** once you have resolved the issues. Debug mode should be set to `false` before deploying the website in a production environment or going live. This helps to ensure security and performance are not compromised.
+Generate a password, e.g. with `openssl rand -base64 24`. Put it in two places:
 
-## ✅ Features
+- `DB_PASS=` in `.env`
+- `CHANGE_ME` in `docker/create-db-user.sql`
 
-1. **Registration Page**: Accommodating a wide range of game versions, including Vanilla, TBC, WotLK, MoP, WoD, Legion, BFA, and TWW.
-2. **Online Players Status**: Check who's online on the server, with support for multiple realms.
-3. **Leaderboards**: Display top players based on Playtime, Kills, Honor Points, Arena Points, and Arena Teams across different realms.
-4. **Connection Guide**: Step-by-step ‘How to connect’ page for new players.
-5. **Contact Form**: Accessible ‘Contact us’ page for inquiries and support.
-6. **Multiple Themes**: Choose from various templates such as Light, Icecrown, Kaelthas, Advance, and Battle for Azeroth.
-7. **Password Management**: Facilities to change (as of April 10, 2019) and recover passwords (as of May 31, 2019).
-8. **Vote System**: Engage your community with a voting system (added on April 3, 2020).
-9. **Captcha Integration**: Protect your site with HCaptcha/Recaptcha v2/Cloudflare Turnstile (since July 27, 2020).
-10. **Two-Factor Authentication (2FA)**: Add an extra layer of security with 2FA (introduced on July 28, 2020).
-11. **Multilingual Support**: Making the site accessible to a global audience with support for various languages (added on September 10, 2020), including:
-    - 🇬🇧 English
-    - 🇮🇷 Persian
-    - 🇮🇹 Italian
-    - 🇨🇳 Chinese Simplified
-    - 🇹🇼 Chinese Traditional
-    - 🇸🇪 Swedish
-    - 🇫🇷 French
-    - 🇩🇪 German
-    - 🇪🇸 Spanish
-    - 🇰🇷 Korean
-    - 🇷🇺 Russian
-    - 🇵🇹 Portuguese
+### 4. Fill in `.env`
 
-## 🗒️ Changelog
+| Variable | What to set |
+|---|---|
+| `TRAEFIK_NETWORK` | The Docker network Traefik is on (`docker network ls`). |
+| `SERVICE_NAME` | Subdomain for the site, e.g. `register`. |
+| `DOMAIN` | Your domain, e.g. `example.com`. The site is served at `https://SERVICE_NAME.DOMAIN`. |
+| `AC_NETWORK_NAME` | AzerothCore's network. Find it with `docker network ls \| grep ac-network`. It's usually `<azerothcore folder>_ac-network` (on TrueNAS SCALE, `ix-azerothcore_ac-network`). |
+| `REALMLIST` | The address players put in `realmlist.wtf`: your server's public IP or hostname. |
+| `REALM_NAME` | Realm name shown on the site. |
+| `SITE_TITLE` | Title shown in the browser tab and header. |
+| `TEMPLATE` | `icecrown` (default), `light`, `advance`, `kaelthas`, `battleforazeroth`, `legion` or `legion-advance`. |
+| `DB_USER` / `DB_PASS` | Leave `DB_USER` as `wow_register` unless you changed it in the SQL file. |
+| `SMTP_*` | Optional. Only needed for "forgot password" emails. |
+| `DEBUG_MODE` | Set to `true` to show PHP errors while troubleshooting. Turn it back off afterwards. |
 
-### 2.0.4 (2/20/2026)
+### 5. Create the database user
 
-- Added Cloudflare Turnstile captcha support (captcha_type = 3).
+```bash
+docker exec -i ac-database mysql -uroot -p < docker/create-db-user.sql
+```
 
-### 2.0.3 (11/12/2024)
+It prompts for your AzerothCore MySQL root password. The new `wow_register` user can only read and write `acore_auth.account` and read `acore_characters`. It can't touch anything else.
 
-- Support SRP6 versions 1 and 2 used by Modern WoW servers/clients. (Thanks to [funjoker](https://github.com/funjoker))
+### 6. Start it
 
-### 2.0.2 (2/24/2021)
+AzerothCore must be up first, because it creates the network the portal joins.
 
-- Added a language changer feature. (Thanks to [DuelistRag3](https://github.com/DuelistRag3))
+```bash
+docker compose up -d --build
+```
 
-### 2.0.1 (2/20/2021)
+Open `https://SERVICE_NAME.DOMAIN` and register a test account, then log in with it in the game client.
 
-- Introduced SRP6 support for CMangos.
+## Updating
 
-### 2.0.0 (8/03/2020)
+```bash
+git pull
+docker compose up -d --build
+```
 
-- New Battle for Azeroth template added.
+If you only changed `.env` (template, title, and so on), `docker compose up -d` is enough and no rebuild is needed.
 
-### 1.9.9 (8/03/2020)
+## Troubleshooting
 
-- Multi-language support was introduced.
+- **Blank page:** set `DEBUG_MODE=true` in `.env`, run `docker compose up -d`, reload the page and read the error. Then turn it off again.
+- **Styling or images missing:** the site builds its links from `SERVICE_NAME` and `DOMAIN`. Make sure they match the URL you're visiting.
+- **Database connection error:** check that `AC_NETWORK_NAME` is right, that the container is on it (`docker inspect wow-register`), and that `DB_PASS` matches the password in `create-db-user.sql`.
+- **Logs:** `docker logs wow-register`
 
-### 1.9.8 (8/03/2020)
+## What's different from upstream
 
-- Implemented SRP6 support.
+- Docker image (PHP 8.3 + Apache) with Composer dependencies installed at build time.
+- All config comes from environment variables ([docker/config.php](docker/config.php)) instead of an edited `config.php`.
+- Served only through Traefik over HTTPS. No ports are published.
+- Apache blocks direct access to `application/`, `docker/`, dotfiles and Markdown files ([docker/apache-security.conf](docker/apache-security.conf)).
+- Locked to AzerothCore with SRP6, using a least-privilege database user instead of root.
+- Uses the built-in image captcha, so there are no third-party captcha keys to set up.
+- **Vote system is off,** because it alters `acore_auth.account` and creates new tables.
+- **"Forgot password" needs extra access.** On first use the app adds a `restore_key` column to `acore_auth.account`, which needs `ALTER` on that table. The default database user doesn't have that permission.
 
-### 1.9.7 (7/28/2020)
+## Credits and license
 
-- Added Two-Factor Authentication (2FA) support.
-- Patched a low-level security vulnerability. **(Important: Please upgrade to this version)**
-- Resolved various bugs.
-- The `account set addon` command was included as a post-registration step for SOAP registrations.
+Built on [WoWSimpleRegistration](https://github.com/masterking32/WoWSimpleRegistration) by [Amin.MasterkinG](https://masterking32.com) and its contributors and translators. See the upstream README for the full list.
 
-### 1.9.6 (7/27/2020)
-
-- Added HCaptcha/Recaptcha/Image captcha support.
-- Enhanced page load performance.
-- Expanded descriptions within the config file for better clarity.
-- Updated composer packages.
-
-### 1.9.5 (4/17/2020)
-
-- Enabled Register/Restore Password feature via SOAP, with CMangos support.
-
-### 1.9.4 (4/03/2020)
-
-- Vote system feature added.
-
-### 1.9.3 (4/02/2020)
-
-- Introduced a new template.
-
-### 1.9.2 (3/31/2020)
-
-- Fixed reported issues.
-
-### 1.9.1 (3/12/2020)
-
-- Added PHP version check.
-
-### 1.9 (3/12/2020)
-
-- Allowed multiple accounts to share one email address for non-battle.net servers.
-- Changed the user identification method from email to username for password change and restoration features on non-battle.net servers.
-- Added the option to enable or disable the display of top players and online players.
-
-## 🖼️ Screenshots
-
-### Advance Template
-
-![Advance Template Screenshot](https://raw.githubusercontent.com/masterking32/WoWSimpleRegistration/master/screenshots/a-bfa-min.jpg)
-
-### Battle for Azeroth Template
-
-![Battle for Azeroth Template Screenshot](https://raw.githubusercontent.com/masterking32/WoWSimpleRegistration/master/screenshots/b1.jpg)
-
-### Light Template
-
-![Light Template Register Page Screenshot](https://raw.githubusercontent.com/masterking32/WoWSimpleRegistration/master/screenshots/1.jpg)
-
-### IceCrown Template
-
-![IceCrown Template Home Page Screenshot](https://raw.githubusercontent.com/masterking32/WoWSimpleRegistration/master/screenshots/i1.jpg)
-
-### Kael'thas Template
-
-![Kael'thas Template Home Page Screenshot](https://raw.githubusercontent.com/masterking32/WoWSimpleRegistration/master/screenshots/k1.jpg)
-
-Looking for more visuals? [Browse additional screenshots here.](https://github.com/masterking32/WoWSimpleRegistration/tree/master/screenshots)
-
-## ⬇️ Credits
-
-### 🧑‍💻 Programming
-
-- **Lead Developer**: [Amin.MasterkinG](https://masterking32.com)
-
-**Contributors:**
-- [Phentora](https://github.com/Phentora)
-- [imsamdez](https://github.com/imsamdez)
-- [rescr1pt](https://github.com/rescr1pt)
-- [masoudr](https://github.com/masoudr)
-- [jkcgs](https://github.com/jkcgs)
-- [funjoker](https://github.com/funjoker)
-- [eshamwatajevian](https://github.com/eshamwatajevian)
-- [den13501](https://github.com/den13501)
-- [PowerpuffIO](https://github.com/PowerpuffIO)
-
-### 🫂 Translations
-
-- **English/Persian**: [Amin.MasterkinG](https://github.com/masterking32)
-- **Italian**: [Helias](https://github.com/helias)
-- **Chinese Simplified/Traditional**: [Coolzoom](https://github.com/coolzoom), [oiuv](https://github.com/oiuv)
-- **Swedish**: [Kitzunu](https://github.com/Kitzunu)
-- **French**: [Kalorte](https://github.com/Kalorte)
-- **German**: [DuelistRag3](https://github.com/DuelistRag3)
-- **Spanish**: [xjose93](https://github.com/xjose93)
-- **Korean**: [KOREAFTP](https://github.com/KOREAFTP)
-- **Russian**: [Haeniken](https://github.com/Haeniken)
-- **Portuguese**: [xnexuiz](https://github.com/xnexuiz)
-
-Heartfelt thanks to all the contributors for their invaluable support and contributions to this project.
+Licensed under the GPL-3.0, the same as upstream. See [LICENSE](LICENSE).
