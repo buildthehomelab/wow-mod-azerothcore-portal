@@ -19,7 +19,7 @@ require_once 'header.php'; ?>
                     if (!get_config('disable_top_players')) { ?>
                         <li><a data-toggle="tab" href="#pills-topplayers" id="topplayers"><?php elang('top_players'); ?></a></li>
                     <?php } ?>
-                    <li><a data-toggle="tab" href="#pills-contact" id="contact"><?php elang('contact'); ?></a></li>
+                    <?php if (!empty(get_config('contact_email'))) { ?><li><a data-toggle="tab" href="#pills-contact" id="contact"><?php elang('contact'); ?></a></li><?php } ?>
                 </ul>
                 <div class="tab-content" id="nav-tabContent">
                     <div class="tab-pane fade in <?php echo((empty($error_error) && empty($success_msg)) ? 'active' : ''); ?>"
@@ -472,11 +472,13 @@ require_once 'header.php'; ?>
                             </div>
                         </div>
                     <?php } ?>
+                    <?php if (!empty(get_config('contact_email'))) { ?>
                     <div class="tab-pane fade in" id="pills-contact">
                         <div class="box1" style="margin-top: 10px;">
                             <?php require_once base_path . 'template/' . $antiXss->xss_clean(get_config("template")) . '/tpl/contactus.php'; ?>
                         </div>
                     </div>
+                    <?php } ?>
                 </div>
             </div>
         </div>

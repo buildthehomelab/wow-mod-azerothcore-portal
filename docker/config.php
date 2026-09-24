@@ -16,7 +16,8 @@ $config['baseurl'] = rtrim($env('BASE_URL', 'http://localhost:8080'), '/');
 $config['page_title'] = $env('SITE_TITLE', 'Simple Register');
 $config['contact_email'] = $env('CONTACT_EMAIL', ''); // shown on the contact page; hidden when empty
 $config['language'] = $env('LANGUAGE', 'english');
-$config['supported_langs'] = [
+// Language changer; LANGUAGE_CHANGER=false hides it and keeps everyone on LANGUAGE
+$config['supported_langs'] = $bool('LANGUAGE_CHANGER', true) ? [
     'english' => 'English',
     'persian' => 'Persian',
     'italian' => 'Italian',
@@ -29,7 +30,7 @@ $config['supported_langs'] = [
     'korean' => 'Korean',
     'russian' => 'Russian',
     'portugues' => 'Portuguese',
-];
+] : [];
 $config['debug_mode'] = $bool('DEBUG_MODE', false);
 
 // Server info shown on the "How to connect" page

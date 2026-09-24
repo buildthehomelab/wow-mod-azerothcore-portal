@@ -51,9 +51,10 @@ Generate a password, e.g. with `openssl rand -base64 24`. Put it in two places:
 | `REALMLIST` | The address players put in `realmlist.wtf`: your server's public IP or hostname. Leave empty to use the address from [mod-realm-config](#portalkeeper-and-mod-realm-config). |
 | `REALM_NAME` | Realm name shown on the site. Leave empty to use the name from mod-realm-config. |
 | `SITE_TITLE` | Title shown in the browser tab and header. |
-| `CONTACT_EMAIL` | Email address shown on the contact page. Leave empty to hide it. |
+| `CONTACT_EMAIL` | Email address shown on the contact page. Leave empty to hide the contact page and its menu link. |
 | `TEMPLATE` | `icecrown` (default), `light`, `advance`, `kaelthas`, `battleforazeroth`, `legion` or `legion-advance`. |
-| `LANGUAGE` | Default site language: `english`, `persian`, `italian`, `chinese-simplified`, `chinese-traditional`, `swedish`, `french`, `german`, `spanish`, `korean`, `russian` or `portugues`. Players can still switch language on the site. |
+| `LANGUAGE` | Default site language: `english`, `persian`, `italian`, `chinese-simplified`, `chinese-traditional`, `swedish`, `french`, `german`, `spanish`, `korean`, `russian` or `portugues`. Players can switch language on the site unless `LANGUAGE_CHANGER=false`. |
+| `LANGUAGE_CHANGER` | Set to `false` to hide the language changer, so everyone sees the site in `LANGUAGE`. |
 | `PATCH_URL` | Optional. Download link for a client patch, shown in the "How to connect" section. |
 | `DISABLE_TOP_PLAYERS` / `DISABLE_ONLINE_PLAYERS` / `DISABLE_CHANGEPASSWORD` | Set any of these to `true` to hide that page. |
 | `REALM_ID` | The realm's ID in `acore_auth.realmlist`. Leave at `1` unless you run more than one realm. |

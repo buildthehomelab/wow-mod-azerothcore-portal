@@ -66,7 +66,7 @@
                                 alt="" class="img-fluid"></a></li>
                 <li><a href="#register"><?php elang('register');  ?></a></li>
                 <?php if (!get_config('disable_online_players') || !get_config('disable_top_players')) { ?><li><a href="#server-status"><?php elang('server_status');  ?></a></li><?php } ?>
-                <li><a href="#contact"><?php elang('contact');  ?></a></li>
+                <?php if (!empty(get_config('contact_email'))) { ?><li><a href="#contact"><?php elang('contact');  ?></a></li><?php } ?>
                 <?php if(!empty(get_config('supported_langs'))) { ?>
                     <li><a class="nav-item nav-link" id="nav-contact-tab" data-toggle="modal" data-target="#lang-modal"
                         role="tab" aria-controls="nav-contact" aria-selected="false"><?php elang('change_lang_head'); ?></a></li>

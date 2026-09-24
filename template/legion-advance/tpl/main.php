@@ -462,6 +462,8 @@ require_once 'rules.php';
 <?php } ?>
 <?php
 require_once 'faq.php';
-require_once 'contact.php';
+if (!empty(get_config('contact_email'))) {
+    require_once 'contact.php';
+}
 require_once 'footer.php';
 ?>

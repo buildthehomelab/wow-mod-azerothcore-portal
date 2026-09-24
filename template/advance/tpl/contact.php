@@ -10,7 +10,6 @@
         <div class="container">
             <div class="section-title">
                 <h2><?php elang('contact'); ?></h2>
-                <p><?php elang('edit_on'); ?> <b>"/template/advance/tpl/contact.php"</b>.</p>
             </div>
             <div class="row">
                 <div class="col-lg-12">

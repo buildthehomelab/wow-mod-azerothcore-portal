@@ -24,8 +24,10 @@ require_once 'header.php'; ?>
                     <?php } ?>
                     <a class="nav-item nav-link" id="nav-howtoconnect-tab" data-toggle="tab"
                        href="#nav-howtoconnect" role="tab" aria-controls="nav-howtoconnect" aria-selected="false"><?php elang('how_to_connect'); ?></a>
+                    <?php if (!empty(get_config('contact_email'))) { ?>
                     <a class="nav-item nav-link" id="nav-contact-tab" data-toggle="tab" href="#nav-contact"
                        role="tab" aria-controls="nav-contact" aria-selected="false"><?php elang('contact'); ?></a>
+                    <?php } ?>
                     <?php if(!empty(get_config('supported_langs'))) { ?>
                     <a class="nav-item nav-link" id="nav-contact-tab" data-toggle="modal" data-target="#lang-modal"
                        role="tab" aria-controls="nav-contact" aria-selected="false"><?php elang('change_lang_head'); ?></a>
@@ -444,9 +446,11 @@ require_once 'header.php'; ?>
                      aria-labelledby="nav-howtoconnect-tab">
                     <?php require_once base_path . 'template/' . get_config('template') . '/tpl/howtoconnect.php'; ?>
                 </div>
+                <?php if (!empty(get_config('contact_email'))) { ?>
                 <div class="tab-pane fade" id="nav-contact" role="tabpanel" aria-labelledby="nav-contact-tab">
                     <?php require_once base_path . 'template/' . get_config('template') . '/tpl/contactus.php'; ?>
                 </div>
+                <?php } ?>
             </div>
         </div>
     </div>
