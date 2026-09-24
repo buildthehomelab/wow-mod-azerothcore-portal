@@ -103,7 +103,8 @@ $config['realmlists'] = [
 ];
 
 // mod-realm-config: the module's output directory is mounted read-only at /realm (see docker-compose.yml)
-$config['realm_conf_file'] = '/var/www/html/realm/realm.conf';
-$config['realm_conf_url'] = $config['baseurl'] . '/realm/realm.conf';
+$config['realm_conf_dir'] = '/var/www/html/realm';
+$config['realm_conf_base_url'] = $config['baseurl'] . '/realm';
+$config['realm_key'] = $env('REALM_KEY', ''); // empty: newest *.realm.conf in the folder
 
 $config['script_version'] = '2.0.2';

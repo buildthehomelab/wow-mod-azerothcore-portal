@@ -11,6 +11,48 @@ class realm_config
 
     private static $loaded = false;
     private static $sections = null;
+    private static $file = null;
+
+    /**
+     * The module writes <realm_key>.realm.conf. Use the configured key, otherwise the newest
+     * *.realm.conf (renaming realm_key leaves the old file behind).
+     */
+    public static function file()
+    {
+        $dir = rtrim((string)get_config('realm_conf_dir'), '/');
+        if ($dir === '' || !is_dir($dir)) {
+            return null;
+        }
+
+        $key = (string)get_config('realm_key');
+        if ($key !== '') {
+            if (!preg_match('/^[a-z0-9_-]{1,64}$/', $key)) {
+                return null;
+            }
+            $file = $dir . '/' . $key . '.realm.conf';
+            return is_file($file) ? $file : null;
+        }
+
+        $newest = null;
+        foreach (glob($dir . '/*.realm.conf') ?: [] as $file) {
+            if (is_file($file) && ($newest === null || filemtime($file) > filemtime($newest))) {
+                $newest = $file;
+            }
+        }
+        return $newest;
+    }
+
+    /**
+     * Public URL of the published file, or '' when there is none.
+     */
+    public static function url()
+    {
+        $base = rtrim((string)get_config('realm_conf_base_url'), '/');
+        if ($base === '' || self::get() === null) {
+            return '';
+        }
+        return $base . '/' . rawurlencode(basename(self::$file));
+    }
 
     /**
      * Parsed realm.conf as [section => [key => value]], or null when no usable file is published.
@@ -22,8 +64,8 @@ class realm_config
         }
         self::$loaded = true;
 
-        $file = get_config('realm_conf_file');
-        if (empty($file) || !is_file($file) || !is_readable($file)) {
+        $file = self::file();
+        if ($file === null || !is_readable($file)) {
             return null;
         }
 
@@ -55,6 +97,7 @@ class realm_config
             return null;
         }
         self::$sections = $sections;
+        self::$file = $file;
         return $sections;
     }
 
@@ -82,27 +125,19 @@ class realm_config
     }
 
     /**
-     * Portalkeeper only picks up files named *.realm.conf.
-     */
-    public static function download_name()
-    {
-        $slug = trim(preg_replace('/[^A-Za-z0-9]+/', '-', self::value('Realm', 'Name')), '-');
-        return ($slug !== '' ? $slug : 'realm') . '.realm.conf';
-    }
-
-    /**
      * "Play with Portalkeeper" instructions for the How to connect section, or '' when realm.conf isn't published.
      */
     public static function render()
     {
-        if (self::get() === null || empty(get_config('realm_conf_url'))) {
+        $url = self::url();
+        if ($url === '') {
             return '';
         }
 
         $e = static fn($text) => htmlspecialchars((string)$text, ENT_QUOTES);
         $t = static fn($key, $fallback) => lang($key) ?: $fallback;
 
-        $file_name = self::download_name();
+        $file_name = basename(self::$file);
         $min_version = self::value('Portalkeeper', 'MinimumVersion');
 
         $html = '<div class="portalkeeper" style="line-height: 1.5; margin-top: 20px; text-align: left;">';
@@ -114,7 +149,7 @@ class realm_config
             $html .= ' (' . $e($min_version) . '+)';
         }
         $html .= '.</li>';
-        $html .= '<li>' . $e($t('portalkeeper_step2', 'Download the realm file:')) . ' <a href="' . $e(get_config('realm_conf_url')) . '" download="' . $e($file_name) . '">' . $e($file_name) . '</a></li>';
+        $html .= '<li>' . $e($t('portalkeeper_step2', 'Download the realm file:')) . ' <a href="' . $e($url) . '" download="' . $e($file_name) . '">' . $e($file_name) . '</a></li>';
         $html .= '<li>' . $e($t('portalkeeper_step3', 'Put it in your Portalkeeper realms folder:')) . ' <code>%APPDATA%\\Portalkeeper\\realms</code> (Windows) / <code>~/.config/Portalkeeper/realms</code> (Linux)</li>';
         $html .= '<li>' . $e($t('portalkeeper_step4', 'Start Portalkeeper, choose your WoW 3.3.5a folder and click ENTER REALM.')) . '</li>';
         $html .= '</ol>';

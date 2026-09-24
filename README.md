@@ -63,7 +63,7 @@ Generate a password, e.g. with `openssl rand -base64 24`. Put it in two places:
 | `DB_USER` / `DB_PASS` | Leave `DB_USER` as `wow_register` unless you changed it in the SQL file. |
 | `DB_PORT` | AzerothCore's MySQL port inside the Docker network. Leave at `3306` unless you changed it. |
 | `SMTP_*` | Optional. Only needed for "forgot password" emails. `SMTP_SECURE` is `tls` (default, usually port 587) or `ssl` (usually port 465). |
-| `REALM_CONFIG_DIR` | Optional. Host folder mod-realm-config writes `realm.conf` to. See [below](#portalkeeper-and-mod-realm-config). |
+| `REALM_CONFIG_DIR` | Optional. Host folder mod-realm-config writes `<realm_key>.realm.conf` to. See [below](#portalkeeper-and-mod-realm-config). |
 | `DEBUG_MODE` | Set to `true` to show PHP errors while troubleshooting. Turn it back off afterwards. |
 
 ### 5. Create the database user
@@ -88,7 +88,7 @@ Open `https://SERVICE_NAME.DOMAIN` and register a test account, then log in with
 
 If your server runs [mod-realm-config](https://github.com/Hisha/mod-realm-config), the portal can host its `realm.conf` for the [Portalkeeper](https://github.com/Hisha/Portalkeeper) launcher. Players then get a "Play with Portalkeeper" section under **How to connect**. It has a Portalkeeper download link, a `realm.conf` download and the list of addons and patches the realm uses.
 
-The module writes `realm.conf` to a folder but doesn't serve it over the web. The portal mounts that folder read-only and serves it at `https://SERVICE_NAME.DOMAIN/realm/`.
+The module writes `<realm_key>.realm.conf` to a folder but doesn't serve it over the web. (The module's README calls it `realm.conf`, but the code names it after `realm_key`.) The portal mounts that folder read-only and serves it at `https://SERVICE_NAME.DOMAIN/realm/`.
 
 These steps assume AzerothCore runs from the [azerothcore-wotlk](https://github.com/azerothcore/azerothcore-wotlk) repo's own `docker-compose.yml`, checked out at `~/azerothcore-wotlk`. Adjust the paths if yours is somewhere else.
 
@@ -130,20 +130,21 @@ These steps assume AzerothCore runs from the [azerothcore-wotlk](https://github.
 
    The `ac-db-import` container should create the module's tables in `acore_world`. If `SHOW TABLES LIKE 'mod_realm_config%';` in `acore_world` comes back empty, import `modules/mod-realm-config/data/sql/db-world/base/mod_realm_config.sql` into `acore_world` yourself. It's safe to run twice.
 
-6. **Fill in your realm's details** in the world database. `address` is what players connect to. Use your own hostname and the portal's URL:
+6. **Fill in your realm's details** in the world database. `address` is what players connect to. `realm_key` names the file (lowercase letters, digits, `-` or `_`). The module starts it at `example`, which is why you get `example.realm.conf`. Use your own key, hostname and the portal's URL:
 
    ```sql
    UPDATE acore_world.mod_realm_config
-   SET name        = 'My Realm',
+   SET realm_key   = 'myrealm',
+       name        = 'My Realm',
        address     = 'wow.example.com',
        auth_port   = 3724,
        world_port  = 8085,
-       config_url  = 'https://register.example.com/realm/realm.conf',
+       config_url  = 'https://register.example.com/realm/myrealm.realm.conf',
        website_url = 'https://register.example.com/'
    WHERE id = 1;
    ```
 
-   The module notices the change within `RealmConfig.RefreshIntervalSeconds` (30s by default) and writes `realm.conf`. There's no need to restart anything.
+   The module notices the change within `RealmConfig.RefreshIntervalSeconds` (30s by default) and writes `myrealm.realm.conf`. There's no need to restart anything. If you changed the key, the module leaves the old `example.realm.conf` in place, so delete it.
 
 7. **Point the portal at the folder** in this repo's `.env` (an absolute host path), then restart the portal:
 
@@ -155,7 +156,7 @@ These steps assume AzerothCore runs from the [azerothcore-wotlk](https://github.
    docker compose up -d
    ```
 
-   Open `https://SERVICE_NAME.DOMAIN/realm/realm.conf`. It should show the file.
+   Open `https://SERVICE_NAME.DOMAIN/realm/myrealm.realm.conf`. It should show the file. The portal uses the newest `*.realm.conf` in the folder. To pin a specific one, set `REALM_KEY=myrealm` in `.env`.
 
    With this compose file, `AC_NETWORK_NAME` is `<folder name>_ac-network`, e.g. `azerothcore-wotlk_ac-network`. Check with `docker network ls`.
 
@@ -177,7 +178,7 @@ If you only changed `.env` (template, title, and so on), `docker compose up -d` 
 - **Blank page:** set `DEBUG_MODE=true` in `.env`, run `docker compose up -d`, reload the page and read the error. Then turn it off again.
 - **Styling or images missing:** the site builds its links from `SERVICE_NAME` and `DOMAIN`. Make sure they match the URL you're visiting.
 - **Database connection error:** check that `AC_NETWORK_NAME` is right, that the container is on it (`docker inspect wow-register`), and that `DB_PASS` matches the password in `create-db-user.sql`.
-- **No Portalkeeper section / 404 on `/realm/realm.conf`:** check that `REALM_CONFIG_DIR` is the host folder the module writes to, that `realm.conf` exists there and is readable, and that you ran `docker compose up -d` after changing it. `docker exec wow-register ls -l /var/www/html/realm` shows what the container sees.
+- **No Portalkeeper section / 404 on `/realm/<realm_key>.realm.conf`:** check that `REALM_CONFIG_DIR` is the host folder the module writes to, that `<realm_key>.realm.conf` exists there (and matches `REALM_KEY` if you set it) and is readable, and that you ran `docker compose up -d` after changing it. `docker exec wow-register ls -l /var/www/html/realm` shows what the container sees.
 - **Logs:** `docker logs wow-register`
 
 ## What's different from upstream

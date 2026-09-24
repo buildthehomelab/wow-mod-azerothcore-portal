@@ -192,9 +192,10 @@ $config['realmlists'] = array( // Add your realmlist here
 
 // Script version - Denotes the version of this configuration script.
 // mod-realm-config (https://github.com/Hisha/mod-realm-config) - optional.
-// Path to the realm.conf the module publishes, and the public URL it's served from.
+// Folder the module writes <realm_key>.realm.conf to (RealmConfig.OutputDirectory), and the public URL of that folder.
 // When set, the "How to connect" section shows Portalkeeper setup steps and a realm.conf download.
-$config['realm_conf_file'] = '';
-$config['realm_conf_url'] = '';
+$config['realm_conf_dir'] = '';
+$config['realm_conf_base_url'] = '';
+$config['realm_key'] = ''; // mod_realm_config.realm_key; leave empty to use the newest *.realm.conf in the folder
 
 $config['script_version'] = '2.0.2';
