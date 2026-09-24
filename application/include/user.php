@@ -223,9 +223,12 @@ class user
     public static function normal_register()
     {
         global $antiXss;
-        if ($_POST['submit'] != 'register' || empty($_POST['password']) || empty($_POST['username']) || empty($_POST['repassword']) || empty($_POST['email'])) {
+        // Email is optional when require_email is off (no SMTP, nothing uses it); the account gets an empty email.
+        $use_email = !empty(get_config('require_email'));
+        if ($_POST['submit'] != 'register' || empty($_POST['password']) || empty($_POST['username']) || empty($_POST['repassword']) || ($use_email && empty($_POST['email']))) {
             return false;
         }
+        $email = $use_email ? strtoupper($_POST['email']) : '';
 
         if (!captcha_validation()) {
             return false;
@@ -236,7 +239,7 @@ class user
             return false;
         }
 
-        if (!filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
+        if ($use_email && !filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
             error_msg(lang('use_valid_email'));
             return false;
         }
@@ -256,7 +259,7 @@ class user
             return false;
         }
 
-        if (!get_config('multiple_email_use') && !self::check_email_exists(strtoupper($_POST['email']))) {
+        if ($use_email && !get_config('multiple_email_use') && !self::check_email_exists($email)) {
             error_msg(lang('email_exists'));
             return false;
         }
@@ -272,7 +275,7 @@ class user
                 database::$auth->insert('account', [
                     'username' => $antiXss->xss_clean(strtoupper($_POST['username'])),
                     'sha_pass_hash' => $antiXss->xss_clean($hashed_pass),
-                    'email' => $antiXss->xss_clean(strtoupper($_POST['email'])),
+                    'email' => $antiXss->xss_clean($email),
                     //'reg_mail' => $antiXss->xss_clean(strtoupper($_POST['email'])),
                     'expansion' => $antiXss->xss_clean(get_config('expansion')),
                 ]);
@@ -285,7 +288,7 @@ class user
                 'username' => $antiXss->xss_clean(strtoupper($_POST['username'])),
                 get_core_config("salt_field") => $salt,
                 get_core_config("verifier_field") => $verifier,
-                'email' => $antiXss->xss_clean(strtoupper($_POST['email'])),
+                'email' => $antiXss->xss_clean($email),
                 //'reg_mail' => $antiXss->xss_clean(strtoupper($_POST['email'])),
                 'expansion' => $antiXss->xss_clean(get_config('expansion')),
             ]);
@@ -295,7 +298,7 @@ class user
 
         $command = str_replace('{USERNAME}', $antiXss->xss_clean(strtoupper($_POST['username'])), get_config('soap_ca_command'));
         $command = str_replace('{PASSWORD}', $antiXss->xss_clean($_POST['password']), $command);
-        $command = str_replace('{EMAIL}', $antiXss->xss_clean(strtoupper($_POST['email'])), $command);
+        $command = str_replace('{EMAIL}', $antiXss->xss_clean($email), $command);
         if (RemoteCommandWithSOAP($command)) {
             if (!empty(get_config('soap_asa_command'))) {
                 $command_addon = str_replace('{USERNAME}', $antiXss->xss_clean(strtoupper($_POST['username'])), get_config('soap_asa_command'));
@@ -307,7 +310,7 @@ class user
             $queryBuilder->update('account')
                 ->set('email', ':email')
                 ->where('username = :username')
-                ->setParameter('email', $antiXss->xss_clean(strtoupper($_POST['email'])))
+                ->setParameter('email', $antiXss->xss_clean($email))
                 ->setParameter('username', $antiXss->xss_clean(strtoupper($_POST['username'])));
             $queryBuilder->executeQuery();
 

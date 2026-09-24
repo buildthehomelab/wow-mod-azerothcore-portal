@@ -191,7 +191,7 @@ If you only changed `.env` (template, title, and so on), `docker compose up -d` 
 - Uses the built-in image captcha by default, so there are no third-party captcha keys to set up. You can switch to hCaptcha, reCAPTCHA or Turnstile with `CAPTCHA_TYPE`.
 - Can host [mod-realm-config](https://github.com/Hisha/mod-realm-config)'s `realm.conf` and show Portalkeeper setup steps.
 - **Vote system is off,** because it alters `acore_auth.account` and creates new tables.
-- **No email.** "Restore password" and two-factor auth are turned off because they need SMTP. Players can still change their password if they know the current one. If someone forgets theirs, reset it from the worldserver console (`account set password <user> <new> <new>`).
+- **No email.** Registering only asks for a username and password (`require_email` is off, so accounts get an empty email). "Restore password" and two-factor auth are turned off because they need SMTP. Players can still change their password if they know the current one. If someone forgets theirs, reset it from the worldserver console (`account set password <user> <new> <new>`).
 
 ## Credits and license
 

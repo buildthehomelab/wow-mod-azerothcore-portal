@@ -49,6 +49,7 @@ $config['srp6_version'] = 2;
 $config['disable_top_players'] = $bool('DISABLE_TOP_PLAYERS', false);
 $config['disable_online_players'] = $bool('DISABLE_ONLINE_PLAYERS', false);
 $config['disable_changepassword'] = $bool('DISABLE_CHANGEPASSWORD', false);
+$config['require_email'] = false; // no email on this server: the register form doesn't ask for one
 $config['multiple_email_use'] = $bool('MULTIPLE_EMAIL_USE', false);
 $config['template'] = $env('TEMPLATE', 'icecrown'); // light, advance, icecrown, kaelthas, battleforazeroth, legion, legion-advance
 

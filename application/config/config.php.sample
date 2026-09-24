@@ -81,6 +81,7 @@ $config['disable_restorepassword'] = false; // Set to true to hide "restore pass
 $config['disable_changepassword'] = false; // Set to true to disable password changes.
 
 // Multiple Email Account Creation - Configure whether to allow multiple accounts to be created with the same email address.
+$config['require_email'] = true; // Ask for an email when registering. Set to false to hide the field (accounts get an empty email).
 $config['multiple_email_use'] = false; // Change to true to allow creation of multiple accounts with the same email.
 
 // Template Selection - Choose which template to use for the appearance of your website.

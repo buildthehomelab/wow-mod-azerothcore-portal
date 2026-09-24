@@ -72,10 +72,12 @@ require_once 'header.php'; ?>
                                     <div style="padding: 10px;">
                                         <?php error_msg();
                                         success_msg(); //Display message. ?>
+                                        <?php if (!empty(get_config('require_email'))) { ?>
                                         <div class="input-group">
                                             <span class="input-group"><?php elang('email'); ?></span>
                                             <input type="email" class="form-control" placeholder="<?php elang('email'); ?>" name="email">
                                         </div>
+                                        <?php } ?>
                                         <?php if (!get_config('battlenet_support')) { ?>
                                             <div class="input-group">
                                                 <span class="input-group"><?php elang('username'); ?></span>
