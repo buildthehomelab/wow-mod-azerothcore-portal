@@ -4,9 +4,9 @@ A player registration website for an [AzerothCore](https://www.azerothcore.org) 
 
 Players can create an account, change their password, see who's online and check the top players. Accounts are written straight into `acore_auth.account` using SRP6 (salt + verifier), the same way AzerothCore does it, so you don't need to enable SOAP.
 
-This is a Docker-focused fork of [masterking32/WoWSimpleRegistration](https://github.com/masterking32/WoWSimpleRegistration). All the PHP and the templates come from that project.
+This is a Docker-focused fork of [masterking32/WoWSimpleRegistration](https://github.com/masterking32/WoWSimpleRegistration). All the PHP and the `advance` template come from that project.
 
-![IceCrown template](screenshots/i1.jpg)
+![Portal](screenshots/a-lichking-min.jpg)
 
 ## Requirements
 
@@ -52,7 +52,6 @@ Generate a password, e.g. with `openssl rand -base64 24`. Put it in two places:
 | `REALM_NAME` | Realm name shown on the site. Leave empty to use the name from mod-realm-config. |
 | `SITE_TITLE` | Title shown in the browser tab and header. |
 | `CONTACT_EMAIL` | Email address shown on the contact page. Leave empty to hide the contact page and its menu link. |
-| `TEMPLATE` | `icecrown` (default), `light`, `advance`, `kaelthas`, `battleforazeroth`, `legion` or `legion-advance`. |
 | `LANGUAGE` | Default site language: `english`, `persian`, `italian`, `chinese-simplified`, `chinese-traditional`, `swedish`, `french`, `german`, `spanish`, `korean`, `russian` or `portugues`. Players can switch language on the site unless `LANGUAGE_CHANGER=false`. |
 | `LANGUAGE_CHANGER` | Set to `false` to hide the language changer, so everyone sees the site in `LANGUAGE`. |
 | `PATCH_URL` | Optional. Download link for a client patch, shown in the "How to connect" section. |
@@ -171,7 +170,7 @@ git pull
 docker compose up -d --build
 ```
 
-If you only changed `.env` (template, title, and so on), `docker compose up -d` is enough and no rebuild is needed.
+If you only changed `.env` (title, contact email, and so on), `docker compose up -d` is enough and no rebuild is needed.
 
 ## Troubleshooting
 
@@ -184,6 +183,7 @@ If you only changed `.env` (template, title, and so on), `docker compose up -d` 
 ## What's different from upstream
 
 - Docker image (PHP 8.3 + Apache) with Composer dependencies installed at build time.
+- Ships a single template, `advance` (upstream's other six were removed), trimmed down: register and change password open as popups from the top menu, and the placeholder FAQ, rules, footer and contact details are gone.
 - All config comes from environment variables ([docker/config.php](docker/config.php)) instead of an edited `config.php`.
 - Served only through Traefik over HTTPS. No ports are published.
 - Apache blocks direct access to `application/`, `docker/`, dotfiles and Markdown files ([docker/apache-security.conf](docker/apache-security.conf)).

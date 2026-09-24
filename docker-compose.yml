@@ -20,7 +20,6 @@ services:
       BASE_URL: https://${SERVICE_NAME}.${DOMAIN}
       SITE_TITLE: ${SITE_TITLE:-Simple Register}
       CONTACT_EMAIL: ${CONTACT_EMAIL:-}
-      TEMPLATE: ${TEMPLATE:-icecrown}
       REALMLIST: ${REALMLIST:-}
       REALM_ID: ${REALM_ID:-1}
       REALM_NAME: ${REALM_NAME:-}
