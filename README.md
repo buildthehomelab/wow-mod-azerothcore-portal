@@ -90,30 +90,74 @@ If your server runs [mod-realm-config](https://github.com/Hisha/mod-realm-config
 
 The module writes `realm.conf` to a folder but doesn't serve it over the web. The portal mounts that folder read-only and serves it at `https://SERVICE_NAME.DOMAIN/realm/`.
 
-1. **Install the module** in AzerothCore and apply its world database SQL, following the [module's README](https://github.com/Hisha/mod-realm-config#installation).
+These steps assume AzerothCore runs from the [azerothcore-wotlk](https://github.com/azerothcore/azerothcore-wotlk) repo's own `docker-compose.yml`, checked out at `~/azerothcore-wotlk`. Adjust the paths if yours is somewhere else.
 
-2. **Give the module a folder both containers can see.** Mount a host folder into the worldserver container and point `RealmConfig.OutputDirectory` at it in `mod_realm_config.conf`. For example, if the host folder `/srv/azerothcore/realm-public` is mounted at `/realm-public` in worldserver:
-
-   ```ini
-   RealmConfig.OutputDirectory = "/realm-public/"
-   ```
-
-3. **Point the portal at the same host folder** in `.env`:
+1. **Add the module and rebuild AzerothCore.** The Docker build compiles everything in `modules/`:
 
    ```bash
-   REALM_CONFIG_DIR=/srv/azerothcore/realm-public
+   cd ~/azerothcore-wotlk/modules
+   git clone https://github.com/Hisha/mod-realm-config.git
    ```
 
-4. **Tell the module where the file is published**, so Portalkeeper can refresh it. Run this against the world database:
+2. **Create the output folder.** Worldserver runs as UID 1000 (`DOCKER_USER_ID`), so it has to own the folder. If Docker creates the folder instead, root owns it and the module can't write to it.
+
+   ```bash
+   mkdir -p ~/azerothcore-wotlk/env/dist/realm-public
+   sudo chown 1000:1000 ~/azerothcore-wotlk/env/dist/realm-public
+   ```
+
+3. **Mount it into worldserver.** AzerothCore says not to edit its `docker-compose.yml`, so create `~/azerothcore-wotlk/docker-compose.override.yml` (or add to yours):
+
+   ```yaml
+   services:
+     ac-worldserver:
+       volumes:
+         - ./env/dist/realm-public:/azerothcore/env/dist/realm-public
+   ```
+
+4. **Configure the module.** Copy `modules/mod-realm-config/conf/mod_realm_config.conf.dist` to `env/dist/etc/modules/mod_realm_config.conf` and set:
+
+   ```ini
+   RealmConfig.OutputDirectory = "/azerothcore/env/dist/realm-public/"
+   ```
+
+5. **Rebuild and start AzerothCore:**
+
+   ```bash
+   cd ~/azerothcore-wotlk
+   docker compose up -d --build
+   ```
+
+   The `ac-db-import` container should create the module's tables in `acore_world`. If `SHOW TABLES LIKE 'mod_realm_config%';` in `acore_world` comes back empty, import `modules/mod-realm-config/data/sql/db-world/base/mod_realm_config.sql` into `acore_world` yourself. It's safe to run twice.
+
+6. **Fill in your realm's details** in the world database. `address` is what players connect to. Use your own hostname and the portal's URL:
 
    ```sql
-   UPDATE mod_realm_config
-   SET config_url  = 'https://register.example.com/realm/realm.conf',
+   UPDATE acore_world.mod_realm_config
+   SET name        = 'My Realm',
+       address     = 'wow.example.com',
+       auth_port   = 3724,
+       world_port  = 8085,
+       config_url  = 'https://register.example.com/realm/realm.conf',
        website_url = 'https://register.example.com/'
    WHERE id = 1;
    ```
 
-5. **Restart the portal** with `docker compose up -d`. Then open `https://SERVICE_NAME.DOMAIN/realm/realm.conf`, which should show the file.
+   The module notices the change within `RealmConfig.RefreshIntervalSeconds` (30s by default) and writes `realm.conf`. There's no need to restart anything.
+
+7. **Point the portal at the folder** in this repo's `.env` (an absolute host path), then restart the portal:
+
+   ```bash
+   REALM_CONFIG_DIR=/home/you/azerothcore-wotlk/env/dist/realm-public
+   ```
+
+   ```bash
+   docker compose up -d
+   ```
+
+   Open `https://SERVICE_NAME.DOMAIN/realm/realm.conf`. It should show the file.
+
+   With this compose file, `AC_NETWORK_NAME` is `<folder name>_ac-network`, e.g. `azerothcore-wotlk_ac-network`. Check with `docker network ls`.
 
 With `REALMLIST` and `REALM_NAME` left empty in `.env`, the site uses the realm's address and name from `realm.conf`, so you only have to set them in one place.
 
