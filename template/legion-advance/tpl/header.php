@@ -69,7 +69,7 @@
                 <li class="nav-logo"><a href="#hero"><img
                                 src="<?php echo $antiXss->xss_clean(get_config("baseurl")); ?>/template/<?php echo $antiXss->xss_clean(get_config("template")); ?>/assets/img/icon.png"
                                 alt="" class="img-fluid"></a></li>
-                <li><a href="#register"><?php elang('register');  ?></a></li>
+                <li><a href="#" data-toggle="modal" data-target="#register-modal"><?php elang('register');  ?></a></li>
                 <?php if (empty(get_config('disable_changepassword'))) { ?><li><a href="#" data-toggle="modal" data-target="#changepassword-modal"><?php elang('change_password'); ?></a></li><?php } ?>
                 <?php if (!get_config('disable_online_players') || !get_config('disable_top_players')) { ?><li><a href="#server-status"><?php elang('server_status');  ?></a></li><?php } ?>
                 <?php if (!empty(get_config('contact_email'))) { ?><li><a href="#contact"><?php elang('contact');  ?></a></li><?php } ?>

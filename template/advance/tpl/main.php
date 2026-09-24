@@ -17,50 +17,23 @@ require_once 'how-connect.php';
             <p><?php elang('create_new_game_account'); ?></p>
         </div>
         <div class="row">
-            <div class="col-lg-6 order-2 order-lg-1">
-                <form action="<?php echo $antiXss->xss_clean(get_config("baseurl")); ?>/index.php#register"
-                    method="post">
-                    <div style="padding: 10px;" data-aos="fade-right" data-aos-delay="100">
-                        <?php error_msg();
-                        success_msg(); //Display message. ?>
-                        <div class="input-group">
-                            <span class="input-group"><?php elang('email'); ?></span>
-                            <input type="email" class="form-control" required placeholder="<?php elang('email'); ?>"
-                                name="email">
-                        </div>
-                        <?php if (!get_config('battlenet_support')) { ?>
-                        <div class="input-group">
-                            <span class="input-group"><?php elang('username'); ?></span>
-                            <input type="text" class="form-control" pattern="[A-Za-z0-9]{2,16}" required
-                                placeholder="<?php elang('username'); ?>" name="username">
-                        </div>
-                        <?php } ?>
-                        <div class="input-group">
-                            <span class="input-group"><?php elang('password'); ?></span>
-                            <input type="password" class="form-control" minlength="4" maxlength="16" required
-                                placeholder="<?php elang('password'); ?>" name="password">
-                        </div>
-                        <div class="input-group">
-                            <span class="input-group"><?php elang('retype_password'); ?></span>
-                            <input type="password" class="form-control" minlength="4" maxlength="16" required
-                                placeholder="<?php elang('retype_password'); ?>" name="repassword">
-                        </div>
-                        <?php echo GetCaptchaHTML(); ?>
-                        <input name="submit" type="hidden" value="register">
-                        <div class="text-center" style="margin-top: 10px;"><input type="submit" class="btn btn-success"
-                                value="<?php elang('register'); ?>">
-                        </div>
-                    </div>
-                </form>
+            <div class="col-lg-6 order-2 order-lg-1 d-flex flex-column justify-content-center">
+                <div style="padding: 10px;">
+                    <?php error_msg();
+                    success_msg(); //Display message. ?>
+                </div>
                 <div class="text-center" data-aos="fade-up" data-aos-delay="100">
+                    <button type="button" class="btn btn-success btn-lg m-1" data-toggle="modal" data-target="#register-modal">
+                        <?php elang('register'); ?>
+                    </button>
                     <?php if (empty(get_config('disable_changepassword'))) { ?>
-                    <button type="button" class="btn btn-primary" data-toggle="modal"
+                    <button type="button" class="btn btn-primary btn-lg m-1" data-toggle="modal"
                         data-target="#changepassword-modal">
                         <?php elang('change_password'); ?>
                     </button>
                     <?php } ?>
                     <?php if (empty(get_config('disable_restorepassword'))) { ?>
-                    <button type="button" class="btn btn-info" data-toggle="modal" data-target="#restorepassword-modal">
+                    <button type="button" class="btn btn-info btn-lg m-1" data-toggle="modal" data-target="#restorepassword-modal">
                         <?php elang('restore_password'); ?>
                     </button>
                     <?php } ?>
@@ -214,6 +187,54 @@ require_once 'how-connect.php';
                     </div>
                 </div>
                 <?php } ?>
+                <div class="modal" id="register-modal">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h4 class="modal-title"><?php elang('register'); ?></h4>
+                                <button type="button" class="close" data-dismiss="modal">&times;
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <form
+                                    action="<?php echo $antiXss->xss_clean(get_config("baseurl")); ?>/index.php#register"
+                                    method="post">
+                                    <div class="input-group">
+                                        <span class="input-group"><?php elang('email'); ?></span>
+                                        <input type="email" class="form-control" required placeholder="<?php elang('email'); ?>"
+                                            name="email">
+                                    </div>
+                                    <?php if (!get_config('battlenet_support')) { ?>
+                                    <div class="input-group">
+                                        <span class="input-group"><?php elang('username'); ?></span>
+                                        <input type="text" class="form-control" pattern="[A-Za-z0-9]{2,16}" required
+                                            placeholder="<?php elang('username'); ?>" name="username">
+                                    </div>
+                                    <?php } ?>
+                                    <div class="input-group">
+                                        <span class="input-group"><?php elang('password'); ?></span>
+                                        <input type="password" class="form-control" minlength="4" maxlength="16" required
+                                            placeholder="<?php elang('password'); ?>" name="password">
+                                    </div>
+                                    <div class="input-group">
+                                        <span class="input-group"><?php elang('retype_password'); ?></span>
+                                        <input type="password" class="form-control" minlength="4" maxlength="16" required
+                                            placeholder="<?php elang('retype_password'); ?>" name="repassword">
+                                    </div>
+                                    <?php echo GetCaptchaHTML(); ?>
+                                    <input name="submit" type="hidden" value="register">
+                                    <div class="text-center" style="margin-top: 10px;"><input type="submit"
+                                            class="btn btn-success" value="<?php elang('register'); ?>"></div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-danger" data-dismiss="modal">
+                                    <?php elang('close'); ?>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="modal" id="changepassword-modal">
                     <div class="modal-dialog">
                         <div class="modal-content">
@@ -242,7 +263,7 @@ require_once 'how-connect.php';
                                     <div class="input-group">
                                         <span class="input-group"><?php elang('old_password'); ?></span>
                                         <input type="password" class="form-control"
-                                            placeholder=<?php elang('old_password'); ?>" name="old_password">
+                                            placeholder="<?php elang('old_password'); ?>" name="old_password">
                                     </div>
                                     <div class="input-group">
                                         <span class="input-group"><?php elang('password'); ?></span>
