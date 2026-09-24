@@ -9,7 +9,6 @@
 require_once 'header.php';
 require_once 'server-info.php';
 require_once 'how-connect.php';
-require_once 'rules.php';
 ?>
 <section id="register" class="services">
     <div class="container">
