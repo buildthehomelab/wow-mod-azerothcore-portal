@@ -52,6 +52,9 @@ Generate a password, e.g. with `openssl rand -base64 24`. Put it in two places:
 | `REALM_NAME` | Realm name shown on the site. |
 | `SITE_TITLE` | Title shown in the browser tab and header. |
 | `TEMPLATE` | `icecrown` (default), `light`, `advance`, `kaelthas`, `battleforazeroth`, `legion` or `legion-advance`. |
+| `LANGUAGE` | Default site language: `english`, `persian`, `italian`, `chinese-simplified`, `chinese-traditional`, `swedish`, `french`, `german`, `spanish`, `korean`, `russian` or `portugues`. Players can still switch language on the site. |
+| `PATCH_URL` | Optional. Download link for a client patch, shown in the "How to connect" section. |
+| `DISABLE_TOP_PLAYERS` / `DISABLE_ONLINE_PLAYERS` / `DISABLE_CHANGEPASSWORD` | Set any of these to `true` to hide that page. |
 | `DB_USER` / `DB_PASS` | Leave `DB_USER` as `wow_register` unless you changed it in the SQL file. |
 | `SMTP_*` | Optional. Only needed for "forgot password" emails. |
 | `DEBUG_MODE` | Set to `true` to show PHP errors while troubleshooting. Turn it back off afterwards. |

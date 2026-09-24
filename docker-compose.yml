@@ -22,6 +22,11 @@ services:
       TEMPLATE: ${TEMPLATE:-icecrown}
       REALMLIST: ${REALMLIST:-127.0.0.1}
       REALM_NAME: ${REALM_NAME:-AzerothCore}
+      LANGUAGE: ${LANGUAGE:-english}
+      PATCH_URL: ${PATCH_URL:-}
+      DISABLE_TOP_PLAYERS: ${DISABLE_TOP_PLAYERS:-false}
+      DISABLE_ONLINE_PLAYERS: ${DISABLE_ONLINE_PLAYERS:-false}
+      DISABLE_CHANGEPASSWORD: ${DISABLE_CHANGEPASSWORD:-false}
       DB_HOST: ac-database
       DB_USER: ${DB_USER:-wow_register}
       DB_PASS: ${DB_PASS:?set DB_PASS in .env}
