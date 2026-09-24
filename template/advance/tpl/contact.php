@@ -15,24 +15,13 @@
             <div class="row">
                 <div class="col-lg-12">
                     <div class="info d-flex flex-column justify-content-center" data-aos="fade-right">
-                        <div class="address">
-                            <i class="icofont-google-map"></i>
-                            <h4><?php elang('location'); ?>:</h4>
-                            <p>Tehran, Iran</p>
-                        </div>
-
                         <?php if (!empty(get_config('contact_email'))) { $contact_email = htmlspecialchars(get_config('contact_email')); ?>
-                        <div class="email">
+                        <div class="email" style="margin-top: 0;">
                             <i class="icofont-envelope"></i>
                             <h4><?php elang('email'); ?>:</h4>
                             <p><a href="mailto:<?php echo $contact_email; ?>"><?php echo $contact_email; ?></a></p>
                         </div>
                         <?php } ?>
-                        <div class="phone">
-                            <i class="icofont-phone"></i>
-                            <h4><?php elang('call'); ?>:</h4>
-                            <p>+98 915 620 9344</p>
-                        </div>
                     </div>
                 </div>
             </div>
