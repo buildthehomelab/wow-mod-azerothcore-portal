@@ -86,7 +86,7 @@ Open `https://SERVICE_NAME.DOMAIN` and register a test account, then log in with
 
 ## Portalkeeper and mod-realm-config
 
-If your server runs [mod-realm-config](https://github.com/Hisha/mod-realm-config), the portal can host its `realm.conf` for the [Portalkeeper](https://github.com/Hisha/Portalkeeper) launcher. Players then get a "Play with Portalkeeper" section under **How to connect**. It has a Portalkeeper download link, a `realm.conf` download and the list of addons and patches the realm uses.
+If your server runs [mod-realm-config](https://github.com/Hisha/mod-realm-config), the portal can host its `realm.conf` for the [Portalkeeper](https://github.com/Hisha/Portalkeeper) launcher. Players then get a "Play with Portalkeeper" section under **How to connect**. It has a Portalkeeper download link, the `realm.conf` download and where to put it.
 
 The module writes `<realm_key>.realm.conf` to a folder but doesn't serve it over the web. (The module's README calls it `realm.conf`, but the code names it after `realm_key`.) The portal mounts that folder read-only and serves it at `https://SERVICE_NAME.DOMAIN/realm/`.
 

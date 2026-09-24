@@ -108,23 +108,6 @@ class realm_config
     }
 
     /**
-     * Addons ('Addon') or patches ('Patch') listed in realm.conf, as [['name' => ..., 'requirement' => ...], ...].
-     */
-    public static function components($type)
-    {
-        $list = [];
-        foreach (self::get() ?? [] as $section => $fields) {
-            if (strpos($section, $type . '.') === 0) {
-                $list[] = [
-                    'name' => $fields['Name'] ?? substr($section, strlen($type) + 1),
-                    'requirement' => $fields['Requirement'] ?? '',
-                ];
-            }
-        }
-        return $list;
-    }
-
-    /**
      * "Play with Portalkeeper" instructions for the How to connect section, or '' when realm.conf isn't published.
      */
     public static function render()
@@ -153,19 +136,6 @@ class realm_config
         $html .= '<li>' . $e($t('portalkeeper_step3', 'Put it in your Portalkeeper realms folder:')) . ' <code>%APPDATA%\\Portalkeeper\\realms</code> (Windows) / <code>~/.config/Portalkeeper/realms</code> (Linux)</li>';
         $html .= '<li>' . $e($t('portalkeeper_step4', 'Start Portalkeeper, choose your WoW 3.3.5a folder and click ENTER REALM.')) . '</li>';
         $html .= '</ol>';
-
-        $components = array_merge(self::components('Addon'), self::components('Patch'));
-        if (!empty($components)) {
-            $html .= '<p>' . $e($t('portalkeeper_components', 'Portalkeeper sets these up for you:')) . '</p><ul>';
-            foreach ($components as $component) {
-                $html .= '<li>' . $e($component['name']);
-                if ($component['requirement'] !== '') {
-                    $html .= ' (' . $e($component['requirement']) . ')';
-                }
-                $html .= '</li>';
-            }
-            $html .= '</ul>';
-        }
 
         return $html . '</div>';
     }
