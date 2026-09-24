@@ -71,6 +71,9 @@
                                 alt="" class="img-fluid"></a></li>
                 <li><a href="#" data-toggle="modal" data-target="#register-modal"><?php elang('register');  ?></a></li>
                 <?php if (empty(get_config('disable_changepassword'))) { ?><li><a href="#" data-toggle="modal" data-target="#changepassword-modal"><?php elang('change_password'); ?></a></li><?php } ?>
+                <?php if (empty(get_config('disable_restorepassword'))) { ?><li><a href="#" data-toggle="modal" data-target="#restorepassword-modal"><?php elang('restore_password'); ?></a></li><?php } ?>
+                <?php if (get_config('2fa_support')) { ?><li><a href="#" data-toggle="modal" data-target="#e2fa-modal"><?php elang('two_factor_authentication'); ?></a></li><?php } ?>
+                <?php if (get_config('vote_system')) { ?><li><a href="#" data-toggle="modal" data-target="#vote-modal"><?php elang('vote_for_us'); ?></a></li><?php } ?>
                 <?php if (!get_config('disable_online_players') || !get_config('disable_top_players')) { ?><li><a href="#server-status"><?php elang('server_status');  ?></a></li><?php } ?>
                 <?php if (!empty(get_config('contact_email'))) { ?><li><a href="#contact"><?php elang('contact');  ?></a></li><?php } ?>
             </ul>
