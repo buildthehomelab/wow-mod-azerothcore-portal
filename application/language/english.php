@@ -7,11 +7,7 @@
 
 $language['lang'] = 'english';
 $language['custom_css'] = '';
-$language['tpl_light_custom_css'] = '';
 $language['tpl_advance_custom_css'] = '';
-$language['tpl_icecrown_custom_css'] = '';
-$language['tpl_kaelthas_custom_css'] = '';
-$language['tpl_battleforazeroth_custom_css'] = '';
 
 // Lang changer
 $language['change_lang_head'] = 'Language Changer';

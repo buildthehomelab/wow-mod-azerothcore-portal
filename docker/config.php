@@ -15,22 +15,8 @@ $bool = static fn(string $key, bool $default) => filter_var($env($key, $default 
 $config['baseurl'] = rtrim($env('BASE_URL', 'http://localhost:8080'), '/');
 $config['page_title'] = $env('SITE_TITLE', 'Simple Register');
 $config['contact_email'] = $env('CONTACT_EMAIL', ''); // shown on the contact page; hidden when empty
-$config['language'] = $env('LANGUAGE', 'english');
-// Language changer; LANGUAGE_CHANGER=false hides it and keeps everyone on LANGUAGE
-$config['supported_langs'] = $bool('LANGUAGE_CHANGER', true) ? [
-    'english' => 'English',
-    'persian' => 'Persian',
-    'italian' => 'Italian',
-    'chinese-simplified' => 'Chinese Simplified',
-    'chinese-traditional' => 'Chinese Traditional',
-    'swedish' => 'Swedish',
-    'french' => 'French',
-    'german' => 'German',
-    'spanish' => 'Spanish',
-    'korean' => 'Korean',
-    'russian' => 'Russian',
-    'portugues' => 'Portuguese',
-] : [];
+$config['language'] = 'english'; // the only language in this repo
+$config['supported_langs'] = []; // no language changer
 $config['debug_mode'] = $bool('DEBUG_MODE', false);
 
 // Server info shown on the "How to connect" page
