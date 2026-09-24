@@ -18,7 +18,12 @@
                 <div class="icon-box mt-5 mt-lg-0" data-aos="fade-up">
                     <i class="bx bx-user-plus"></i>
                     <h4><?php elang('create_account'); ?></h4>
-                    <p><?php elang('create_account_tip1'); ?>.</p>
+                    <?php if (empty(get_config('disable_registration'))) { ?>
+                    <p>First, create an account. You use it to log in to both the game and this website.
+                        <a href="#" data-toggle="modal" data-target="#register-modal">Register now</a>.</p>
+                    <?php } else { ?>
+                    <p>Accounts are invite-only. Ask the server owner to create one for you.</p>
+                    <?php } ?>
                 </div>
                 <div class="icon-box mt-5" data-aos="fade-up" data-aos-delay="100">
                     <i class="bx bx-download"></i>

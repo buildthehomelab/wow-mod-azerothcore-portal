@@ -73,6 +73,9 @@ class user
     public static function bnet_register()
     {
         global $antiXss;
+        if (!empty(get_config('disable_registration'))) {
+            return false;
+        }
         if ($_POST['submit'] != 'register' || empty($_POST['password']) || empty($_POST['repassword']) || empty($_POST['email'])) {
             return false;
         }
@@ -223,6 +226,9 @@ class user
     public static function normal_register()
     {
         global $antiXss;
+        if (!empty(get_config('disable_registration'))) {
+            return false;
+        }
         // Email is optional when require_email is off (no SMTP, nothing uses it); the account gets an empty email.
         $use_email = !empty(get_config('require_email'));
         if ($_POST['submit'] != 'register' || empty($_POST['password']) || empty($_POST['username']) || empty($_POST['repassword']) || ($use_email && empty($_POST['email']))) {

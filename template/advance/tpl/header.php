@@ -64,7 +64,7 @@
                 <li class="nav-logo"><a href="index.php"><img
                                 src="<?php echo $antiXss->xss_clean(get_config("baseurl")); ?>/template/<?php echo $antiXss->xss_clean(get_config("template")); ?>/assets/img/logo.png"
                                 alt="" class="img-fluid"></a></li>
-                <li><a href="#" data-toggle="modal" data-target="#register-modal"><?php elang('register');  ?></a></li>
+                <?php if (empty(get_config('disable_registration'))) { ?><li><a href="#" data-toggle="modal" data-target="#register-modal"><?php elang('register');  ?></a></li><?php } ?>
                 <?php if (empty(get_config('disable_changepassword'))) { ?><li><a href="#" data-toggle="modal" data-target="#changepassword-modal"><?php elang('change_password'); ?></a></li><?php } ?>
                 <?php if (empty(get_config('disable_restorepassword'))) { ?><li><a href="#" data-toggle="modal" data-target="#restorepassword-modal"><?php elang('restore_password'); ?></a></li><?php } ?>
                 <?php if (get_config('2fa_support')) { ?><li><a href="#" data-toggle="modal" data-target="#e2fa-modal"><?php elang('two_factor_authentication'); ?></a></li><?php } ?>

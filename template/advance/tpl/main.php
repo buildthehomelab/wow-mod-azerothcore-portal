@@ -157,6 +157,7 @@ $account_message = ob_get_clean();
         </div>
     </div>
     <?php } ?>
+    <?php if (empty(get_config('disable_registration'))) { ?>
     <div class="modal" id="register-modal">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -207,6 +208,7 @@ $account_message = ob_get_clean();
             </div>
         </div>
     </div>
+    <?php } ?>
     <div class="modal" id="changepassword-modal">
         <div class="modal-dialog">
             <div class="modal-content">

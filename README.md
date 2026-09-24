@@ -2,9 +2,11 @@
 
 A player registration website for an [AzerothCore](https://www.azerothcore.org) (WotLK 3.3.5a) server, packaged to run in Docker behind [Traefik](https://traefik.io) with HTTPS.
 
-Players can create an account, change their password, see who's online and check the top players. Accounts are written straight into `acore_auth.account` using SRP6 (salt + verifier), the same way AzerothCore does it, so you don't need to enable SOAP.
+It's a single page: server info, how to connect (with [Portalkeeper](#portalkeeper-and-mod-realm-config) setup if you use it), and **Register** / **Change Password** popups in the top menu. It can also show who's online and the top players. Registration only asks for a username and password, and you can close it with one setting so only people you create accounts for can play.
 
-This is a Docker-focused fork of [masterking32/WoWSimpleRegistration](https://github.com/masterking32/WoWSimpleRegistration). All the PHP and the `advance` template come from that project.
+Accounts are written straight into `acore_auth.account` using SRP6 (salt + verifier), the same way AzerothCore does it, so you don't need to enable SOAP.
+
+This is a trimmed-down, Docker-focused fork of [masterking32/WoWSimpleRegistration](https://github.com/masterking32/WoWSimpleRegistration). The PHP and the `advance` template come from that project. See [What's different from upstream](#whats-different-from-upstream).
 
 ![Portal](screenshots/a-lichking-min.jpg)
 
@@ -53,9 +55,10 @@ Generate a password, e.g. with `openssl rand -base64 24`. Put it in two places:
 | `SITE_TITLE` | Title shown in the browser tab and header. |
 | `CONTACT_EMAIL` | Email address shown on the contact page. Leave empty to hide the contact page and its menu link. |
 | `PATCH_URL` | Optional. Download link for a client patch, shown in the "How to connect" section. |
-| `DISABLE_TOP_PLAYERS` / `DISABLE_ONLINE_PLAYERS` / `DISABLE_CHANGEPASSWORD` | Set any of these to `true` to hide that page. |
+| `DISABLE_REGISTRATION` | Set to `true` to close sign-ups: Register disappears from the site and new accounts are refused. See [Managing accounts](#managing-accounts). |
+| `DISABLE_CHANGEPASSWORD` | Set to `true` to remove Change Password from the menu. |
+| `DISABLE_ONLINE_PLAYERS` / `DISABLE_TOP_PLAYERS` | Set to `true` to hide the online players list / top players. With both set, the whole Server Status section and its menu link are hidden. |
 | `REALM_ID` | The realm's ID in `acore_auth.realmlist`. Leave at `1` unless you run more than one realm. |
-| `MULTIPLE_EMAIL_USE` | Set to `true` to let several accounts register with the same email address. |
 | `CAPTCHA_TYPE` | `0` built-in image captcha (default), `1` hCaptcha, `2` reCAPTCHA v2, `3` Cloudflare Turnstile, `4` off. |
 | `CAPTCHA_KEY` / `CAPTCHA_SECRET` | Site key and secret key from your captcha provider. Only needed for types 1–3. |
 | `DB_USER` / `DB_PASS` | Leave `DB_USER` as `wow_register` unless you changed it in the SQL file. |
@@ -79,7 +82,7 @@ AzerothCore must be up first, because it creates the network the portal joins.
 docker compose up -d --build
 ```
 
-Open `https://SERVICE_NAME.DOMAIN` and register a test account, then log in with it in the game client.
+Open `https://SERVICE_NAME.DOMAIN` and register a test account, then log in with it in the game client. If you want to stop strangers signing up, set `DISABLE_REGISTRATION=true` afterwards and run `docker compose up -d`.
 
 ## Portalkeeper and mod-realm-config
 
@@ -161,6 +164,23 @@ With `REALMLIST` and `REALM_NAME` left empty in `.env`, the site uses the realm'
 
 Everything in that folder is public, so only point it at a folder that holds public files. Other modules that write public files there, such as news or armory feeds, are served at `/realm/<file>` too. Directory listings and PHP are turned off for that path. The files need to be readable by other users (e.g. mode `644`) so the web server can read them.
 
+## Managing accounts
+
+With `DISABLE_REGISTRATION=true`, create accounts yourself from the worldserver console:
+
+```bash
+docker attach ac-worldserver
+```
+
+Then type the command and detach with **Ctrl+P, Ctrl+Q** (Ctrl+C stops the server):
+
+| To | Command |
+|---|---|
+| Create an account | `account create <username> <password>` |
+| Reset a forgotten password | `account set password <username> <new> <new>` |
+
+Players can change their own password on the site if they know the current one. There's no "forgot password" email because the portal doesn't send email.
+
 ## Updating
 
 ```bash
@@ -168,7 +188,7 @@ git pull
 docker compose up -d --build
 ```
 
-If you only changed `.env` (title, contact email, and so on), `docker compose up -d` is enough and no rebuild is needed.
+If you only changed `.env` (title, contact email, closing registration and so on), `docker compose up -d` is enough and no rebuild is needed.
 
 ## Troubleshooting
 
@@ -181,7 +201,8 @@ If you only changed `.env` (title, contact email, and so on), `docker compose up
 ## What's different from upstream
 
 - Docker image (PHP 8.3 + Apache) with Composer dependencies installed at build time.
-- Ships a single template, `advance` (upstream's other six were removed), trimmed down: register and change password open as popups from the top menu, and the placeholder FAQ, rules, footer and contact details are gone. English only.
+- **One template, English only.** Only `advance` is included (upstream's other six templates and 11 translations were removed). Register and Change Password are popups in the top menu. The placeholder FAQ, rules, footer, contact details and "Edit on …" hints are gone, and the server info lists this server's actual rates and features ([template/advance/tpl/server-info.php](template/advance/tpl/server-info.php)).
+- **Registration can be closed** with `DISABLE_REGISTRATION`, which hides the form and makes the server refuse sign-ups.
 - All config comes from environment variables ([docker/config.php](docker/config.php)) instead of an edited `config.php`.
 - Served only through Traefik over HTTPS. No ports are published.
 - Apache blocks direct access to `application/`, `docker/`, dotfiles and Markdown files ([docker/apache-security.conf](docker/apache-security.conf)).
@@ -189,7 +210,7 @@ If you only changed `.env` (title, contact email, and so on), `docker compose up
 - Uses the built-in image captcha by default, so there are no third-party captcha keys to set up. You can switch to hCaptcha, reCAPTCHA or Turnstile with `CAPTCHA_TYPE`.
 - Can host [mod-realm-config](https://github.com/Hisha/mod-realm-config)'s `realm.conf` and show Portalkeeper setup steps.
 - **Vote system is off,** because it alters `acore_auth.account` and creates new tables.
-- **No email.** Registering only asks for a username and password (`require_email` is off, so accounts get an empty email). "Restore password" and two-factor auth are turned off because they need SMTP. Players can still change their password if they know the current one. If someone forgets theirs, reset it from the worldserver console (`account set password <user> <new> <new>`).
+- **No email.** Registering only asks for a username and password, and accounts get an empty email. "Restore password" and two-factor auth are turned off because they need SMTP. See [Managing accounts](#managing-accounts) for resetting passwords.
 
 ## Credits and license
 
