@@ -31,6 +31,7 @@
                         </ul>
                         <h3>Features:</h3>
                         <ul>
+                            <li><i class="bx bx-check-double"></i><b>Reagent bank:</b> store all your crafting materials, open it from anywhere, and pull what a recipe needs in one click</li>
                             <li><i class="bx bx-check-double"></i>Individual progression through every tier (Vanilla, TBC, WotLK)</li>
                             <li><i class="bx bx-check-double"></i>Account-wide professions</li>
                             <li><i class="bx bx-check-double"></i>AoE loot</li>
