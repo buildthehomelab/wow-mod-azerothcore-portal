@@ -7,27 +7,6 @@
  */
 ?>
 </main>
-<footer id="footer">
-    <div class="footer-top">
-        <div class="container">
-            <div class="social-links" data-aos="fade-up" data-aos-delay="100">
-                <a href="#" class="twitter"><i class="bx bxl-twitter"></i></a>
-                <a href="#" class="facebook"><i class="bx bxl-facebook"></i></a>
-                <a href="#" class="instagram"><i class="bx bxl-instagram"></i></a>
-                <a href="#" class="google-plus"><i class="bx bxl-skype"></i></a>
-            </div>
-        </div>
-    </div>
-    <div class="container footer-bottom clearfix">
-        <div class="credits">
-            Developed by <a href="http://masterking32.com">MasterkinG32.CoM</a>
-            - <?php echo "Load " . (new SebastianBergmann\Timer\ResourceUsageFormatter)->resourceUsageSinceStartOfRequest(); ?>
-            <BR>
-            Tempelate Designed by <a href="https://bootstrapmade.com/">BootstrapMade</a> and Modified by <a
-                    href="https://github.com/SirFerMoX">FerMoX</a>
-        </div>
-    </div>
-</footer>
 <a href="#" class="back-to-top"><i class="icofont-simple-up"></i></a>
 <script src="<?php echo $antiXss->xss_clean(get_config("baseurl")); ?>/template/<?php echo $antiXss->xss_clean(get_config("template")); ?>/assets/vendor/jquery/jquery.min.js"></script>
 <script src="<?php echo $antiXss->xss_clean(get_config("baseurl")); ?>/template/<?php echo $antiXss->xss_clean(get_config("template")); ?>/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
