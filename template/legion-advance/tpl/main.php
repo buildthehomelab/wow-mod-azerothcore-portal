@@ -461,7 +461,6 @@ require_once 'rules.php';
 </section>
 <?php } ?>
 <?php
-require_once 'faq.php';
 if (!empty(get_config('contact_email'))) {
     require_once 'contact.php';
 }
