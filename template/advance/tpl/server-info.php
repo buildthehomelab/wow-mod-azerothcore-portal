@@ -10,7 +10,7 @@
         <div class="container">
             <div class="section-title" data-aos="fade-up">
                 <h2><?php elang('about_server'); ?></h2>
-                <p><?php elang('game_version'); ?>: <b><span style="color: #007a0c"><?php echo get_config('game_version'); ?></span></b>
+                <p><?php elang('game_version'); ?>: <b><?php echo get_config('game_version'); ?></b>
                 </p>
             </div>
             <div class="row">

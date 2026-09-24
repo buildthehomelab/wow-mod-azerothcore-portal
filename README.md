@@ -201,6 +201,7 @@ If you only changed `.env` (title, contact email, closing registration and so on
 ## What's different from upstream
 
 - Docker image (PHP 8.3 + Apache) with Composer dependencies installed at build time.
+- **Dark theme** inspired by the World of Warcraft site: warm dark backgrounds, parchment serif headings, bronze trim and teal buttons. It's one stylesheet, [template/advance/assets/css/forever.css](template/advance/assets/css/forever.css), loaded after the template's own CSS, so it's easy to tweak or remove.
 - **One template, English only.** Only `advance` is included (upstream's other six templates and 11 translations were removed). Register and Change Password are popups in the top menu. The placeholder FAQ, rules, footer, contact details and "Edit on …" hints are gone, and the server info lists this server's actual rates and features ([template/advance/tpl/server-info.php](template/advance/tpl/server-info.php)).
 - **Registration can be closed** with `DISABLE_REGISTRATION`, which hides the form and makes the server refuse sign-ups.
 - All config comes from environment variables ([docker/config.php](docker/config.php)) instead of an edited `config.php`.

@@ -10,7 +10,7 @@
     <div class="container">
         <div class="section-title" data-aos="fade-up">
             <h2><?php elang('how_to_connect'); ?></h2>
-            <p><?php elang('realmlist'); ?>/<?php elang('realmlist'); ?>:
+            <p><?php elang('realmlist'); ?>:
                 <code><?php echo strtoupper(get_config('realmlist')); ?></code></p>
         </div>
         <div class="row">
