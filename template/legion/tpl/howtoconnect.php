@@ -13,4 +13,5 @@
     <p>4. <?php elang('create_account_tip4'); ?></p>
     <p style="text-align: center;font-weight: bold;color:yellow">set
         realmlist <?php echo get_config('realmlist'); ?></p>
+    <?php echo realm_config::render(); ?>
 </div>

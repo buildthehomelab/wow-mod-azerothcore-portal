@@ -21,9 +21,9 @@ services:
       SITE_TITLE: ${SITE_TITLE:-Simple Register}
       CONTACT_EMAIL: ${CONTACT_EMAIL:-}
       TEMPLATE: ${TEMPLATE:-icecrown}
-      REALMLIST: ${REALMLIST:-127.0.0.1}
+      REALMLIST: ${REALMLIST:-}
       REALM_ID: ${REALM_ID:-1}
-      REALM_NAME: ${REALM_NAME:-AzerothCore}
+      REALM_NAME: ${REALM_NAME:-}
       LANGUAGE: ${LANGUAGE:-english}
       PATCH_URL: ${PATCH_URL:-}
       DISABLE_TOP_PLAYERS: ${DISABLE_TOP_PLAYERS:-false}
@@ -46,6 +46,9 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-}
+    volumes:
+      # mod-realm-config output directory (realm.conf), served read-only at /realm/
+      - ${REALM_CONFIG_DIR:-./realm-data}:/var/www/html/realm:ro
     networks:
       - ac-network   # to reach ac-database
       - traefik      # so Traefik can reach this container

@@ -43,6 +43,17 @@ require_once app_path . 'include/database.php';
 require_once app_path . 'include/user.php';
 require_once app_path . 'include/vote.php';
 require_once app_path . 'include/status.php';
+require_once app_path . 'include/realm_config.php';
+
+// mod-realm-config: use the published realm.conf for the realmlist and realm name when they aren't configured.
+if (empty($config['realmlist'])) {
+    $config['realmlist'] = realm_config::value('Connection', 'Address') ?: '127.0.0.1';
+}
+foreach ($config['realmlists'] as $realm_key => $realm) {
+    if (empty($realm['realmname'])) {
+        $config['realmlists'][$realm_key]['realmname'] = realm_config::value('Realm', 'GameRealmName') ?: 'AzerothCore';
+    }
+}
 
 $languageName = strtolower(get_config('language'));
 $languageFile = app_path . 'language/' . $languageName . '.php';

@@ -33,7 +33,7 @@ $config['supported_langs'] = [
 $config['debug_mode'] = $bool('DEBUG_MODE', false);
 
 // Server info shown on the "How to connect" page
-$config['realmlist'] = $env('REALMLIST', '127.0.0.1');
+$config['realmlist'] = $env('REALMLIST', ''); // empty: use realm.conf's address, else 127.0.0.1
 $config['patch_location'] = $env('PATCH_URL', '');
 $config['game_version'] = '3.3.5a (12340)';
 $config['expansion'] = '2'; // WotLK
@@ -93,7 +93,7 @@ $config['db_auth_dbname'] = $env('DB_AUTH_NAME', 'acore_auth');
 $config['realmlists'] = [
     '1' => [
         'realmid' => (int) $env('REALM_ID', 1),
-        'realmname' => $env('REALM_NAME', 'AzerothCore'),
+        'realmname' => $env('REALM_NAME', ''), // empty: use realm.conf's GameRealmName, else AzerothCore
         'db_host' => $config['db_auth_host'],
         'db_port' => $config['db_auth_port'],
         'db_user' => $config['db_auth_user'],
@@ -101,5 +101,9 @@ $config['realmlists'] = [
         'db_name' => $env('DB_CHARACTERS_NAME', 'acore_characters'),
     ],
 ];
+
+// mod-realm-config: the module's output directory is mounted read-only at /realm (see docker-compose.yml)
+$config['realm_conf_file'] = '/var/www/html/realm/realm.conf';
+$config['realm_conf_url'] = $config['baseurl'] . '/realm/realm.conf';
 
 $config['script_version'] = '2.0.2';

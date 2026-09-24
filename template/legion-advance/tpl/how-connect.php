@@ -44,5 +44,10 @@
                  style='background-image: url("<?php echo $antiXss->xss_clean(get_config("baseurl")); ?>/template/<?php echo $antiXss->xss_clean(get_config("template")); ?>/assets/img/connect.png");background-size: auto 100%;background-position: center;background-repeat: no-repeat;'
                  data-aos="fade-left" data-aos-delay="100"></div>
         </div>
+        <?php $portalkeeper = realm_config::render(); if ($portalkeeper !== '') { ?>
+        <div class="row mt-5">
+            <div class="col-lg-12" data-aos="fade-up"><?php echo $portalkeeper; ?></div>
+        </div>
+        <?php } ?>
     </div>
 </section>

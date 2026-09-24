@@ -4,3 +4,6 @@ application/config/config.php
 application/vendor
 # Local secrets (use the .example templates)
 docker/create-db-user.sql
+
+# Default mod-realm-config mount (see REALM_CONFIG_DIR)
+realm-data

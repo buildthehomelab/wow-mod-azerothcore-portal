@@ -8,3 +8,6 @@ application/vendor
 application/config/config.php
 **/.DS_Store
 docker/create-db-user.sql
+
+# Default mod-realm-config mount (see REALM_CONFIG_DIR)
+realm-data

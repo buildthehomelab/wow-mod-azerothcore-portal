@@ -48,8 +48,8 @@ Generate a password, e.g. with `openssl rand -base64 24`. Put it in two places:
 | `SERVICE_NAME` | Subdomain for the site, e.g. `register`. |
 | `DOMAIN` | Your domain, e.g. `example.com`. The site is served at `https://SERVICE_NAME.DOMAIN`. |
 | `AC_NETWORK_NAME` | AzerothCore's network. Find it with `docker network ls \| grep ac-network`. It's usually `<azerothcore folder>_ac-network` (on TrueNAS SCALE, `ix-azerothcore_ac-network`). |
-| `REALMLIST` | The address players put in `realmlist.wtf`: your server's public IP or hostname. |
-| `REALM_NAME` | Realm name shown on the site. |
+| `REALMLIST` | The address players put in `realmlist.wtf`: your server's public IP or hostname. Leave empty to use the address from [mod-realm-config](#portalkeeper-and-mod-realm-config). |
+| `REALM_NAME` | Realm name shown on the site. Leave empty to use the name from mod-realm-config. |
 | `SITE_TITLE` | Title shown in the browser tab and header. |
 | `CONTACT_EMAIL` | Email address shown on the contact page. Leave empty to hide it. |
 | `TEMPLATE` | `icecrown` (default), `light`, `advance`, `kaelthas`, `battleforazeroth`, `legion` or `legion-advance`. |
@@ -63,6 +63,7 @@ Generate a password, e.g. with `openssl rand -base64 24`. Put it in two places:
 | `DB_USER` / `DB_PASS` | Leave `DB_USER` as `wow_register` unless you changed it in the SQL file. |
 | `DB_PORT` | AzerothCore's MySQL port inside the Docker network. Leave at `3306` unless you changed it. |
 | `SMTP_*` | Optional. Only needed for "forgot password" emails. `SMTP_SECURE` is `tls` (default, usually port 587) or `ssl` (usually port 465). |
+| `REALM_CONFIG_DIR` | Optional. Host folder mod-realm-config writes `realm.conf` to. See [below](#portalkeeper-and-mod-realm-config). |
 | `DEBUG_MODE` | Set to `true` to show PHP errors while troubleshooting. Turn it back off afterwards. |
 
 ### 5. Create the database user
@@ -83,6 +84,41 @@ docker compose up -d --build
 
 Open `https://SERVICE_NAME.DOMAIN` and register a test account, then log in with it in the game client.
 
+## Portalkeeper and mod-realm-config
+
+If your server runs [mod-realm-config](https://github.com/Hisha/mod-realm-config), the portal can host its `realm.conf` for the [Portalkeeper](https://github.com/Hisha/Portalkeeper) launcher. Players then get a "Play with Portalkeeper" section under **How to connect**. It has a Portalkeeper download link, a `realm.conf` download and the list of addons and patches the realm uses.
+
+The module writes `realm.conf` to a folder but doesn't serve it over the web. The portal mounts that folder read-only and serves it at `https://SERVICE_NAME.DOMAIN/realm/`.
+
+1. **Install the module** in AzerothCore and apply its world database SQL, following the [module's README](https://github.com/Hisha/mod-realm-config#installation).
+
+2. **Give the module a folder both containers can see.** Mount a host folder into the worldserver container and point `RealmConfig.OutputDirectory` at it in `mod_realm_config.conf`. For example, if the host folder `/srv/azerothcore/realm-public` is mounted at `/realm-public` in worldserver:
+
+   ```ini
+   RealmConfig.OutputDirectory = "/realm-public/"
+   ```
+
+3. **Point the portal at the same host folder** in `.env`:
+
+   ```bash
+   REALM_CONFIG_DIR=/srv/azerothcore/realm-public
+   ```
+
+4. **Tell the module where the file is published**, so Portalkeeper can refresh it. Run this against the world database:
+
+   ```sql
+   UPDATE mod_realm_config
+   SET config_url  = 'https://register.example.com/realm/realm.conf',
+       website_url = 'https://register.example.com/'
+   WHERE id = 1;
+   ```
+
+5. **Restart the portal** with `docker compose up -d`. Then open `https://SERVICE_NAME.DOMAIN/realm/realm.conf`, which should show the file.
+
+With `REALMLIST` and `REALM_NAME` left empty in `.env`, the site uses the realm's address and name from `realm.conf`, so you only have to set them in one place.
+
+Everything in that folder is public, so only point it at a folder that holds public files. Other modules that write public files there, such as news or armory feeds, are served at `/realm/<file>` too. Directory listings and PHP are turned off for that path. The files need to be readable by other users (e.g. mode `644`) so the web server can read them.
+
 ## Updating
 
 ```bash
@@ -97,6 +133,7 @@ If you only changed `.env` (template, title, and so on), `docker compose up -d` 
 - **Blank page:** set `DEBUG_MODE=true` in `.env`, run `docker compose up -d`, reload the page and read the error. Then turn it off again.
 - **Styling or images missing:** the site builds its links from `SERVICE_NAME` and `DOMAIN`. Make sure they match the URL you're visiting.
 - **Database connection error:** check that `AC_NETWORK_NAME` is right, that the container is on it (`docker inspect wow-register`), and that `DB_PASS` matches the password in `create-db-user.sql`.
+- **No Portalkeeper section / 404 on `/realm/realm.conf`:** check that `REALM_CONFIG_DIR` is the host folder the module writes to, that `realm.conf` exists there and is readable, and that you ran `docker compose up -d` after changing it. `docker exec wow-register ls -l /var/www/html/realm` shows what the container sees.
 - **Logs:** `docker logs wow-register`
 
 ## What's different from upstream
@@ -107,6 +144,7 @@ If you only changed `.env` (template, title, and so on), `docker compose up -d` 
 - Apache blocks direct access to `application/`, `docker/`, dotfiles and Markdown files ([docker/apache-security.conf](docker/apache-security.conf)).
 - Locked to AzerothCore with SRP6, using a least-privilege database user instead of root.
 - Uses the built-in image captcha by default, so there are no third-party captcha keys to set up. You can switch to hCaptcha, reCAPTCHA or Turnstile with `CAPTCHA_TYPE`.
+- Can host [mod-realm-config](https://github.com/Hisha/mod-realm-config)'s `realm.conf` and show Portalkeeper setup steps.
 - **Vote system is off,** because it alters `acore_auth.account` and creates new tables.
 - **"Forgot password" needs extra access.** On first use the app adds a `restore_key` column to `acore_auth.account`, which needs `ALTER` on that table. The default database user doesn't have that permission.
 
