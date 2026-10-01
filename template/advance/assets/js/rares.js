@@ -103,6 +103,11 @@
     return (state.data && state.data.zones[id]) || "Unknown zone";
   }
 
+  // "Westfall · The Deadmines" for a rare shown on the map around the place it's really in.
+  function placeName(r) {
+    return zoneName(r.zone) + (r.area ? " · " + zoneName(r.area) : "");
+  }
+
   function level(r) {
     if (r.level) return String(r.level);
     return r.minLevel === r.maxLevel ? String(r.minLevel) : r.minLevel + "-" + r.maxLevel;
@@ -136,7 +141,7 @@
   function visible(r) {
     if (!state.showDead && r.state !== "up") return false;
     if (!state.query) return true;
-    return r.name.toLowerCase().indexOf(state.query) !== -1 || zoneName(r.zone).toLowerCase().indexOf(state.query) !== -1;
+    return r.name.toLowerCase().indexOf(state.query) !== -1 || placeName(r).toLowerCase().indexOf(state.query) !== -1;
   }
 
   function describeState(r) {
@@ -227,7 +232,7 @@
         + (r.spawn === state.tipFor ? " focus" : "");
       pins.push('<button type="button" class="' + cls + '" style="left:' + x.toFixed(2) + "%;top:" + y.toFixed(2)
         + '%" data-spawn="' + r.spawn + '" data-x="' + x + '" data-y="' + y + '" aria-label="'
-        + esc(r.name + ", " + zoneName(r.zone) + ", " + describeState(r)) + '"></button>');
+        + esc(r.name + ", " + placeName(r) + ", " + describeState(r)) + '"></button>');
     });
     el.pins.innerHTML = pins.join("");
 
@@ -302,7 +307,7 @@
     var coords = r.x !== null ? r.x.toFixed(1) + ", " + r.y.toFixed(1) : "";
     el.tip.innerHTML = '<strong class="' + (r.state === "up" ? "" : "dead") + '">' + esc(r.name) + "</strong>"
       + '<div class="sub">Level ' + level(r) + (r.elite ? " rare elite" : " rare") + "</div>"
-      + '<div class="sub">' + esc(zoneName(r.zone)) + (coords ? " (" + coords + ")" : "") + "</div>"
+      + '<div class="sub">' + esc(placeName(r)) + (coords ? " (" + coords + ")" : "") + "</div>"
       + '<div class="state">' + esc(describeState(r)) + "</div>";
     el.tip.style.left = x + "%";
     el.tip.style.top = Math.min(Math.max(y, 12), 88) + "%";
