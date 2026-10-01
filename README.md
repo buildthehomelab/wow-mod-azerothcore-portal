@@ -198,6 +198,31 @@ Everything in that folder is public, so only point it at a folder that holds pub
 
 The module doesn't delete profile files for characters that are deleted or drop out of the roster, so `characters/<guid>.json` for those stays reachable until you remove it from `realm-public/armory/characters/`. Character names, gear and appearance are public by design. No account names, emails or IPs are included.
 
+## Rare map (mod-rare-tracker)
+
+`rares.php` is a live map of every open-world rare that's up right now. It has continent and zone
+maps, a searchable list per zone, and respawn countdowns for dead rares. The data comes from
+[mod-rare-tracker](https://github.com/buildthehomelab/wow-mod-rare-tracker), which the worldserver
+serves from memory on the AzerothCore Docker network. `api/rares.php` passes it through to the
+browser, so the worldserver needs no published port.
+
+1. **Add the module** and rebuild AzerothCore (see its README). Its endpoint is
+   `http://ac-worldserver:8095/rares.json` by default.
+2. **Point the portal at it** in `.env`, then `docker compose up -d`:
+
+   ```ini
+   RARE_TRACKER_URL=http://ac-worldserver:8095/rares.json
+   ```
+
+   A **Rare Map** link appears in the top menu. Leave `RARE_TRACKER_URL` empty to hide the page.
+3. **Add the map images** (optional but recommended). Build them from your WoW client with the
+   module's `tools/build_worldmaps.py`, and copy the resulting `worldmap` folder into
+   `REALM_CONFIG_DIR`, so they're served at `/realm/worldmap/`. Set `WORLDMAP_URL` to serve them
+   from somewhere else. Without them, rares are listed and placed on a plain grid.
+
+The page polls every 30 seconds while it's open. The worldserver only rebuilds the list while
+someone is looking.
+
 ## Managing accounts
 
 With `DISABLE_REGISTRATION=true`, create accounts yourself from the worldserver console:
@@ -244,6 +269,7 @@ If you only changed `.env` (title, contact email, closing registration and so on
 - Locked to AzerothCore with SRP6, using a least-privilege database user instead of root.
 - Uses the built-in image captcha by default, so there are no third-party captcha keys to set up. You can switch to hCaptcha, reCAPTCHA or Turnstile with `CAPTCHA_TYPE`.
 - Can host [mod-realm-config](https://github.com/Hisha/mod-realm-config)'s `realm.conf` and [mod-realm-armory](https://github.com/Hisha/mod-realm-armory)'s JSON for Portalkeeper, and shows Portalkeeper setup steps.
+- **Rare map** ([rares.php](rares.php)): live open-world rares from mod-rare-tracker on the game's own maps.
 - **Vote system is off,** because it alters `acore_auth.account` and creates new tables.
 - **No email.** Registering only asks for a username and password, and accounts get an empty email. "Restore password" and two-factor auth are turned off because they need SMTP. See [Managing accounts](#managing-accounts) for resetting passwords.
 
