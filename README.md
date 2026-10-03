@@ -223,6 +223,74 @@ browser, so the worldserver needs no published port.
 The page polls every 30 seconds while it's open. The worldserver only rebuilds the list while
 someone is looking.
 
+## Patch notes (changelog.php)
+
+`changelog.php` is a patch-notes page in the style of Blizzard's: one post per day, grouped into
+Classes (in class colours), Professions, Auction House, Dungeons and so on, with New Features and
+Bug Fixes sections and a category filter. It's built from **merged pull requests** in every repo
+of a GitHub user or organization, so nothing has to be written twice.
+
+1. **Turn it on** in `.env`, then `docker compose up -d`:
+
+   ```ini
+   CHANGELOG_ORG=buildthehomelab
+   CHANGELOG_TIMEZONE=America/New_York
+   ```
+
+   A **Patch Notes** link appears in the top menu. Only repos whose names match
+   `CHANGELOG_REPOS` (default `^(wow-|mod-)`) are read; archived repos are skipped.
+
+2. **Only show what the realm runs** (recommended). Mount the server's AzerothCore `modules/`
+   folder read-only and point `CHANGELOG_MANIFEST` at it, in a `docker-compose.override.yml` next
+   to this repo's compose file:
+
+   ```yaml
+   services:
+     wow-register:
+       volumes:
+         - /path/to/azerothcore/modules:/srv/ac-modules:ro
+   ```
+
+   ```ini
+   CHANGELOG_MANIFEST=/srv/ac-modules
+   ```
+
+   The portal reads each module's checked-out commit from its `.git` folder. A server module's
+   changes then appear once the server is on a commit that includes them, and modules the server
+   doesn't run don't appear at all. Addons, the launcher and this website (`CHANGELOG_UNGATED`)
+   show as soon as they're merged. `CHANGELOG_MANIFEST` can also be a `modules.tsv` file
+   (folder, url, branch, commit) or `owner/repo:path/modules.tsv` on GitHub.
+
+### Where the text comes from
+
+For each merged PR, the first of these that exists:
+
+1. **[application/changelog-notes.json](application/changelog-notes.json)**, hand-written notes
+   keyed `repo#number`. `{"hide": true}` drops a PR. Each repo's creation can also be announced as
+   a New Feature under `launches`; repos without a `launches` entry aren't announced.
+2. **A `## Patch Notes` section in the PR description.** Its bullets are used as they are, and a
+   `>` quote becomes a "Developers' notes" box. Write `None` to keep a PR off the page.
+
+   ```markdown
+   ## Patch Notes
+   - **Travel Form** can now be used indoors.
+   - Fixed an issue where **Travel Form** dropped below 40% speed indoors.
+   > We want druids to keep their travel form in caves and cities.
+   ```
+
+3. **The PR title.** Titles that look like version bumps, docs, build or compatibility fixes
+   are skipped.
+
+Notes take their category from the repo name (see `CL_REPO_SECTIONS` in
+[application/include/changelog.php](application/include/changelog.php)); `section` and `sub` in
+`changelog-notes.json` override it. A note is listed under Bug Fixes when the PR title starts with
+"Fix", every bullet starts with "Fixed", or `fix` is set.
+
+GitHub's answers are cached for `CHANGELOG_CACHE_SECONDS` (10 minutes), and the old copy is kept
+if GitHub is down. The first load after a restart looks up every module's commit and can take
+half a minute; after that, commit dates are remembered. Without `GITHUB_TOKEN`, GitHub allows 60
+requests an hour, which is enough once the cache is warm.
+
 ## Managing accounts
 
 With `DISABLE_REGISTRATION=true`, create accounts yourself from the worldserver console:
@@ -270,6 +338,7 @@ If you only changed `.env` (title, contact email, closing registration and so on
 - Uses the built-in image captcha by default, so there are no third-party captcha keys to set up. You can switch to hCaptcha, reCAPTCHA or Turnstile with `CAPTCHA_TYPE`.
 - Can host [mod-realm-config](https://github.com/Hisha/mod-realm-config)'s `realm.conf` and [mod-realm-armory](https://github.com/Hisha/mod-realm-armory)'s JSON for Portalkeeper, and shows Portalkeeper setup steps.
 - **Rare map** ([rares.php](rares.php)): live open-world rares from mod-rare-tracker on the game's own maps.
+- **Patch notes** ([changelog.php](changelog.php)): Blizzard-style patch notes built from merged pull requests on GitHub.
 - **Vote system is off,** because it alters `acore_auth.account` and creates new tables.
 - **No email.** Registering only asks for a username and password, and accounts get an empty email. "Restore password" and two-factor auth are turned off because they need SMTP. See [Managing accounts](#managing-accounts) for resetting passwords.
 

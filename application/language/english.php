@@ -23,6 +23,7 @@ $language['how_to_connect'] = 'How to connect';
 $language['register'] = 'Register';
 $language['server_status'] = 'Server Status';
 $language['rare_map'] = 'Rare Map';
+$language['patch_notes'] = 'Patch Notes';
 $language['contact'] = 'Contact';
 $language['server_information'] = 'Server Information';
 $language['server_type'] = 'Server type';
