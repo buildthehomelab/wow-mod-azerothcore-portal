@@ -1,0 +1,1254 @@
+{
+  "_comment": "Hand-written patch notes. prs: 'repo#number' -> {notes, fix, devnote, section, sub} or {hide: true}. launches: repo -> {title, notes, devnote, section, sub} or {hide: true}. New PRs can instead carry a '## Patch Notes' section in their body.",
+  "prs": {
+    "wow-mod-druid-swipe-fishing#1": {
+      "notes": [
+        "Salmon fishing is now started by using your equipped salmon relic (**Salmon Run**) in Bear Form or Dire Bear Form, instead of the **/roar** emote.",
+        "Use the relic again to stop fishing. **Salmon Run** cannot be used in combat."
+      ]
+    },
+    "wow-mod-druid-swipe-fishing#2": {
+      "notes": [
+        "Fixed an issue where pressing **Swipe** again right after a salmon bite would incorrectly say \"Too soon!\" and spook the fish."
+      ],
+      "fix": true
+    },
+    "wow-mod-druid-swipe-fishing#3": {
+      "notes": [
+        "Fixed an issue where salmon caught in fishing pools gave no loot."
+      ],
+      "fix": true
+    },
+    "wow-mod-druid-swipe-fishing#4": {
+      "notes": [
+        "Fixed an issue where **Swipe** could report \"Target is too far away\" against a salmon waiting in the middle of a fishing pool."
+      ],
+      "fix": true
+    },
+    "wow-mod-druid-swipe-fishing#5": {
+      "notes": [
+        "Fixed an issue where the waiting salmon could stand upright out of shallow water instead of swimming.",
+        "Druids no longer sit down when salmon fishing begins."
+      ]
+    },
+    "wow-mod-forever-class-combos#1": {
+      "notes": [
+        "Fixed an issue where Undead Paladins could not use Swords, and Human Hunters could not use Axes, Guns or Daggers, and weapon masters would not train them."
+      ],
+      "fix": true
+    },
+    "wow-mod-forever-class-combos#2": {
+      "notes": [
+        "Fixed an issue where Swords for Undead Paladins, and Axes, Guns and Daggers for Human Hunters, did not appear in the Skills tab of the character window."
+      ],
+      "fix": true
+    },
+    "wow-mod-forever-druid#1": {
+      "notes": [
+        "**Travel Form**, **Flight Form** and **Swift Flight Form** now scale with level and riding skill in the same way mounts do.",
+        "Druids who own a 310% flying mount keep a 310% **Swift Flight Form** at every level."
+      ]
+    },
+    "wow-mod-forever-druid#2": {
+      "notes": [
+        "**Travel Form** now only gets its scaled mount speed out of combat. Entering combat returns it to 40%."
+      ],
+      "devnote": "Mounts cannot be used in combat, so letting Travel Form run at mount speed during a fight made kiting too easy. We want the extra speed to be for travelling, not for fighting."
+    },
+    "wow-mod-forever-druid#3": {
+      "notes": [
+        "Stat scrolls, water breathing elixirs, drums, battle standards and most other consumables can now be used in Cat Form, Bear Form and Dire Bear Form.",
+        "Combo points in Cat Form now carry over to your next target, and are kept for 20 sec after a kill."
+      ]
+    },
+    "wow-mod-forever-druid#4": {
+      "notes": [
+        "Mining can now be used in every druid form."
+      ]
+    },
+    "wow-mod-forever-druid#5": {
+      "notes": [
+        "**Manual Crowd Pummeler** is now the **Automatic Crowd Pummeler**: unlimited uses with a 3 min cooldown, usable by Paladins, Shamans and Druids only.",
+        "The **Automatic Crowd Pummeler** now grants +69 Attack Power in Cat Form, Bear Form and Dire Bear Form."
+      ]
+    },
+    "wow-mod-forever-druid#6": {
+      "notes": [
+        "**Travel Form** speed is now never lower than 40%, and stays at 40% indoors."
+      ]
+    },
+    "wow-mod-forever-druid#7": {
+      "notes": [
+        "**Travel Form** can now be used indoors."
+      ]
+    },
+    "wow-mod-forever-hunter#1": {
+      "notes": [
+        "Fixed an issue where damage from the **Summon Hawk** hawk was not credited to the Hunter in damage meters."
+      ],
+      "fix": true
+    },
+    "wow-mod-forever-paladin#1": {
+      "notes": [
+        "New spell: **Seal of Fury**. Learned at level 10 in the Protection tree, it adds Holy damage to your melee hits, and with a shield equipped each hit also gives a **Fury Ward** that absorbs damage.",
+        "**Judgement of Fury** deals Holy damage and taunts the target for 4 sec.",
+        "**Holy Strike** is now instant.",
+        "All Blessings and Greater Blessings now last 1 hour, and Judgement of Light, Judgement of Wisdom, **Heart of the Crusader** and **Judgements of the Just** now last 40 sec.",
+        "**Glyph of Blessing of Might** and **Glyph of Blessing of Wisdom** now make those Blessings and their Greater versions 50% cheaper instead of lengthening them."
+      ]
+    },
+    "wow-mod-forever-paladin#2": {
+      "notes": [
+        "New major glyph: **Glyph of Seal of Fury**. Each Judgement you use with **Seal of Fury** active returns 8% of your base mana.",
+        "Scribes can learn the recipe from the same trainers that teach **Glyph of Seal of Command**."
+      ]
+    },
+    "wow-mod-forever-paladin#3": {
+      "notes": [
+        "Fixed an issue where the mana restored by **Glyph of Seal of Fury** did not appear in the combat log."
+      ],
+      "fix": true
+    },
+    "wow-mod-forever-racials#1": {
+      "notes": [
+        "Fixed an issue where characters kept the new racial abilities of their old race, such as **Shatter Curse**, after a race change."
+      ],
+      "fix": true
+    },
+    "wow-mod-forever-shaman#1": {
+      "notes": [
+        "**Ghost Wolf** now only gets its scaled mount speed out of combat. Entering combat returns it to 40%."
+      ]
+    },
+    "wow-mod-forever-shaman#2": {
+      "notes": [
+        "Mining can now be used in **Ghost Wolf** form."
+      ]
+    },
+    "wow-mod-forever-shaman#3": {
+      "notes": [
+        "**Ghost Wolf** can now be used indoors."
+      ]
+    },
+    "wow-mod-forever-shaman#4": {
+      "notes": [
+        "**Ghost Wolf** speed is now never lower than 40%, and stays at 40% indoors."
+      ]
+    },
+    "wow-mod-tier0-trainers#1": {
+      "notes": [
+        "Profession trainers in towns and cities of the original continents now teach recipes up to skill 300.",
+        "Specialization masters, Inscription trainers and Outland and Northrend trainers keep their own recipe lists."
+      ]
+    },
+    "wow-server#1": {
+      "notes": [
+        "The **Blood Elf Bandit** in Azuremyst Isle is now tracked on the rare map."
+      ],
+      "section": "World"
+    },
+    "wow-server#2": {
+      "hide": true
+    },
+    "wow-server#3": {
+      "hide": true
+    },
+    "wow-server#4": {
+      "hide": true
+    },
+    "wow-server#5": {
+      "hide": true
+    },
+    "wow-server#6": {
+      "notes": [
+        "Zone respawn scaling is now less aggressive: with one player in a zone, creatures respawn in 90% of the normal time (was 80%) and objects such as gathering nodes in 80% (was 60%)."
+      ],
+      "section": "World"
+    },
+    "wow-server#7": {
+      "notes": [
+        "Added a retail-style profession window that shows recipes you have not learned yet, exact skill-up odds and where to learn each recipe. Requires the **RetailProfessions** add-on."
+      ],
+      "section": "Professions"
+    },
+    "wow-server#8": {
+      "hide": true
+    },
+    "wow-server#9": {
+      "hide": true
+    },
+    "wow-server#10": {
+      "hide": true
+    },
+    "wow-server#11": {
+      "notes": [
+        "Mining and Skinning no longer require a Mining Pick or Skinning Knife."
+      ],
+      "section": "Professions"
+    },
+    "wow-server#12": {
+      "notes": [
+        "Horde and Alliance players can now group, raid, queue for Dungeon Finder together and share guilds.",
+        "Say, yell and whispers are readable across factions, and Trade, General and custom channels are shared.",
+        "Mail, trading, adding friends and /who now work with the other faction. Auction houses remain separate for each faction, and enemies outside your group are still hostile."
+      ],
+      "devnote": "We want friends to be able to play together regardless of the faction they chose. Battlegrounds remain Alliance versus Horde."
+    },
+    "wow-server#13": {
+      "notes": [
+        "The Alliance and Horde auction houses are now stocked with up to 80,000 items each (was 50,000 to 55,000)."
+      ],
+      "section": "Auction House"
+    },
+    "wow-server#14": {
+      "hide": true
+    },
+    "wow-server#15": {
+      "notes": [
+        "Account-bound profession progress is now shared between Horde and Alliance characters on the same account."
+      ],
+      "section": "Professions"
+    },
+    "wow-server#16": {
+      "hide": true
+    },
+    "mod-reagent-bank-account#1": {
+      "notes": [
+        "Opening a profession window now shows how much of each reagent is waiting in your **Reagent Bank**.",
+        "**Craftable** counts now combine what is in your bags with what is in your **Reagent Bank**.",
+        "Fixed an issue where the bank counts stayed out of date after using **Withdraw Needed** until you selected a different recipe."
+      ],
+      "fix": false
+    },
+    "mod-reagent-bank-account#2": {
+      "notes": [
+        "The **Reagent Bank** controls in the profession window now sit in a readable sidebar docked to the window, showing how many you can craft and what to withdraw or buy.",
+        "Reagent bank badges no longer overlap reagent names."
+      ],
+      "fix": false
+    },
+    "mod-reagent-bank-account#3": {
+      "notes": [
+        "Fixed an issue where the reagent bank amount printed directly against the reagent name in narrow profession windows."
+      ],
+      "fix": true
+    },
+    "mod-reagent-bank-account#4": {
+      "notes": [
+        "Added **x1**, **x100** and **Max** buttons to the profession sidebar for quickly setting the number of crafts. **Max** uses everything craftable from your bags and **Reagent Bank**."
+      ],
+      "fix": false
+    },
+    "mod-reagent-bank-account#5": {
+      "notes": [
+        "The **Reagent Bank** profession sidebar can now be moved by dragging it and closed with the X button.",
+        "Removed the hint text at the bottom of the sidebar."
+      ],
+      "fix": false
+    },
+    "mod-reagent-bank-account#6": {
+      "notes": [
+        "The **Reagent Bank** profession sidebar now also appears in the **Milling** window, with **Withdraw Needed**, **Add to AH List**, auto-deposit and bank amounts on the herbs."
+      ],
+      "fix": false
+    },
+    "mod-reagent-bank-account#7": {
+      "notes": [
+        "The **Reagent Bank** sidebar now works with both the **Milling** and **Prospecting** windows, following whichever one you opened last."
+      ],
+      "fix": false
+    },
+    "mod-reagent-bank-account#8": {
+      "notes": [
+        "The **Reagent Bank** windows now use the standard Blizzard look. The color themes and frame style options have been removed.",
+        "Window scale, Reset Window and the auto-deposit timer are now found under Interface > AddOns > Reagent Bank."
+      ],
+      "fix": false
+    },
+    "mod-reagent-bank-account#9": {
+      "notes": [
+        "The **Reagent Bank** list now has a scroll bar and mouse wheel support when it has more than 15 entries.",
+        "Fixed an issue where the 16th and later items in a category were not shown, such as some ores missing from Metal & Stone."
+      ],
+      "fix": true
+    },
+    "mod-reagent-bank-account#10": {
+      "notes": [
+        "Fixed an issue where using **Withdraw Needed** turned off periodic auto-deposit until you turned it back on. Auto-deposit now pauses while a profession window is open and resumes when it closes.",
+        "The default auto-deposit interval is now 300 sec."
+      ],
+      "fix": true
+    },
+    "mod-reagent-bank-account#11": {
+      "notes": [
+        "Resized the **Withdraw Needed** and **Add to AH List** buttons in the profession sidebar.",
+        "Fixed an issue where the sidebar kept showing old bag counts after using **Withdraw Needed** until you selected another recipe."
+      ],
+      "fix": true
+    },
+    "mod-reagent-bank-account#12": {
+      "notes": [
+        "The **Reagent Bank** AH shopping list now tracks your purchases: bought stacks come off the amount left, and an item is removed from the list once you have bought enough.",
+        "The shopping list now shows **Left** and **Bought** columns.",
+        "With **Auctionator**, clicking a shopping list row now searches on its Buy tab, and the list is mirrored into an Auctionator shopping list named **Reagent Bank**."
+      ],
+      "fix": false,
+      "section": "Auction House",
+      "sub": "Shopping List"
+    },
+    "mod-reagent-bank-account#13": {
+      "notes": [
+        "The **Reagent Bank** AH shopping list panel can now be dragged."
+      ],
+      "fix": false,
+      "section": "Auction House",
+      "sub": "Shopping List"
+    },
+    "mod-reagent-bank-account#14": {
+      "notes": [
+        "**Ctrl+Shift-click** an item in your bags, in Auction House results or in a chat link to add it to the AH shopping list.",
+        "Dropping an item from your bags onto the AH shopping list panel now opens the same prompt.",
+        "AH shopping list rows now support right-click to change the amount and **Shift+right-click** to remove the item."
+      ],
+      "fix": false,
+      "section": "Auction House",
+      "sub": "Shopping List"
+    },
+    "mod-reagent-bank-account#15": {
+      "hide": true
+    },
+    "mod-reagent-bank-account#16": {
+      "hide": true
+    },
+    "mod-reagent-bank-account#17": {
+      "notes": [
+        "Added **-** and **+** buttons to AH shopping list rows. Click to change the amount by 1, or **Shift-click** to change it by a full stack."
+      ],
+      "fix": false,
+      "section": "Auction House",
+      "sub": "Shopping List"
+    },
+    "mod-reagent-bank-account#18": {
+      "notes": [
+        "Fixed an issue that caused the game to nearly freeze when opening a profession window with a **Reagent Bank**.",
+        "Fixed an issue where reagent bank deposits and withdrawals could be counted twice when a second chat tab was showing system messages."
+      ],
+      "fix": true
+    },
+    "wow-addon-Auctionator#1": {
+      "notes": [
+        "**Auctionator** has been updated to version 3.1.5, adding the Database, Clears and Shopping Lists options pages, shopping list import and export, and a rewritten full scan.",
+        "Added the optional **AuctionatorMiniFeatures** add-on."
+      ],
+      "fix": false,
+      "section": "Auction House",
+      "sub": "Auctionator"
+    },
+    "wow-addon-Auctionator#2": {
+      "notes": [
+        "Fixed an issue where the list box on the **Auctionator** Shopping Lists options page covered the Delete, Edit and Rename buttons.",
+        "The shopping list Edit window can now be moved and closed with an X button."
+      ],
+      "fix": true,
+      "section": "Auction House",
+      "sub": "Auctionator"
+    },
+    "wow-addon-Auctionator#4": {
+      "hide": true
+    },
+    "wow-addon-Auctionator#3": {
+      "notes": [
+        "Item tooltips now show an **Auction median** line based on your last 15 full scans."
+      ],
+      "fix": false,
+      "section": "Auction House",
+      "sub": "Auctionator"
+    },
+    "wow-addon-Auctionator#5": {
+      "notes": [
+        "Fixed an issue where **Auctionator** failed with an error on the first Buy tab search when another add-on interfered with its shopping lists."
+      ],
+      "fix": true,
+      "section": "Auction House",
+      "sub": "Auctionator"
+    },
+    "wow-addon-Auctionator#6": {
+      "notes": [
+        "Fixed an issue that caused **Auctionator** to fail with an error at login when it found price data saved by an older version."
+      ],
+      "fix": true,
+      "section": "Auction House",
+      "sub": "Auctionator"
+    },
+    "wow-addon-Auctionator#7": {
+      "notes": [
+        "The **Buy** popup now stays open for bulk buying, moving on to the next cheapest auction once every stack at one price is bought, with a running total of what you have bought.",
+        "Cancel becomes **Done** once you have bought something.",
+        "Fixed an issue where buying at one price across several pages removed too many listings from the results."
+      ],
+      "fix": false,
+      "section": "Auction House",
+      "sub": "Auctionator"
+    },
+    "wow-addon-Auctionator#8": {
+      "notes": [
+        "With **DragonUI**, the Auction House now uses DragonUI's window frame, tabs, panel and button styling."
+      ],
+      "fix": false,
+      "section": "Auction House",
+      "sub": "Auctionator"
+    },
+    "wow-addon-Auctionator#9": {
+      "notes": [
+        "With **DragonUI**, the inside of the Auction House now also uses DragonUI's look, including panels, column headers, category list, result rows, search boxes, dropdowns, checkboxes and scroll bars.",
+        "Fixed an issue where the selected tab's title was hidden under the window band."
+      ],
+      "fix": false,
+      "section": "Auction House",
+      "sub": "Auctionator"
+    },
+    "wow-addon-Auctionator#10": {
+      "notes": [
+        "Buy tab searches can now be filtered by item stats, for example **Armor/Leather/60/70/+agi/+crit**. Only items with every listed stat are shown.",
+        "Advanced Search has a new **Must Have Stats** row for Weapons, Armor and Gems.",
+        "Fixed an issue where the Item Level Range fields in Advanced Search never appeared."
+      ],
+      "fix": false,
+      "section": "Auction House",
+      "sub": "Auctionator"
+    },
+    "wow-addon-Auctionator#11": {
+      "notes": [
+        "Searches with stat filters now list the highest stat total first, with a new heading (such as **Agi+Crit**) to switch between high-to-low and low-to-high.",
+        "Each result row now shows its stat total after the item name."
+      ],
+      "fix": false,
+      "section": "Auction House",
+      "sub": "Auctionator"
+    },
+    "wow-addon-Auctionator#12": {
+      "notes": [
+        "With **DragonUI**, the sort headings now use a green stat label, a lighter hover effect and gold sort arrows."
+      ],
+      "fix": false,
+      "section": "Auction House",
+      "sub": "Auctionator"
+    },
+    "wow-mod-gathering-tools#1": {
+      "notes": [
+        "Carrying a **Mining Pick** or **Skinning Knife** now makes mining and skinning take 25% less time, in addition to the +10 skill."
+      ],
+      "fix": false,
+      "devnote": "We want carrying a gathering tool to feel worthwhile, so it now speeds up your gathering as well as raising your skill.",
+      "section": "Professions"
+    },
+    "wow-mod-retail-ah#1": {
+      "notes": [
+        "The retail Auction House window can now be moved by dragging its title bar and remembers its position. Use **/rah reset** to put it back.",
+        "Clicking the selected category again now clears it, so a name search covers every category.",
+        "While buying, the cheapest listing you can buy out is selected automatically, the next one is selected after each purchase, and a **Purchased** total is shown. **Shift-click** **Buy Now** to skip the confirmation."
+      ],
+      "fix": false
+    },
+    "wow-mod-retail-ah#2": {
+      "notes": [
+        "Gear with an appearance your account has not collected now shows a pink **new look** tag, and a new **Uncollected appearances only** filter is available.",
+        "Added a **Bid on Stacks** toggle that lists every stack of a commodity separately, so you can bid on one or buy a whole stack. **Buy by Quantity** switches back."
+      ],
+      "fix": false
+    },
+    "wow-mod-retail-ah#3": {
+      "notes": [
+        "Commodities can now be posted with an optional starting bid per unit (**Bid per Unit**). Left empty, stacks are buyout only.",
+        "Fixed an issue where search results showed through the item view in the plain theme.",
+        "The quantity now stays after a purchase, so **Buy Now** buys the same amount again."
+      ],
+      "fix": false
+    },
+    "wow-mod-retail-ah#4": {
+      "notes": [
+        "Searching is now much faster. Searches are sent immediately, repeated searches show their earlier results at once, and item icons and names appear sooner.",
+        "Fixed an issue where searches could be answered with a delayed \"busy\" retry."
+      ],
+      "fix": true
+    },
+    "wow-mod-retail-ah#5": {
+      "notes": [
+        "Added an **Include reagent bank** checkbox to the Sell tab. When it is off, the item list shows only what is in your bags and posting never takes from your **Reagent Bank**."
+      ],
+      "fix": false
+    },
+    "wow-mod-retail-ah#6": {
+      "notes": [
+        "The Buy tab **Filters** menu now has a **Stats** section. A search returns only gear that has every checked stat.",
+        "Removed the **Classic** button. **/rah classic** and **/rah retail** switch between the two windows."
+      ],
+      "fix": false
+    },
+    "wow-mod-retail-ah#7": {
+      "notes": [
+        "Gear with random enchantments is now listed separately for each suffix, so searching for \"monkey\" or filtering by Agility shows the matching items with their real names and tooltips.",
+        "Item tooltips in the Auction House now show the equipped-gear comparison without holding **Shift**. **/rah compare** toggles it."
+      ],
+      "fix": false
+    },
+    "wow-mod-retail-ah#8": {
+      "notes": [
+        "The Sell tab now suggests the price the Auction House buyer pays every time it looks, so your post sells even with few players around. The **AH buyer pays** line shows the price, and clicking it puts the price back.",
+        "Added a **Ledger** tab that records your sold, bought, expired and cancelled auctions with gold totals for today, 7 days, 30 days or all time."
+      ],
+      "fix": false
+    },
+    "wow-mod-retail-ah#9": {
+      "notes": [
+        "Fixed an issue where search results showed rows of **Loading...** while item information was fetched. Item information is now remembered and shows instantly.",
+        "The **Level** column is now **iLvl**, and a new **Req** column shows the level needed to use the item."
+      ],
+      "fix": true
+    },
+    "wow-mod-retail-ah#10": {
+      "notes": [
+        "Auctions for items that need more than 2 levels above your character are now hidden, except at the level cap of the current era.",
+        "Auctions for items from later in the realm's progression are now hidden, and the search shows **+N locked** with a tooltip saying when they unlock. Bids and buyouts follow the same rules."
+      ],
+      "fix": false,
+      "devnote": "We want the Auction House to respect where you are in the realm's progression, so items beyond your level or from later content stay hidden until you reach them."
+    },
+    "wow-mod-retail-ah#11": {
+      "notes": [
+        "Fixed an issue where **Usable only** still listed recipes your character already knows."
+      ],
+      "fix": true
+    },
+    "wow-mod-retail-ah#12": {
+      "hide": true
+    },
+    "wow-mod-retail-ah#13": {
+      "notes": [
+        "Without **DragonUI**, the retail Auction House now uses the standard Blizzard look."
+      ],
+      "fix": false
+    },
+    "wow-mod-retail-professions#1": {
+      "notes": [
+        "The profession window now has a retail-style layout: profession tabs on the right edge, a round profession portrait, a full-width skill bar, a search box with filters, and category bars with a skill-up indicator on each recipe.",
+        "Recipes can now be marked with a **favorite star** and are grouped at the top of the list. The recipe pane shows a **Requires:** line, with anything missing in red.",
+        "Without **DragonUI**, the profession windows now use the standard Blizzard look."
+      ],
+      "fix": false
+    },
+    "wow-mod-retail-professions#2": {
+      "notes": [
+        "Added a **Use reagent bank** option to the profession window. **Create** and **Create All** now count and withdraw what your bags are missing from the **Reagent Bank**.",
+        "The chance of a skill-up and the skill levels where a recipe turns yellow, green and grey now appear in the tooltip when you hover a recipe."
+      ],
+      "fix": false
+    },
+    "wow-mod-retail-professions#3": {
+      "notes": [
+        "**Shift-click Enchant** now answers the replace-enchant and bind-item questions for that cast, making enchanting for skill-ups faster. A plain click still asks."
+      ],
+      "fix": false
+    },
+    "wow-mod-retail-professions#4": {
+      "notes": [
+        "Fixed an issue where the profession window search box held the keyboard, so key bindings such as **C** did nothing while the window was open.",
+        "Fixed an issue where **Withdraw Needed** withdrew reagents for only one craft regardless of the amount set."
+      ],
+      "fix": true
+    },
+    "wow-mod-retail-professions#5": {
+      "notes": [
+        "Fixed an issue where recipes that do not target an item, such as **Minor Inscription Research**, were treated as enchants, locking the amount to 1 and showing an **Enchant** slot.",
+        "Closing the profession window now clears the **Enchant** slot and the search box."
+      ],
+      "fix": true
+    },
+    "wow-mod-retail-professions#6": {
+      "notes": [
+        "Added a craft-for-profit view to the profession window, toggled with the coin button. Recipes are grouped into **Craft now**, **Buy materials and craft**, **Not worth it** and **No price**, with the best profit first.",
+        "Recipe tooltips and the recipe pane now show what the item sells for, the materials cost and the profit per craft, based on Auction House prices."
+      ],
+      "fix": false,
+      "devnote": "We want deciding what to craft to be easier, so the profession window can now show which recipes are worth making based on current Auction House prices."
+    },
+    "wow-mod-stack-size#1": {
+      "notes": [
+        "Reagents and consumables, such as potions, food, flasks, bandages, scrolls and **Symbol of Kings**, now stack up to 200.",
+        "Non-stacking items such as **Healthstones** are unchanged."
+      ],
+      "fix": false
+    },
+    "mod-llm-chatter#1": {
+      "hide": true
+    },
+    "mod-llm-chatter#2": {
+      "hide": true
+    },
+    "mod-llm-chatter#3": {
+      "hide": true
+    },
+    "mod-llm-chatter#4": {
+      "hide": true
+    },
+    "mod-llm-chatter#5": {
+      "hide": true
+    },
+    "mod-llm-chatter#10": {
+      "hide": true
+    },
+    "mod-world-buff-bots#2": {
+      "hide": true
+    },
+    "wow-mod-accountwide-flight-paths#1": {
+      "hide": true
+    },
+    "wow-mod-accountwide-mounts#1": {
+      "hide": true
+    },
+    "wow-mod-accountwide-pets#1": {
+      "hide": true
+    },
+    "wow-mod-bot-lfg-accept#1": {
+      "hide": true
+    },
+    "wow-mod-bot-shakedown#1": {
+      "hide": true
+    },
+    "wow-mod-dungeon-consumables#2": {
+      "hide": true
+    },
+    "wow-mod-era-events#1": {
+      "hide": true
+    },
+    "wow-mod-holiday-control#1": {
+      "hide": true
+    },
+    "wow-mod-holiday-control#2": {
+      "hide": true
+    },
+    "wow-mod-npc-finder#1": {
+      "hide": true
+    },
+    "wow-mod-rare-tracker#2": {
+      "hide": true
+    },
+    "wow-mod-rare-tracker#3": {
+      "hide": true
+    },
+    "wow-mod-transmog-plus#7": {
+      "hide": true
+    },
+    "wow-mod-transmog-plus#8": {
+      "hide": true
+    },
+    "mod-llm-chatter#6": {
+      "notes": [
+        "Bot chat actions now appear as real emotes instead of text between asterisks.",
+        "Bots now react to custom emotes you type with **/e** and **/me**.",
+        "Bots now know their equipped weapons, their pet and who else is present, and describe an unfamiliar target by level, gender, race and class."
+      ]
+    },
+    "mod-llm-chatter#7": {
+      "notes": [
+        "Roleplay bot chat now leans grim, bitter and distrustful rather than uniformly positive about you.",
+        "Bots now comment less on their surroundings, and only react to crowd control and offensive spell casts. Your own casts draw fewer reactions than before.",
+        "Bots now avoid repeating their recent lines."
+      ],
+      "devnote": "We want bot banter to read like players talking to each other, not narrating every spell and every landmark. Expect quieter, more varied chatter."
+    },
+    "mod-llm-chatter#8": {
+      "notes": [
+        "Bot chat style now depends on the channel and your location. On roleplay realms, party, raid and battleground chat inside dungeons, raids, battlegrounds and arenas drops the roleplay voice and stays plain and to the point, while zone, guild and **/say** chat stay in character.",
+        "Bots on mixed-style realms now keep one voice throughout a conversation instead of switching between messages."
+      ]
+    },
+    "mod-llm-chatter#9": {
+      "notes": [
+        "Bots now use the shorthand and slang real players use, matched to where they are speaking, such as combat, trade, loot, guild and PvP."
+      ]
+    },
+    "mod-world-buff-bots#1": {
+      "notes": [
+        "**Warchief's Blessing** and **Rallying Cry of the Dragonslayer** announcements are now sent only to the faction that can use them.",
+        "Both city buffs are now turned in at the same time, with **Spirit of Zandalar** following 10 minutes later, so you can catch a city buff and still reach Zul'Gurub in the same cycle.",
+        "World buffs now announce 10 minutes ahead and name the realm time they will drop."
+      ],
+      "devnote": "We want you to be able to plan for a world buff, not stumble into one. The warning gives you a clock time rather than a countdown, so you don't have to do the math."
+    },
+    "wow-addon-RareAlert-Dungeon#1": {
+      "notes": [
+        "**RareAlert** is now named **RareAlert-Dungeons**, including its in-game title, chat prefix and alert tooltip. The **/rare** command is unchanged.",
+        "Your saved **RareAlert-Dungeons** settings are reset by the rename."
+      ],
+      "section": "User Interface",
+      "sub": "RareAlert-Dungeons"
+    },
+    "wow-addon-unbot#1": {
+      "notes": [
+        "The **Unbot** action bar now hides while you are not in a party or raid, and shows again when you join one.",
+        "Closing the bar yourself keeps it closed through group changes until you reopen it with **/unbot**, which still opens it while solo."
+      ]
+    },
+    "wow-mod-azerothcore-portal#1": {
+      "notes": [
+        "Added the **Rare Map** page, showing every open-world rare that is up right now, with continent tabs, zone maps, a searchable zone list, shareable links and respawn countdowns for dead rares.",
+        "Rare pins show whether a rare is up and whether a player is nearby, in which case its position and health are live."
+      ],
+      "sub": "Rare Map"
+    },
+    "wow-mod-azerothcore-portal#2": {
+      "notes": [
+        "The **Rare Map** now shows where dungeon-entrance rares really are, such as Westfall · The Deadmines, and search also matches the area name."
+      ],
+      "sub": "Rare Map"
+    },
+    "wow-mod-rare-tracker#1": {
+      "notes": [
+        "Fixed an issue where rares standing outside dungeon entrances and in Dalaran had no pin on the **Rare Map**. They now appear on the surrounding zone's map."
+      ],
+      "fix": true,
+      "section": "Realm Website",
+      "sub": "Rare Map"
+    },
+    "wow-mod-rare-tracker#4": {
+      "notes": [
+        "The **Blood Elf Bandit** on Azuremyst Isle is now tracked on the **Rare Map**, and free-roaming bots leave it alone."
+      ],
+      "section": "Realm Website",
+      "sub": "Rare Map"
+    },
+    "wow-mod-dungeon-consumables#1": {
+      "notes": [
+        "Fixed an issue where drinking a **Delver's Draught** in combat left every potion greyed out and its cooldown never started until you zoned."
+      ],
+      "fix": true
+    },
+    "wow-mod-mount-scaling#1": {
+      "notes": [
+        "Fixed an issue where 310% flying mounts, such as **Ashes of Al'ar**, the arena and Glory drakes, and the 310% versions of **Invincible** and the **Celestial Steed**, slowed to 208% at level 71 and only reached 280% at level 80. They now always keep at least 310%."
+      ],
+      "fix": true
+    },
+    "wow-mod-pet-loot#1": {
+      "notes": [
+        "Any summoned non-combat pet can now loot corpses, not just **Bananas**."
+      ]
+    },
+    "wow-mod-pet-loot#2": {
+      "notes": [
+        "Fixed an issue where non-combat pets never looted in dungeons. Pets now loot when any member of your group kills a creature, if you are nearby."
+      ],
+      "fix": true
+    },
+    "wow-mod-pet-loot#3": {
+      "notes": [
+        "Fixed an issue where pet looting in groups caused every item to go to two rolls.",
+        "Fixed an issue where an empty corpse could be rolled for loot a second time when a pet looted it."
+      ],
+      "fix": true
+    },
+    "wow-mod-pet-loot#4": {
+      "notes": [
+        "Fixed an issue where corpses kept sparkling after a pet looted them, then opened empty."
+      ],
+      "fix": true
+    },
+    "wow-mod-transmog-plus#1": {
+      "notes": [
+        "Turning in a quest now collects the appearance of every reward the quest offered, including the choices you did not pick.",
+        "On login, quests you already completed now count toward your collection."
+      ],
+      "sub": "Transmogrification"
+    },
+    "wow-mod-transmog-plus#2": {
+      "notes": [
+        "Fixed an issue where winning a **Disenchant** roll gave the materials but did not collect the item's appearance."
+      ],
+      "fix": true,
+      "sub": "Transmogrification"
+    },
+    "wow-mod-transmog-plus#3": {
+      "notes": [
+        "Added a search box under the Items grid that filters collected looks by name, including any item that shares the look.",
+        "Added a **Missing** checkbox that lists the looks the selected item could use that your account has not collected yet, with the sources of each. Shift-click any tile to link the item in chat."
+      ],
+      "sub": "Transmogrification"
+    },
+    "wow-mod-transmog-plus#4": {
+      "notes": [
+        "Weapon tiles in the Items and Illusions grids now turn the holding hand toward the camera and zoom in on the weapon.",
+        "Undead tiles now sit closer so they no longer show the whole body.",
+        "Fixed an issue where the Collected bar extended past the right edge of the window."
+      ],
+      "sub": "Transmogrification"
+    },
+    "wow-mod-transmog-plus#5": {
+      "notes": [
+        "Fixed an issue where set bonus tooltips showed transmogged set pieces as missing and greyed out the bonuses.",
+        "Added a **Remove all** button to the transmog window that stages a reset on every transmogged slot and illusion."
+      ],
+      "sub": "Transmogrification"
+    },
+    "wow-mod-transmog-plus#6": {
+      "notes": [
+        "Fixed an issue where hidden slots looked empty on the character pane under transmog, and showed the appearance's icon and quality instead of the real item's."
+      ],
+      "fix": true,
+      "sub": "Transmogrification"
+    }
+  },
+  "launches": {
+    "mod-dungeon-clear": {
+      "title": "Dungeon Clear",
+      "notes": [
+        "Your tank Playerbot can now run a dungeon for you: say **dc on** in party chat (or type .dc on) inside an instance and the tank leads the party from boss to boss, pulling trash, looting, resting and recovering from deaths on the way.",
+        "Scripted dungeon events such as levers, gongs, escorts and wave encounters are handled automatically in many Classic, Burning Crusade and Wrath dungeons.",
+        "Choose how trash is pulled with **dc pull**: Dynamic, Leeroy or Advanced. Use .dc pause, .dc skip, .dc bosses and .dc status to stay in control.",
+        "Heroic dungeons are supported, and .dc spectate lets you watch the run from a free camera."
+      ]
+    },
+    "mod-gathering-node-dynamic": {
+      "title": "Faster Node Respawns",
+      "notes": [
+        "Mining and Herbalism nodes now respawn in half the time.",
+        "More nodes are up at once in each gathering area."
+      ]
+    },
+    "mod-learnable-mounts": {
+      "title": "Learnable Old Mounts",
+      "notes": [
+        "Old mounts such as the **Fluorescent Green Mechanostrider** and the vanilla racial mount items now teach you the mount when used, instead of summoning it from your bags.",
+        "Learned mounts appear in the Mounts tab of your spellbook, and the item is used up like any other mount item."
+      ]
+    },
+    "mod-llm-chatter": {
+      "title": "Bot Chatter",
+      "notes": [
+        "Playerbots now hold AI-driven conversations in chat, reacting to what is going on around them instead of repeating canned lines."
+      ]
+    },
+    "mod-mass-milling": {
+      "title": "Milling Window",
+      "notes": [
+        "Milling now has its own profession window in the default tradeskill style, with herbs grouped by pigment, difficulty colors and an amount box.",
+        "**Create All** now mills continuously from a single click, using your smallest stack of 5 or more first. Moving, running out of herbs or clicking again stops it.",
+        "Works with the Reagent Bank, so herbs stored there can be milled."
+      ]
+    },
+    "mod-mass-prospecting": {
+      "title": "Prospecting Window",
+      "notes": [
+        "Prospecting now has its own profession window in the default tradeskill style, with ores grouped by expansion, difficulty colors and a gem grid for each ore.",
+        "**Create All** now prospects continuously from a single click, using your smallest stack of 5 or more first. Moving, running out of ore or clicking again stops it.",
+        "Works with the Reagent Bank, so ore stored there can be prospected."
+      ]
+    },
+    "mod-mount-requirements": {
+      "title": "Mount Requirements",
+      "notes": [
+        "**Apprentice Riding** can now be learned at level 5 for 5 silver.",
+        "Racial mounts can be bought from level 1 for 5 silver, and the Paladin class mount can be learned at level 5 for 5 silver."
+      ]
+    },
+    "mod-reagent-bank-account": {
+      "title": "Reagent Bank",
+      "notes": [
+        "Adds a Reagent Bank you can deposit crafting materials into and withdraw from anywhere, with a sidebar on your profession windows, tooltips and Auction House integration.",
+        "Includes periodic deposits and shopping lists for the materials your recipes need.",
+        "The bank is shared by every character on your account, Horde and Alliance alike.",
+        "Type .rbank for the available commands."
+      ]
+    },
+    "mod-world-buff-bots": {
+      "title": "World Buff Turn-Ins",
+      "notes": [
+        "Classic world buffs now return on a randomized timer: **Warchief's Blessing** in Orgrimmar, **Rallying Cry of the Dragonslayer** in Stormwind and **Spirit of Zandalar** in Stranglethorn Vale.",
+        "A warning goes out 10 minutes ahead naming the realm time, and the Zandalar buff drops 10 minutes after the city buffs so you have time to travel.",
+        "Turn-ins land every 30 to 150 minutes, rolled at random, and each buff goes to its own faction by default."
+      ],
+      "section": "World"
+    },
+    "wow-addon-AtlasLootHD": {
+      "title": "AtlasLoot HD",
+      "notes": [
+        "A modern loot browser for dungeon, raid, crafting and world event loot, styled after AtlasLoot Classic. Open it with /al.",
+        "Pick an expansion and dungeon from the dropdowns, search for items, and see each boss's loot under its name with quality-framed icons.",
+        "Difficulty (Normal/Heroic, 10/25 Man) stays selected as you move between bosses, and Quick Access holds your wishlist, last search and four QuickLooks.",
+        "Items your client hasn't seen yet are looked up automatically when their page opens."
+      ]
+    },
+    "wow-addon-Auctionator": {
+      "title": "Auctionator",
+      "notes": [
+        "Adds Auctionator 2.6.8, the classic Auction House helper for scanning and posting, to the standard auction window.",
+        "A full scan no longer freezes the game.",
+        "Item tooltips now show the median auction price."
+      ]
+    },
+    "wow-addon-MinimalHunter": {
+      "title": "MinimalHunter",
+      "notes": [
+        "A clean, minimal interface for Hunters: restyled action bars, unit frames, cast bars and minimap with hunter-specific touches.",
+        "Type /mh unlock to drag the pieces where you want them, /mh lock to fix them and /mh reset to start over.",
+        "Turns itself off if DragonUI is loaded."
+      ]
+    },
+    "wow-addon-RareAlert-Dungeon": {
+      "title": "RareAlert Dungeons",
+      "notes": [
+        "Knows 40 rare spawns across the dungeons and warns you when one is nearby, with a raid-warning message, a sound, a screen flash and a button that targets it.",
+        "Type /rare for a list of the current dungeon's rares and whether each is unseen, nearby, seen or killed.",
+        "Add your own names with /rare add, and any rare you target or mouse over triggers the alert too."
+      ]
+    },
+    "wow-addon-RecipeRadar": {
+      "title": "Recipe Radar",
+      "notes": [
+        "Finds recipe vendors by region or profession and marks them on your map.",
+        "Open it from its minimap icon, a key binding or /rrdr."
+      ]
+    },
+    "wow-addon-unbot": {
+      "title": "UnBot",
+      "notes": [
+        "A control panel for your Playerbots with buttons for summoning, following, attacking and fleeing, plus a window to view and manage bot equipment.",
+        "Edit each bot's combat and non-combat strategies, view its quests, status and inventory, and set party formations.",
+        "Add bots of a chosen class, including random bots, account bots and NPC bots."
+      ]
+    },
+    "wow-addon-WeaponSkillInfo": {
+      "title": "Weapon Skill Info",
+      "notes": [
+        "Weapon slots in the character window now show a skill badge, and their tooltips explain what your weapon skill is doing for you, such as miss chance and glancing blows.",
+        "The same breakdown appears when you hover a weapon skill on the Skills tab, so \"Swords 100/300\" finally means something.",
+        "Type /wsi badges to toggle the slot badges."
+      ]
+    },
+    "wow-mod-accountwide-flight-paths": {
+      "title": "Account-Wide Flight Paths",
+      "notes": [
+        "Flight paths you discover are now shared with every character on your account, filtered to your faction.",
+        "Death Knight starting flight paths are not shared."
+      ]
+    },
+    "wow-mod-accountwide-mounts": {
+      "title": "Account-Wide Mounts",
+      "notes": [
+        "Mounts you learn are now available to every character on your account."
+      ]
+    },
+    "wow-mod-accountwide-pets": {
+      "title": "Account-Wide Companions",
+      "notes": [
+        "Companion pets you learn are now available to every character on your account."
+      ]
+    },
+    "wow-mod-all-specializations": {
+      "title": "All Profession Specializations",
+      "notes": [
+        "You now learn every profession specialization at the normal skill and level: Gnomish and Goblin Engineering, every Blacksmithing specialty, Leatherworking, Tailoring and Alchemy specializations.",
+        "Recipes, trainers and items that required a specialization now work for every character."
+      ]
+    },
+    "wow-mod-automount": {
+      "title": "Auto Mount",
+      "notes": [
+        "Press **Caps Lock** to mount up; press it again to dismount.",
+        "The game picks your favorite mount or your fastest one, choosing a flying mount where flying is allowed and a **Sea Turtle** in the water.",
+        "Set your favorites with .automount set, and use .automount status to see your current picks."
+      ]
+    },
+    "wow-mod-azerothcore-portal": {
+      "title": "Realm Website",
+      "notes": [
+        "Create your realm account straight from the Vaultrona website.",
+        "The site is also home to the Rare Map and the character armory."
+      ]
+    },
+    "wow-mod-biome-effects": {
+      "title": "Biomes",
+      "notes": [
+        "Themed zones now grant resistance bonuses automatically as you enter them, and the bonuses fade when you leave."
+      ],
+      "section": "World"
+    },
+    "wow-mod-bot-lfg-accept": {
+      "title": "Playerbots and the Dungeon Finder",
+      "notes": [
+        "Playerbots now always accept the Dungeon Finder ready check, even if they are fighting or dead at the time.",
+        "Bots whose teleport into the dungeon fails are now pulled in automatically."
+      ]
+    },
+    "wow-mod-bot-shakedown": {
+      "title": "Bot Shakedown",
+      "notes": [
+        "Say **cloth** or **leather** in party chat and your Playerbots hand over their cloth or leather straight into your bags, no trade windows needed.",
+        "Only bots in your group and on your map respond."
+      ]
+    },
+    "wow-mod-cursor-fishing": {
+      "title": "Cursor Fishing",
+      "notes": [
+        "**Fishing** now casts where you click, with a targeting circle to show the spot.",
+        "Requires the latest client patch; unpatched clients, and Playerbots, fish as before."
+      ]
+    },
+    "wow-mod-dualspec": {
+      "title": "Dual Specialization",
+      "notes": [
+        "Unlock **Dual Talent Specialization** at level 10 with the .dualspec command.",
+        "Unlocking is currently free."
+      ]
+    },
+    "wow-mod-dungeon-consumables": {
+      "title": "Delver's Draught",
+      "notes": [
+        "Entering a dungeon now gives you 5 **Delver's Draughts**, which restore 50% of your maximum health and mana over 10 sec and scale to any level.",
+        "Unused draughts vanish when you leave. Returning to the same run restores what you had instead of a fresh set.",
+        "Playerbots do not receive them."
+      ]
+    },
+    "wow-mod-era-events": {
+      "title": "Era Events",
+      "notes": [
+        "Timed world events now return for each Individual Progression era: the **AQ Gate** war, the **Scourge Invasion**, the **Legion Incursion** and the **Zombie Infestation**.",
+        "Events are phased, so only players in that era see and share them, and bots in the era join in.",
+        "Each event runs every few hours when enough players are at that stage."
+      ],
+      "devnote": "We love how the big pre-expansion moments felt, and a progression realm shouldn't skip them. Each event is tied to its own era so you only meet it when the world is truly at that point."
+    },
+    "wow-mod-forever-class-combos": {
+      "title": "New Race and Class Combinations",
+      "notes": [
+        "Six new combinations can be created: **Orc Mage**, **Troll Warlock**, **Undead Paladin**, **Human Hunter**, **Gnome Priest** and **Dwarf Shaman**.",
+        "Each new combination can complete the class quests of its class, and a class trainer waits in Northshire, Anvilmar and Deathknell for the new Human, Dwarf and Undead classes.",
+        "Dwarf Shamans receive an **Earth Totem** to start. Requires the latest client patch."
+      ]
+    },
+    "wow-mod-forever-druid": {
+      "title": "Druid Changes",
+      "notes": [
+        "**Swipe (Bear)** now costs no rage, and dodging an attack in Bear Form generates 5 rage. **Frenzied Regeneration** heals 1% of your health per rage spent.",
+        "Learn **Pulverize** at level 42: it deals weapon damage per **Lacerate** stack, consumes the stacks and grants crit chance for 10 sec. **Lacerate** is now learned at level 42 and scales with level.",
+        "**Travel Form** can be used indoors, and your Travel Form speed follows level-scaled mounts out of combat. Cat Form combo points carry to your next target.",
+        "Food, potions and flasks work in forms, mining works in all forms, and the **Automatic Crowd Pummeler** no longer has charges and grants attack power in feral forms."
+      ],
+      "devnote": "We want druids to be able to stay in form: tanking without rage-starving, fishing, gathering and eating while shapeshifted. These changes let you keep playing the form you chose."
+    },
+    "wow-mod-forever-dungeon-xp": {
+      "title": "Dungeon Experience",
+      "notes": [
+        "Experience from killing monsters in dungeons is reduced to 80%.",
+        "One-time dungeon quests now award triple experience."
+      ],
+      "section": "Dungeons"
+    },
+    "wow-mod-forever-hunter": {
+      "title": "Hunter Changes",
+      "notes": [
+        "Hunter pets now share your critical strike and haste, gain 51 maximum focus, and their physical abilities scale much better with attack power.",
+        "**Summon Hawk** sends a hawk to swoop at your target and fight alongside you for a short time. It has a 6 sec cooldown and is available to Marksmanship hunters with **Lone Wolf**."
+      ]
+    },
+    "wow-mod-forever-paladin": {
+      "title": "Paladin Changes",
+      "notes": [
+        "**Holy Strike** is now available to every Paladin at level 6, regardless of specialization. It is instant, deals Holy damage and has a 12 sec cooldown.",
+        "**Seal of Fury** is a new Protection seal learned at level 10. Its **Judgement of Fury** taunts the target, and with a shield equipped **Fury Ward** absorbs damage. **Glyph of Seal of Fury** returns mana when the judgement hits.",
+        "Blessings now last 1 hour, and Judgements of Light, Wisdom and the Just, along with Heart of the Crusader, last 40 sec.",
+        "**Redoubt** now has a chance to restore 6% of your base mana when you block."
+      ],
+      "devnote": "We want every Paladin to have something to press between swings and a reason to carry a shield. Longer blessings and judgements cut the upkeep so you can focus on the fight."
+    },
+    "wow-mod-forever-periodic-crit": {
+      "title": "Periodic Critical Strikes",
+      "notes": [
+        "Damage over time and healing over time effects can now critically strike on each tick."
+      ]
+    },
+    "wow-mod-forever-racials": {
+      "title": "Racial Rework",
+      "notes": [
+        "Racial abilities have been reworked for most races: two active abilities and two passives each, with minor racials folded into the main ones.",
+        "Weapon specializations now grant 2% critical strike chance instead of expertise.",
+        "Undead gain **Touch of the Grave**, which drains life from your enemies, and new racials include **Escape Artist**, **Eureka!**, **Shatter Curse**, **Plainsrunning**, **Cultivation** and **Rapid Regeneration**.",
+        "**Diplomacy** has been removed and **Blood Fury** has been tuned."
+      ],
+      "devnote": "We want every race to feel strong at being itself, so weaker racials were lifted up to match the stronger ones. Several new racials need the latest client patch."
+    },
+    "wow-mod-forever-rogue": {
+      "title": "Rogue Changes",
+      "notes": [
+        "Combo points now carry over to your next target for 20 sec after a kill, at their full count."
+      ]
+    },
+    "wow-mod-forever-shaman": {
+      "title": "Shaman Changes",
+      "notes": [
+        "**Ghost Wolf** speed now scales with your level when outdoors and out of combat, like level-scaled mounts, and never drops below 40%.",
+        "Ghost Wolf can be cast indoors, and runs at 40% when indoors or in combat.",
+        "You can mine while in **Ghost Wolf**."
+      ]
+    },
+    "wow-mod-gathering-tools": {
+      "title": "Gathering Tools",
+      "notes": [
+        "**Mining** and **Skinning** no longer require a Mining Pick or Skinning Knife.",
+        "Carrying the tool in your bags makes you gather faster."
+      ]
+    },
+    "wow-mod-hearthstone-cd": {
+      "title": "Hearthstone Cooldown",
+      "notes": [
+        "The **Hearthstone** cooldown is now 5 minutes, and the timer on your button matches it."
+      ],
+      "section": "World"
+    },
+    "wow-mod-holiday-control": {
+      "title": "Holiday Control",
+      "notes": [
+        "Holidays and world events can now be switched on or off, or moved to a different schedule, by the realm.",
+        "Bonus events such as double XP weekends can run alongside them.",
+        "Type .holidays to see what is active."
+      ]
+    },
+    "wow-mod-learn-spells": {
+      "title": "Automatic Class Spells",
+      "notes": [
+        "Class spells are now learned automatically as you level up, to level 55, with no trainer visit needed.",
+        "Spells that come from class quests, such as Bear Form, warlock pets, stances, totems and hunter taming, are still earned from those quests."
+      ]
+    },
+    "wow-mod-mount-scaling": {
+      "title": "Level-Scaled Mounts",
+      "notes": [
+        "Mount speed now scales with your level and riding skill.",
+        "310% flying mounts always keep their full speed."
+      ]
+    },
+    "wow-mod-npc-finder": {
+      "title": "Town Guide",
+      "notes": [
+        "Use **Town Guide** or type .find to search the realm's friendly NPCs, trainers and services by name.",
+        "Pick a result and a flag is placed on your map, with its zone, coordinates, distance and compass direction in chat.",
+        "Requires the latest client patch for the spell icon."
+      ]
+    },
+    "wow-mod-pet-loot": {
+      "title": "Pet Looting",
+      "notes": [
+        "Your companion pet now picks up loot from nearby corpses for you.",
+        "Works while grouped, including in dungeons."
+      ]
+    },
+    "wow-mod-profession-craft-cd": {
+      "title": "No Craft Cooldowns",
+      "notes": [
+        "Profession crafting cooldowns are gone for Mooncloth, Arcanite, specialty cloths, Alchemy transmutes and research, Inscription research, Jewelcrafting prisms, Enchanting spheres, **Glacial Bag** and **Salt Shaker**.",
+        "Recipes no longer grey out after a craft."
+      ]
+    },
+    "wow-mod-rare-tracker": {
+      "title": "Rare Map",
+      "notes": [
+        "The realm website now shows a live map of open-world rare spawns, with each rare marked as up or on respawn.",
+        "Playerbots that are not grouped with a player now leave rare spawns alone, so more rares are left for you."
+      ],
+      "section": "World"
+    },
+    "wow-mod-realm-armory": {
+      "title": "Realm Armory",
+      "notes": [
+        "Browse a character's gear from the launcher and the realm website.",
+        "The armory is read-only and shares only public character information."
+      ],
+      "section": "Realm Website"
+    },
+    "wow-mod-retail-ah": {
+      "title": "Retail Auction House",
+      "notes": [
+        "The auction house has been rebuilt in the retail style with **Buy**, **Sell** and **Auctions** tabs, grouped search, favorites and commodity price tiers.",
+        "Preview deposits, buy part of a stack, and see item level and required level at a glance. A Ledger tab tracks your sales.",
+        "Filter by usable items, and items beyond your progression stage are hidden or flagged as locked.",
+        "Type /rah classic to switch back to the original window."
+      ],
+      "devnote": "The old auction window made basic shopping slow. We wanted the modern search-first experience while keeping the classic window one click away."
+    },
+    "wow-mod-retail-professions": {
+      "title": "Retail Professions",
+      "notes": [
+        "A new profession window with search, filters, skill-up odds and recipe tracking replaces the old tradeskill window.",
+        "See recipes you haven't learned along with where to learn them, with the trainer flagged on your map.",
+        "Press **K** to open the new Professions Book.",
+        "A profit view shows what is worth crafting using auction prices and your Reagent Bank."
+      ],
+      "devnote": "We wanted professions to feel as clear as they do in modern WoW. You can see what you can craft, what you're missing and what's worth selling without leaving the window."
+    },
+    "wow-mod-server-mail": {
+      "hide": true
+    },
+    "wow-mod-stack-size": {
+      "title": "Larger Stacks",
+      "notes": [
+        "Trade goods now stack up to 999.",
+        "Reagents and consumables stack up to 200."
+      ],
+      "section": "World"
+    },
+    "wow-mod-talent-per-level": {
+      "title": "Talent Points Every Level",
+      "notes": [
+        "You now earn a talent point every level starting at level 1."
+      ]
+    },
+    "wow-mod-tier0-trainers": {
+      "title": "Profession Trainers",
+      "notes": [
+        "Profession trainers in the classic continents now teach up to skill 300.",
+        "Existing progression tier limits no longer hold back those trainers."
+      ]
+    },
+    "wow-mod-transmog-collect": {
+      "hide": true
+    },
+    "wow-mod-transmog-plus": {
+      "title": "Retail Transmogrification",
+      "notes": [
+        "Transmogrify each equipment slot separately: appearances are kept per slot, so your look persists when you replace gear.",
+        "Your collection is account-wide, with a retail-style Transmogrify window that includes Sets, Outfits and illusions. Appearances unlock when you loot, pick up or disenchant items.",
+        "Search and filter your collection, show only the looks you are missing, and hide any slot.",
+        "Set bonus tooltips count transmogrified set pieces correctly, and a **Remove all** button resets every slot."
+      ],
+      "devnote": "Transmogrification should feel like building a wardrobe, not paying for each change. Your collection follows you across every character.",
+      "sub": "Transmogrification"
+    },
+    "wow-mod-transmog-plus-fork": {
+      "hide": true
+    },
+    "wow-mod-weather": {
+      "title": "Weather",
+      "notes": [
+        "Weather now appears in 43 more zones, with visible light rain and snow.",
+        "Fog and thunderstorms roll in, and some zones see black rain or black snow."
+      ]
+    },
+    "wow-Portalkeeper": {
+      "title": "Portalkeeper",
+      "notes": [
+        "A launcher and addon manager for Windows and Linux that keeps your client patches and realm addons up to date and starts the game.",
+        "The client's Cache folder is cleared when a patch changes, so you never see stale tooltips."
+      ],
+      "section": "General"
+    },
+    "wow-mod-druid-swipe-fishing": {
+      "title": "Bear Fishing",
+      "notes": [
+        "Druids can now fish as a bear. Put on a salmon relic, enter Bear Form, wade into the water and use the relic to cast **Salmon Run**.",
+        "When a salmon surfaces with a splash, target it and **Swipe** within 2 seconds to catch it. Swipe too early and it spooks, too late and it escapes.",
+        "Catches give the normal fishing loot for the area, can raise your Fishing skill and count toward fishing achievements. Salmon in a pool are a sure catch.",
+        "A druid quest unlocks the relics, with one for each fishing rank."
+      ]
+    }
+  }
+}
