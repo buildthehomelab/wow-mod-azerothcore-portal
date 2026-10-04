@@ -8,13 +8,16 @@
  *   2. a "## Patch Notes" section in the PR body (bullets; "None" hides the PR),
  *   3. the PR title (PRs that look like pin bumps, docs or build fixes are skipped).
  *
- * With CHANGELOG_MANIFEST (the server's modules.tsv: folder, url, branch, commit), server modules
- * only show changes merged before the commit the realm runs, and modules the realm doesn't run
- * don't show at all. Addons, the launcher and this website aren't gated.
+ * When the server's modules/ folder is mounted (AC_MODULES_DIR) or CHANGELOG_MANIFEST is set,
+ * server modules only show changes merged before the commit the realm runs, and modules the realm
+ * doesn't run don't show at all. Addons, the launcher and this website aren't gated.
  *
  * GitHub answers are cached in the temp dir for CHANGELOG_CACHE_SECONDS, and the old copy is kept
  * when GitHub fails, so the page never waits on GitHub more than once per period.
  **/
+
+// Where docker-compose.yml mounts the server's modules/ folder (AC_MODULES_DIR).
+const CL_MODULES_MOUNT = '/srv/ac-modules';
 
 const CL_SECTIONS = [
     'General' => 'inv_misc_book_09',
@@ -132,15 +135,18 @@ function cl_scan_modules(string $dir): array
 }
 
 /**
- * What the realm runs, as [owner/repo => commit]. CHANGELOG_MANIFEST is the server's modules/
- * folder (read-only mount), a modules.tsv file, or "owner/repo:path/in/repo" for a modules.tsv
- * on GitHub (needs a token for a private repo).
+ * What the realm runs, as [owner/repo => commit], or null when it isn't known (nothing is gated).
+ * By default that's the server's modules/ folder, which docker-compose.yml mounts at
+ * /srv/ac-modules from AC_MODULES_DIR. CHANGELOG_MANIFEST replaces it with another modules/ folder,
+ * a modules.tsv file, or "owner/repo:path/in/repo" for a modules.tsv on GitHub (needs a token for
+ * a private repo).
  */
 function cl_manifest(): ?array
 {
     $source = cl_env('CHANGELOG_MANIFEST');
     if ($source === '') {
-        return null;
+        // AC_MODULES_DIR unset: the mount is an empty folder, so show everything that was merged.
+        return cl_scan_modules(CL_MODULES_MOUNT) ?: null;
     }
     if (is_dir($source)) {
         $pins = cl_scan_modules($source);

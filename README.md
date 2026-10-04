@@ -63,6 +63,7 @@ Generate a password, e.g. with `openssl rand -base64 24`. Put it in two places:
 | `CAPTCHA_KEY` / `CAPTCHA_SECRET` | Site key and secret key from your captcha provider. Only needed for types 1–3. |
 | `DB_USER` / `DB_PASS` | Leave `DB_USER` as `wow_register` unless you changed it in the SQL file. |
 | `DB_PORT` | AzerothCore's MySQL port inside the Docker network. Leave at `3306` unless you changed it. |
+| `AC_MODULES_DIR` | Optional. AzerothCore's `modules/` folder on the host, so the [patch notes](#patch-notes-changelogphp) only show what the realm runs. |
 | `REALM_CONFIG_DIR` | Optional. Host folder mod-realm-config writes `<realm_key>.realm.conf` to. See [below](#portalkeeper-and-mod-realm-config). |
 | `DEBUG_MODE` | Set to `true` to show PHP errors while troubleshooting. Turn it back off afterwards. |
 
@@ -240,26 +241,20 @@ of a GitHub user or organization, so nothing has to be written twice.
    A **Patch Notes** link appears in the top menu. Only repos whose names match
    `CHANGELOG_REPOS` (default `^(wow-|mod-)`) are read; archived repos are skipped.
 
-2. **Only show what the realm runs** (recommended). Mount the server's AzerothCore `modules/`
-   folder read-only and point `CHANGELOG_MANIFEST` at it, in a `docker-compose.override.yml` next
-   to this repo's compose file:
-
-   ```yaml
-   services:
-     wow-register:
-       volumes:
-         - /path/to/azerothcore/modules:/srv/ac-modules:ro
-   ```
+2. **Only show what the realm runs** (recommended). Set `AC_MODULES_DIR` to AzerothCore's
+   `modules/` folder on the host, then `docker compose up -d`:
 
    ```ini
-   CHANGELOG_MANIFEST=/srv/ac-modules
+   AC_MODULES_DIR=/home/you/azerothcore-wotlk/modules
    ```
 
-   The portal reads each module's checked-out commit from its `.git` folder. A server module's
+   It's mounted read-only, and the portal reads each module's checked-out commit from its `.git`
+   folder. A server module's
    changes then appear once the server is on a commit that includes them, and modules the server
    doesn't run don't appear at all. Addons, the launcher and this website (`CHANGELOG_UNGATED`)
-   show as soon as they're merged. `CHANGELOG_MANIFEST` can also be a `modules.tsv` file
-   (folder, url, branch, commit) or `owner/repo:path/modules.tsv` on GitHub.
+   show as soon as they're merged. Without `AC_MODULES_DIR`, everything shows as soon as it's
+   merged. To read the versions from somewhere else, set `CHANGELOG_MANIFEST` to a `modules.tsv`
+   file (folder, url, branch, commit) or `owner/repo:path/modules.tsv` on GitHub.
 
 ### Where the text comes from
 
