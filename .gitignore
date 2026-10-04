@@ -7,3 +7,6 @@ docker/create-db-user.sql
 
 # Default mod-realm-config mount (see REALM_CONFIG_DIR)
 realm-data
+
+# Default AC_MODULES_DIR mount (empty when AC_MODULES_DIR is unset)
+ac-modules

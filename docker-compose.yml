@@ -51,6 +51,8 @@ services:
     volumes:
       # mod-realm-config output directory (realm.conf), served read-only at /realm/
       - ${REALM_CONFIG_DIR:-./realm-data}:/var/www/html/realm:ro
+      # AzerothCore's modules/ folder: the patch notes read which commit each module is on
+      - ${AC_MODULES_DIR:-./ac-modules}:/srv/ac-modules:ro
     networks:
       - ac-network   # to reach ac-database
       - traefik      # so Traefik can reach this container
