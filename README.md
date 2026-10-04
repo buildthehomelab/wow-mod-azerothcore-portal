@@ -261,8 +261,8 @@ of a GitHub user or organization, so nothing has to be written twice.
 For each merged PR, the first of these that exists:
 
 1. **[application/changelog-notes.json](application/changelog-notes.json)**, hand-written notes
-   keyed `repo#number`. `{"hide": true}` drops a PR. Each repo's creation can also be announced as
-   a New Feature under `launches`; repos without a `launches` entry aren't announced.
+   keyed `repo#number`. `{"hide": true}` drops a PR. Repo launches can be written here too, under
+   `launches`.
 2. **A `## Patch Notes` section in the PR description.** Its bullets are used as they are, and a
    `>` quote becomes a "Developers' notes" box. Write `None` to keep a PR off the page.
 
@@ -276,9 +276,23 @@ For each merged PR, the first of these that exists:
 3. **The PR title.** Titles that look like version bumps, docs, build or compatibility fixes
    are skipped.
 
+Each repo is also announced once as a **New Feature**, dated when the repo was created. The card
+comes from `launches` in `changelog-notes.json`, or else from a `## Patch Notes` section in the
+repo's README. The heading carries the feature's name, and an optional `Category:` line picks the
+section (and class):
+
+```markdown
+## Patch Notes: Bear Fishing
+Category: Classes / Druid
+- Druids can now fish in Bear Form: wade into a river and swipe salmon out of the water.
+> We wanted druids to have a reason to visit the rivers of Azeroth.
+```
+
+Repos with neither aren't announced. READMEs are only fetched again after a push to the repo.
+
 Notes take their category from the repo name (see `CL_REPO_SECTIONS` in
-[application/include/changelog.php](application/include/changelog.php)); `section` and `sub` in
-`changelog-notes.json` override it. A note is listed under Bug Fixes when the PR title starts with
+[application/include/changelog.php](application/include/changelog.php)). A `Category:` line in a
+`## Patch Notes` section, or `section` and `sub` in `changelog-notes.json`, override it. A note is listed under Bug Fixes when the PR title starts with
 "Fix", every bullet starts with "Fixed", or `fix` is set.
 
 GitHub's answers are cached for `CHANGELOG_CACHE_SECONDS` (10 minutes), and the old copy is kept

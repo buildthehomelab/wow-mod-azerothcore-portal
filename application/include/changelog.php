@@ -5,8 +5,10 @@
  * Every merged PR in CHANGELOG_ORG's repos (names matching CHANGELOG_REPOS) becomes a note, and
  * each repo's creation becomes a "new feature" note. The text comes from, in order:
  *   1. application/changelog-notes.json (hand-written notes, keyed "repo#number" / repo name),
- *   2. a "## Patch Notes" section in the PR body (bullets; "None" hides the PR),
- *   3. the PR title (PRs that look like pin bumps, docs or build fixes are skipped).
+ *   2. a "## Patch Notes" section in the PR body, or for a repo's launch in its README
+ *      ("## Patch Notes: Feature Name"; bullets; "None" hides it),
+ *   3. the PR title (PRs that look like pin bumps, docs or build fixes are skipped; launches without
+ *      either of the above aren't shown).
  *
  * When the server's modules/ folder is mounted (AC_MODULES_DIR) or CHANGELOG_MANIFEST is set,
  * server modules only show changes merged before the commit the realm runs, and modules the realm
@@ -188,17 +190,23 @@ function cl_commit_date(string $slug, string $sha, array &$known): ?string
     return $known[$sha];
 }
 
-/** Bullets and developers' note from a PR body's "## Patch Notes" section, or null without one. */
+/**
+ * Bullets, developers' note and title from a "## Patch Notes" section (PR body or README), or null
+ * without one. The title is whatever follows the heading: "## Patch Notes: Retail Auction House".
+ */
 function cl_body_notes(string $body): ?array
 {
-    if (!preg_match('/^#{1,4}\s*patch notes\s*:?\s*$(.*?)(?=^#{1,4}\s|\z)/ims', $body, $match)) {
+    if (!preg_match('/^#{1,4}[ \t]*patch notes(?:[ \t]*[:\x{2013}\x{2014}-][ \t]*([^\r\n]*?))?[ \t]*:?[ \t]*$(.*?)(?=^#{1,4}\s|\z)/imsu', $body, $match)) {
         return null;
     }
     $notes = [];
     $devnote = [];
-    foreach (preg_split('/\R/', trim($match[1])) as $line) {
+    $category = null;
+    foreach (preg_split('/\R/', trim($match[2])) as $line) {
         $line = trim($line);
-        if (preg_match('/^[-*]\s+(.+)$/', $line, $bullet)) {
+        if (preg_match('/^category:\s*([^\/]+?)\s*(?:\/\s*(.+?))?\s*$/i', $line, $cat)) {
+            $category = [$cat[1], $cat[2] ?? null]; // "Category: Classes / Druid"
+        } elseif (preg_match('/^[-*]\s+(.+)$/', $line, $bullet)) {
             $notes[] = $bullet[1];
         } elseif (preg_match('/^>\s*(.*)$/', $line, $quote)) {
             $devnote[] = preg_replace("/^developers?'? notes?:\s*/i", '', $quote[1]);
@@ -206,12 +214,38 @@ function cl_body_notes(string $body): ?array
             $notes[] = $line;
         }
     }
-    return ['notes' => $notes, 'devnote' => trim(implode(' ', $devnote))];
+    return ['notes' => $notes, 'devnote' => trim(implode(' ', $devnote)), 'title' => trim($match[1] ?? ''), 'category' => $category];
 }
 
-/** Everything the page needs from GitHub, before hand-written notes are applied. */
-function cl_fetch(array &$commitDates): array
+/**
+ * A repo's launch notes from the "## Patch Notes" section of its README. READMEs are only fetched
+ * again after a push to the repo (pushed_at changes), so this costs nothing on most rebuilds.
+ */
+function cl_readme_notes(array $repo, array &$known): ?array
 {
+    $name = $repo['name'];
+    if (!array_key_exists($name, $known) || $known[$name]['pushed'] !== $repo['pushed_at']) {
+        [$status, $readme] = cl_github("repos/{$repo['full_name']}/readme");
+        if ($status === 200 && isset($readme['content'])) {
+            $notes = cl_body_notes((string)base64_decode($readme['content']));
+        } elseif ($status === 404) {
+            $notes = null;
+        } else {
+            throw new RuntimeException("GitHub README for $name failed ($status).");
+        }
+        $known[$name] = ['pushed' => $repo['pushed_at'], 'notes' => $notes];
+    }
+    return $known[$name]['notes'];
+}
+
+/**
+ * Everything the page needs from GitHub, before hand-written notes are applied. $memo holds answers
+ * that only change when something is pushed: ['commits' => [sha => date], 'readmes' => [...]].
+ */
+function cl_fetch(array &$memo): array
+{
+    $memo += ['commits' => [], 'readmes' => []];
+    $launchNotes = cl_overrides()['launches'];
     $org = cl_env('CHANGELOG_ORG');
     $pattern = '/' . str_replace('/', '\/', cl_env('CHANGELOG_REPOS', '^(wow-|mod-)')) . '/';
     $ungated = array_filter(array_map('trim', explode(',', strtolower(cl_env('CHANGELOG_UNGATED', 'wow-mod-azerothcore-portal')))));
@@ -243,7 +277,7 @@ function cl_fetch(array &$commitDates): array
             $slug = strtolower($repo['full_name']);
             if (isset($pins[$slug])) {
                 // Unknown (GitHub hiccup, rate limit): fail the rebuild so the old copy stays, rather than hide the module.
-                $live[$name] = cl_commit_date($slug, $pins[$slug], $commitDates)
+                $live[$name] = cl_commit_date($slug, $pins[$slug], $memo['commits'])
                     ?? throw new RuntimeException("Could not look up $slug@{$pins[$slug]}.");
             } elseif (preg_match('/(^|-)mod-/', $name) && !in_array(strtolower($name), $ungated, true)) {
                 $live[$name] = false;
@@ -263,6 +297,7 @@ function cl_fetch(array &$commitDates): array
             'date' => $repo['created_at'],
             'title' => $repo['description'] ?: $name,
             'url' => $repo['html_url'],
+            'body' => isset($launchNotes[$name]) ? null : cl_readme_notes($repo, $memo['readmes']),
         ];
     }
 
@@ -303,7 +338,7 @@ function cl_fetch(array &$commitDates): array
 function cl_data(): ?array
 {
     $file = sys_get_temp_dir() . '/portal-changelog.json';
-    $datesFile = sys_get_temp_dir() . '/portal-changelog-commits.json';
+    $memoFile = sys_get_temp_dir() . '/portal-changelog-memo.json';
     $ttl = max(60, (int)cl_env('CHANGELOG_CACHE_SECONDS', '600'));
 
     $cached = is_file($file) ? json_decode((string)file_get_contents($file), true) : null;
@@ -321,9 +356,9 @@ function cl_data(): ?array
         if ($fresh && $fresh['built'] + $ttl > time()) {
             return $fresh;
         }
-        $dates = is_file($datesFile) ? (json_decode((string)file_get_contents($datesFile), true) ?: []) : [];
+        $memo = is_file($memoFile) ? (json_decode((string)file_get_contents($memoFile), true) ?: []) : [];
         try {
-            $data = cl_fetch($dates);
+            $data = cl_fetch($memo);
         } catch (RuntimeException $e) {
             error_log('changelog: ' . $e->getMessage());
             if ($cached) {
@@ -332,7 +367,7 @@ function cl_data(): ?array
             }
             return $cached;
         }
-        file_put_contents($datesFile, json_encode($dates), LOCK_EX);
+        file_put_contents($memoFile, json_encode($memo), LOCK_EX);
         file_put_contents($file, json_encode($data), LOCK_EX);
         return $data;
     } finally {
@@ -378,20 +413,20 @@ function cl_patch_notes(array $data, DateTimeZone $tz): array
         if ($custom) {
             $notes = $custom['notes'] ?? [];
             $devnote = $custom['devnote'] ?? '';
-        } elseif (!$entry['launch'] && $entry['body'] !== null) {
+        } elseif (($entry['body'] ?? null) !== null) {
             $notes = $entry['body']['notes'];
             $devnote = $entry['body']['devnote'];
         } elseif (!$entry['launch'] && !preg_match(CL_NOISE, $entry['title'])) {
             $notes = [rtrim($entry['title'], '.') . '.'];
             $devnote = '';
         } else {
-            continue; // launches only show with hand-written notes; noisy titles never
+            continue; // launches only show with hand-written or README notes; noisy titles never
         }
         if (!$notes) {
             continue;
         }
 
-        [$section, $sub] = cl_repo_section($entry['repo']);
+        [$section, $sub] = ($entry['body'] ?? [])['category'] ?? cl_repo_section($entry['repo']);
         $section = $custom['section'] ?? $section;
         $sub = array_key_exists('sub', $custom ?? []) ? $custom['sub'] : $sub;
         if (!isset(CL_SECTIONS[$section])) {
@@ -401,7 +436,7 @@ function cl_patch_notes(array $data, DateTimeZone $tz): array
             || !preg_grep('/^fixed\b/i', $notes, PREG_GREP_INVERT));
 
         $note = [
-            'title' => $entry['launch'] ? ($custom['title'] ?? $entry['title']) : null,
+            'title' => $entry['launch'] ? ($custom['title'] ?? (($entry['body']['title'] ?? '') ?: $entry['title'])) : null,
             'notes' => $notes,
             'devnote' => $devnote,
             'url' => $entry['url'],
