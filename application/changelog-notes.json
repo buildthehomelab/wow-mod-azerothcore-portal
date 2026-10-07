@@ -951,14 +951,6 @@
         "Recipes, trainers and items that required a specialization now work for every character."
       ]
     },
-    "wow-mod-automount": {
-      "title": "Auto Mount",
-      "notes": [
-        "Press **Caps Lock** to mount up; press it again to dismount.",
-        "The game picks your favorite mount or your fastest one, choosing a flying mount where flying is allowed and a **Sea Turtle** in the water.",
-        "Set your favorites with .automount set, and use .automount status to see your current picks."
-      ]
-    },
     "wow-mod-azerothcore-portal": {
       "title": "Realm Website",
       "notes": [
