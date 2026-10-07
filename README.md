@@ -17,7 +17,7 @@ This is a trimmed-down, Docker-focused fork of [masterking32/WoWSimpleRegistrati
 - **A DNS record** pointing at the server, e.g. `register.example.com`.
 - Docker with the Compose plugin.
 
-## Setup
+## Installation
 
 ### 1. Clone the repo on your server
 
@@ -352,8 +352,12 @@ If you only changed `.env` (title, contact email, closing registration and so on
 - **Vote system is off,** because it alters `acore_auth.account` and creates new tables.
 - **No email.** Registering only asks for a username and password, and accounts get an empty email. "Restore password" and two-factor auth are turned off because they need SMTP. See [Managing accounts](#managing-accounts) for resetting passwords.
 
-## Credits and license
+## Credits
+
+Author: [buildthehomelab](https://github.com/buildthehomelab)
 
 Built on [WoWSimpleRegistration](https://github.com/masterking32/WoWSimpleRegistration) by [Amin.MasterkinG](https://masterking32.com) and its contributors and translators. See the upstream README for the full list.
+
+## License
 
 Licensed under the GPL-3.0, the same as upstream. See [LICENSE](LICENSE).
