@@ -245,6 +245,11 @@ class user
             return false;
         }
 
+        if (self::is_reserved_username($_POST['username'])) {
+            error_msg(lang('username_reserved'));
+            return false;
+        }
+
         if ($use_email && !filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
             error_msg(lang('use_valid_email'));
             return false;
@@ -862,6 +867,28 @@ class user
      * @param $username
      * @return bool
      */
+    /**
+     * Names starting with a reserved prefix belong to the server. mod-playerbots treats every
+     * account whose name starts with AiPlayerbot.RandomBotAccountPrefix (RNDBOT) as a random bot
+     * account and deletes it, characters included, on the next bot reset.
+     * @param $username
+     * @return bool
+     */
+    public static function is_reserved_username($username)
+    {
+        $prefixes = get_config('reserved_username_prefixes');
+        if ($prefixes === false) {
+            $prefixes = ['RNDBOT'];
+        }
+        foreach ((array) $prefixes as $prefix) {
+            $prefix = strtoupper(trim($prefix));
+            if ($prefix !== '' && str_starts_with(strtoupper($username), $prefix)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static function check_username_exists($username)
     {
         if (!empty($username)) {
