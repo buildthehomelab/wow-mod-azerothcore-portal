@@ -864,13 +864,10 @@ class user
     }
 
     /**
-     * @param $username
-     * @return bool
-     */
-    /**
      * Names starting with a reserved prefix belong to the server. mod-playerbots treats every
-     * account whose name starts with AiPlayerbot.RandomBotAccountPrefix (RNDBOT) as a random bot
-     * account and deletes it, characters included, on the next bot reset.
+     * account matching `username LIKE '<AiPlayerbot.RandomBotAccountPrefix>%'` (RNDBOT) as a random
+     * bot account and deletes it, characters included, on the next bot reset.
+     * reserved_username_prefixes is a list or a comma-separated string; unset means RNDBOT, empty means none.
      * @param $username
      * @return bool
      */
@@ -878,17 +875,28 @@ class user
     {
         $prefixes = get_config('reserved_username_prefixes');
         if ($prefixes === false) {
-            $prefixes = ['RNDBOT'];
+            $prefixes = 'RNDBOT';
+        }
+        if (is_string($prefixes)) {
+            $prefixes = explode(',', $prefixes);
         }
         foreach ((array) $prefixes as $prefix) {
-            $prefix = strtoupper(trim($prefix));
-            if ($prefix !== '' && str_starts_with(strtoupper($username), $prefix)) {
+            if (!is_string($prefix) || trim($prefix) === '') {
+                continue;
+            }
+            // Match like MySQL LIKE does: _ is any one character, % is anything, case ignored
+            $pattern = str_replace(['_', '%'], ['.', '.*'], preg_quote(trim($prefix), '/'));
+            if (preg_match('/^' . $pattern . '/i', $username)) {
                 return true;
             }
         }
         return false;
     }
 
+    /**
+     * @param $username
+     * @return bool
+     */
     public static function check_username_exists($username)
     {
         if (!empty($username)) {
