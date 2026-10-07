@@ -245,6 +245,11 @@ class user
             return false;
         }
 
+        if (self::is_reserved_username($_POST['username'])) {
+            error_msg(lang('username_reserved'));
+            return false;
+        }
+
         if ($use_email && !filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
             error_msg(lang('use_valid_email'));
             return false;
@@ -853,6 +858,36 @@ class user
             $datas = $statement->fetchAllAssociative();
             if (!empty($datas[0]['username'])) {
                 return $datas[0];
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Names starting with a reserved prefix belong to the server. mod-playerbots treats every
+     * account matching `username LIKE '<AiPlayerbot.RandomBotAccountPrefix>%'` (RNDBOT) as a random
+     * bot account and deletes it, characters included, on the next bot reset.
+     * reserved_username_prefixes is a list or a comma-separated string; unset means RNDBOT, empty means none.
+     * @param $username
+     * @return bool
+     */
+    public static function is_reserved_username($username)
+    {
+        $prefixes = get_config('reserved_username_prefixes');
+        if ($prefixes === false) {
+            $prefixes = 'RNDBOT';
+        }
+        if (is_string($prefixes)) {
+            $prefixes = explode(',', $prefixes);
+        }
+        foreach ((array) $prefixes as $prefix) {
+            if (!is_string($prefix) || trim($prefix) === '') {
+                continue;
+            }
+            // Match like MySQL LIKE does: _ is any one character, % is anything, case ignored
+            $pattern = str_replace(['_', '%'], ['.', '.*'], preg_quote(trim($prefix), '/'));
+            if (preg_match('/^' . $pattern . '/i', $username)) {
+                return true;
             }
         }
         return false;

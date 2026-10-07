@@ -40,6 +40,11 @@ $config['rare_tracker_url'] = $env('RARE_TRACKER_URL', ''); // mod-rare-tracker'
 $config['changelog_org'] = $env('CHANGELOG_ORG', ''); // GitHub org/user the patch notes come from; empty hides them
 $config['require_email'] = false; // no email on this server: the register form doesn't ask for one
 $config['multiple_email_use'] = false; // unused: registration doesn't ask for an email
+// Usernames starting with these are refused: mod-playerbots deletes every account named AiPlayerbot.RandomBotAccountPrefix + anything.
+// Comma-separated; unset leaves user.php's default (RNDBOT), empty refuses nothing.
+if (getenv('RESERVED_USERNAME_PREFIXES') !== false) {
+    $config['reserved_username_prefixes'] = getenv('RESERVED_USERNAME_PREFIXES');
+}
 $config['template'] = 'advance'; // the only template in this repo
 
 // No email: password restore (and 2FA, below) need SMTP, so they're turned off

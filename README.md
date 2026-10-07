@@ -56,6 +56,7 @@ Generate a password, e.g. with `openssl rand -base64 24`. Put it in two places:
 | `CONTACT_EMAIL` | Email address shown on the contact page. Leave empty to hide the contact page and its menu link. |
 | `PATCH_URL` | Optional. Download link for a client patch, shown in the "How to connect" section. |
 | `DISABLE_REGISTRATION` | Set to `true` to close sign-ups: Register disappears from the site and new accounts are refused. See [Managing accounts](#managing-accounts). |
+| `RESERVED_USERNAME_PREFIXES` | Comma-separated name prefixes players can't register. Defaults to `RNDBOT`: mod-playerbots treats any account starting with its `AiPlayerbot.RandomBotAccountPrefix` as a bot account and deletes it on the next bot reset. Change it if you changed that prefix; `_` and `%` work as in SQL `LIKE`, the way playerbots matches them. Set it empty (`RESERVED_USERNAME_PREFIXES=`) to refuse no names. |
 | `DISABLE_CHANGEPASSWORD` | Set to `true` to remove Change Password from the menu. |
 | `DISABLE_ONLINE_PLAYERS` / `DISABLE_TOP_PLAYERS` | Set to `true` to hide the online players list / top players. With both set, the whole Server Status section and its menu link are hidden. |
 | `REALM_ID` | The realm's ID in `acore_auth.realmlist`. Leave at `1` unless you run more than one realm. |

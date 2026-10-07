@@ -104,6 +104,7 @@ $language['username_length'] = 'Username length is not valid.';
 $language['username_or_email_exists'] = 'Username or Email already exists.';
 $language['email_exists'] = 'Email already exists.';
 $language['username_exists'] = 'Username already exists.';
+$language['username_reserved'] = 'That username is reserved for the server. Pick another one.';
 $language['account_created'] = 'Your account has been created.';
 $language['error_try_again'] = 'ERROR!, Please try again!';
 $language['password_changed'] = 'Password has been changed.';

@@ -70,6 +70,7 @@ $config['disable_changepassword'] = false; // Set to true to disable password ch
 $config['disable_registration'] = false; // Set to true to hide the register form and refuse new sign-ups.
 $config['require_email'] = true; // Ask for an email when registering. Set to false to hide the field (accounts get an empty email).
 $config['multiple_email_use'] = false; // Change to true to allow creation of multiple accounts with the same email.
+$config['reserved_username_prefixes'] = ['RNDBOT']; // Usernames starting with these are refused (list or comma-separated string; [] refuses none). mod-playerbots deletes accounts named AiPlayerbot.RandomBotAccountPrefix + anything.
 
 // Template Selection - Choose which template to use for the appearance of your website.
 $config['template'] = 'advance'; // Only the advance template is included.
