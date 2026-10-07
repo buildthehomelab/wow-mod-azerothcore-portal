@@ -27,13 +27,24 @@ const CL_SECTIONS = [
     'Races' => 'achievement_character_human_male',
     'Professions' => 'trade_blacksmithing',
     'Auction House' => 'inv_misc_coin_02',
-    'Dungeons' => 'achievement_boss_edwinvancleef',
+    'Dungeons & Raids' => 'achievement_boss_edwinvancleef',
     'World' => 'inv_misc_map_01',
     'Mounts & Travel' => 'ability_mount_ridinghorse',
     'Collections' => 'inv_chest_cloth_17',
     'Playerbots' => 'inv_misc_groupneedmore',
     'User Interface' => 'inv_misc_gear_01',
     'Realm Website' => 'inv_letter_15',
+];
+
+// Other names a "Category:" line may use for a section (lowercase).
+const CL_SECTION_ALIASES = [
+    'dungeons' => 'Dungeons & Raids',
+    'raids' => 'Dungeons & Raids',
+    'raid' => 'Dungeons & Raids',
+    'dungeon' => 'Dungeons & Raids',
+    'bots' => 'Playerbots',
+    'ui' => 'User Interface',
+    'website' => 'Realm Website',
 ];
 
 const CL_CLASSES = [
@@ -60,18 +71,19 @@ const CL_REPO_SECTIONS = [
     '/(professions|gathering|specializations|tier0-trainers|reagent-bank|mass-|craft-cd|cursor-fishing)/' => ['Professions', null],
     '/retail-ah$|ah-progression$/' => ['Auction House', null],
     '/addon-Auctionator$/' => ['Auction House', 'Auctionator'],
-    '/dungeon/' => ['Dungeons', null],
+    '/dungeon/' => ['Dungeons & Raids', null],
     '/(weather|era-events|holiday-control|rare-tracker|biome-effects|npc-finder|hearthstone-cd|server-mail|stack-size)$/' => ['World', null],
     '/(automount|mount-|flight-paths|accountwide-mounts)/' => ['Mounts & Travel', null],
     '/(transmog|accountwide-pets|pet-loot|gear-vault)/' => ['Collections', null],
     '/(bot-|llm-chatter|world-buff-bots|addon-unbot)/' => ['Playerbots', null],
+    '/raid-/' => ['Dungeons & Raids', null],
     '/Portalkeeper/' => ['User Interface', 'Portalkeeper'],
     '/^wow-addon-(.+)$/' => ['User Interface', '$1'],
     '/(azerothcore-portal|realm-armory)$/' => ['Realm Website', null],
 ];
 
 // PR titles skipped when there are no hand-written notes and no "Patch Notes" section.
-const CL_NOISE = '/^(bump|pin|merge|revert|readme|docs?|ci|chore|build|test)\b|\b(IsHeadless|IsBot|core[- ]align|compile|syntax|README|uninstall|conf\.dist)\b/i';
+const CL_NOISE = '/^(bump|pin|merge|revert|rename|prepare|patch notes|readme|docs?|ci|chore|build|test)\b|\b(IsHeadless|IsBot|core[- ]align|compile|syntax|README|uninstall|conf\.dist)\b/i';
 
 function cl_env(string $key, string $default = ''): string
 {
@@ -202,8 +214,18 @@ function cl_body_notes(string $body): ?array
     $notes = [];
     $devnote = [];
     $category = null;
-    foreach (preg_split('/\R/', trim($match[2])) as $line) {
-        $line = trim($line);
+    foreach (preg_split('/\R/', trim($match[2])) as $raw) {
+        $line = trim($raw);
+        if (preg_match('/generated with \[?claude code|^co-authored-by:|^-{3,}$/i', $line)) {
+            break; // PR footer: nothing after it is a note
+        }
+        if ($line !== '' && $notes && preg_match('/^\s/', $raw) && !preg_match('/^([-*]|>)\s/', $line)) {
+            $notes[count($notes) - 1] .= ' ' . $line; // a wrapped bullet's next line
+            continue;
+        }
+        if (preg_match('/^\*\*[^*]+\*\*:?$/', $line)) {
+            continue; // a bold label on its own line ("**Auction House**") isn't a note
+        }
         if (preg_match('/^category:\s*([^\/]+?)\s*(?:\/\s*(.+?))?\s*$/i', $line, $cat)) {
             $category = [$cat[1], $cat[2] ?? null]; // "Category: Classes / Druid"
         } elseif (preg_match('/^[-*]\s+(.+)$/', $line, $bullet)) {
@@ -405,6 +427,7 @@ function cl_patch_notes(array $data, DateTimeZone $tz): array
 {
     $overrides = cl_overrides();
     $days = [];
+    $seen = []; // [day => [note text => true]]: a pin bump repeating a module's notes adds nothing
     foreach ($data['entries'] as $entry) {
         $custom = $entry['launch'] ? ($overrides['launches'][$entry['repo']] ?? null) : ($overrides['prs'][$entry['id']] ?? null);
         if (!empty($custom['hide'])) {
@@ -422,6 +445,11 @@ function cl_patch_notes(array $data, DateTimeZone $tz): array
         } else {
             continue; // launches only show with hand-written or README notes; noisy titles never
         }
+        $day = (new DateTimeImmutable($entry['date']))->setTimezone($tz)->format('Y-m-d');
+        $notes = array_values(array_filter($notes, function ($text) use (&$seen, $day) {
+            $key = strtolower(trim($text));
+            return !isset($seen[$day][$key]) && ($seen[$day][$key] = true);
+        }));
         if (!$notes) {
             continue;
         }
@@ -430,7 +458,7 @@ function cl_patch_notes(array $data, DateTimeZone $tz): array
         $section = $custom['section'] ?? $section;
         $sub = array_key_exists('sub', $custom ?? []) ? $custom['sub'] : $sub;
         if (!isset(CL_SECTIONS[$section])) {
-            $section = 'General';
+            $section = CL_SECTION_ALIASES[strtolower($section)] ?? 'General';
         }
         $isFix = $custom['fix'] ?? (preg_match('/^fix/i', $entry['title'])
             || !preg_grep('/^fixed\b/i', $notes, PREG_GREP_INVERT));
@@ -445,7 +473,6 @@ function cl_patch_notes(array $data, DateTimeZone $tz): array
             'section' => $section,
             'sub' => $sub,
         ];
-        $day = (new DateTimeImmutable($entry['date']))->setTimezone($tz)->format('Y-m-d');
         $days[$day] ??= ['features' => [], 'changes' => [], 'fixes' => []];
         if ($entry['launch']) {
             $days[$day]['features'][] = $note;
