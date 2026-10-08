@@ -1,5 +1,7 @@
 /*
  * Rare map: draws mod-rare-tracker's live rare list on the game's own world maps.
+ * World bosses (flagged "boss") also get their own list across all continents, and stay on the
+ * map while dead so their multi-day respawn timers are easy to find.
  *
  * api/rares.php gives the rares (with zone map coordinates and raw world coordinates);
  * <maps>/maps.json gives the map images plus each continent's edges, so a rare can be placed on
@@ -32,7 +34,9 @@
     tip: document.getElementById("rm-tip"),
     search: document.getElementById("rm-search"),
     dead: document.getElementById("rm-dead"),
-    zones: document.getElementById("rm-zones")
+    zones: document.getElementById("rm-zones"),
+    bosses: document.getElementById("rm-bosses"),
+    bossList: document.getElementById("rm-boss-list")
   };
 
   var state = {
@@ -138,8 +142,13 @@
     return zone ? zone.continent : placeOnContinent(r).map;
   }
 
+  function kindName(r) {
+    return r.boss ? "world boss" : r.elite ? "rare elite" : "rare";
+  }
+
+  // World bosses always show: when one is dead, its respawn timer is the thing people look for.
   function visible(r) {
-    if (!state.showDead && r.state !== "up") return false;
+    if (!state.showDead && r.state !== "up" && !r.boss) return false;
     if (!state.query) return true;
     return r.name.toLowerCase().indexOf(state.query) !== -1 || placeName(r).toLowerCase().indexOf(state.query) !== -1;
   }
@@ -170,8 +179,15 @@
       return;
     }
 
+    var rares = 0, raresUp = 0, bosses = 0, bossesUp = 0;
+    data.rares.forEach(function (r) {
+      if (r.boss) { bosses++; if (r.state === "up") bossesUp++; }
+      else { rares++; if (r.state === "up") raresUp++; }
+    });
+
     var age = now() - data.generated;
-    var text = "<b>" + data.up + "</b> of " + data.rares.length + " rares up · ";
+    var text = "<b>" + raresUp + "</b> of " + rares + " rares up · ";
+    if (bosses) text += "<b>" + bossesUp + "</b> of " + bosses + " world bosses up · ";
     text += age > (data.refresh || 30) * 2 ? "refreshing…" : "updated " + duration(age) + " ago";
     if (state.error) text += " · " + esc(state.error);
     el.status.innerHTML = text;
@@ -227,7 +243,7 @@
       }
       if (x < 0 || x > 100 || y < 0 || y > 100) return;
 
-      var cls = "rm-pin " + (r.state === "up" ? "up" : "dead") + (r.elite ? " elite" : "")
+      var cls = "rm-pin " + (r.state === "up" ? "up" : "dead") + (r.elite ? " elite" : "") + (r.boss ? " boss" : "")
         + (r.state === "up" && r.live ? " live" : "") + (r.inCombat ? " combat" : "")
         + (r.spawn === state.tipFor ? " focus" : "");
       pins.push('<button type="button" class="' + cls + '" style="left:' + x.toFixed(2) + "%;top:" + y.toFixed(2)
@@ -266,21 +282,43 @@
 
     el.zones.innerHTML = list.map(function (z) {
       z.shown.sort(function (a, b) {
-        return (a.state === "up" ? 0 : 1) - (b.state === "up" ? 0 : 1) || a.name.localeCompare(b.name);
+        return (a.boss ? 0 : 1) - (b.boss ? 0 : 1) || (a.state === "up" ? 0 : 1) - (b.state === "up" ? 0 : 1)
+          || a.name.localeCompare(b.name);
       });
       return '<li class="rm-zone' + (z.id === state.zone ? " current" : "") + '">'
         + '<button type="button" data-zone="' + z.id + '">' + esc(zoneName(z.id))
         + "<span><b>" + z.up + "</b> / " + z.total + " up</span></button>"
         + '<ul class="rm-rares">' + z.shown.map(function (r) {
-          var when = r.state === "up" ? (r.live ? r.hp + "%" : "")
-            : r.respawnAt ? duration(r.respawnAt - now()) : "";
-          return '<li><button type="button" class="rm-rare ' + (r.state === "up" ? "up" : "dead") + '" data-spawn="' + r.spawn + '">'
-            + '<i class="rm-key ' + (r.state === "up" ? "up" : "dead") + (r.elite ? " elite" : "") + '"></i>'
-            + '<span class="name">' + esc(r.name) + ' <span class="lvl">' + level(r) + (r.elite ? " elite" : "") + "</span></span>"
-            + '<span class="when" data-respawn="' + (r.state === "up" ? "" : r.respawnAt || "") + '">' + when + "</span>"
-            + "</button></li>";
+          return rareItem(r, level(r) + (r.boss ? " world boss" : r.elite ? " elite" : ""));
         }).join("") + "</ul></li>";
     }).join("");
+  }
+
+  function rareItem(r, detail) {
+    var when = r.state === "up" ? (r.live ? r.hp + "%" : "")
+      : r.respawnAt ? duration(r.respawnAt - now()) : "";
+    return '<li><button type="button" class="rm-rare ' + (r.state === "up" ? "up" : "dead") + (r.boss ? " boss" : "")
+      + '" data-spawn="' + r.spawn + '">'
+      + '<i class="rm-key ' + (r.state === "up" ? "up" : "dead") + (r.elite ? " elite" : "") + (r.boss ? " boss" : "") + '"></i>'
+      + '<span class="name">' + esc(r.name) + ' <span class="lvl">' + esc(detail) + "</span></span>"
+      + '<span class="when" data-respawn="' + (r.state === "up" ? "" : r.respawnAt || "") + '">' + when + "</span>"
+      + "</button></li>";
+  }
+
+  // Every world boss on every continent: up first, then the one back soonest.
+  function renderBosses() {
+    var bosses = (state.data ? state.data.rares : []).filter(function (r) { return r.boss; });
+    el.bosses.hidden = !bosses.length;
+    if (!bosses.length) return;
+
+    bosses = bosses.filter(visible).sort(function (a, b) {
+      return (a.state === "up" ? 0 : 1) - (b.state === "up" ? 0 : 1)
+        || (a.respawnAt || 0) - (b.respawnAt || 0) || a.name.localeCompare(b.name);
+    });
+
+    el.bossList.innerHTML = bosses.length
+      ? bosses.map(function (r) { return rareItem(r, placeName(r)); }).join("")
+      : '<li class="rm-empty">No world bosses match “' + esc(state.query) + "”.</li>";
   }
 
   function render() {
@@ -288,6 +326,7 @@
     renderTabs();
     renderMap();
     renderList();
+    renderBosses();
     writeHash();
   }
 
@@ -306,7 +345,7 @@
     var x = Number(pin.dataset.x), y = Number(pin.dataset.y);
     var coords = r.x !== null ? r.x.toFixed(1) + ", " + r.y.toFixed(1) : "";
     el.tip.innerHTML = '<strong class="' + (r.state === "up" ? "" : "dead") + '">' + esc(r.name) + "</strong>"
-      + '<div class="sub">Level ' + level(r) + (r.elite ? " rare elite" : " rare") + "</div>"
+      + '<div class="sub">Level ' + level(r) + " " + kindName(r) + "</div>"
       + '<div class="sub">' + esc(placeName(r)) + (coords ? " (" + coords + ")" : "") + "</div>"
       + '<div class="state">' + esc(describeState(r)) + "</div>";
     el.tip.style.left = x + "%";
@@ -389,10 +428,19 @@
       return;
     }
 
-    var rareButton = e.target.closest(".rm-rare");
+    showRare(e.target.closest(".rm-rare"));
+  });
+
+  el.bossList.addEventListener("click", function (e) {
+    showRare(e.target.closest(".rm-rare"));
+  });
+
+  // A rare picked from a list: open its zone (and continent, for world bosses) and point at it.
+  function showRare(rareButton) {
     if (!rareButton) return;
     var r = findRare(Number(rareButton.dataset.spawn));
     if (!r) return;
+    state.continent = continentOf(r);
     state.zone = r.zone;
     state.tipFor = r.spawn;
     state.pinned = true;
@@ -402,7 +450,7 @@
       pin.classList.add("flash");
       if (window.matchMedia("(max-width: 960px)").matches) el.map.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-  });
+  }
 
   el.pins.addEventListener("mouseover", function (e) {
     var pin = e.target.closest(".rm-pin");
@@ -450,6 +498,7 @@
     state.query = el.search.value.trim().toLowerCase();
     renderMap();
     renderList();
+    renderBosses();
   });
 
   el.dead.addEventListener("change", function () {
@@ -468,7 +517,7 @@
   // Respawn countdowns and "updated … ago" tick every second without re-rendering everything.
   setInterval(function () {
     renderStatus();
-    Array.prototype.forEach.call(el.zones.querySelectorAll("[data-respawn]"), function (span) {
+    Array.prototype.forEach.call(document.querySelectorAll(".rm-side [data-respawn]"), function (span) {
       var at = Number(span.dataset.respawn);
       if (at) span.textContent = duration(at - now());
     });

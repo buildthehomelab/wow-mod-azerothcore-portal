@@ -17,6 +17,8 @@
   --rm-dead: #8b8478;
   --rm-combat: #e0533d;
   --rm-live: #6fd3c4;
+  --rm-boss: #a3241a;
+  --rm-skull: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23f3eee2' d='M8 1.5C4.7 1.5 2.5 3.8 2.5 6.7c0 1.8.9 3.1 2 3.8v2.2c0 .5.4.8.8.8h5.4c.4 0 .8-.3.8-.8v-2.2c1.1-.7 2-2 2-3.8 0-2.9-2.2-5.2-5.5-5.2z'/%3E%3Ccircle fill='%233a0d08' cx='5.9' cy='7.2' r='1.5'/%3E%3Ccircle fill='%233a0d08' cx='10.1' cy='7.2' r='1.5'/%3E%3Cpath fill='%233a0d08' d='M7.3 10.6 8 9.2l.7 1.4z'/%3E%3C/svg%3E");
   --rm-serif: "Marcellus", Georgia, serif;
   --rm-sans: "Open Sans", system-ui, sans-serif;
 }
@@ -207,6 +209,28 @@ button, input { font: inherit; color: inherit; }
 
 .rm-pin.flash { animation: rm-flash 0.6s ease-in-out 3; }
 
+/* World bosses: a bigger red pin with a skull, dimmed (but still shown) while dead. */
+.rm-pin.boss {
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  border: 2px solid #2b1d07;
+  background: var(--rm-skull) center / 72% no-repeat, var(--rm-boss);
+  box-shadow: 0 0 0 2px var(--rm-gold-light), 0 0 14px 4px rgba(224, 83, 61, 0.6);
+  z-index: 2;
+}
+
+.rm-pin.boss.live { box-shadow: 0 0 0 2px var(--rm-gold-light), 0 0 0 4px var(--rm-live), 0 0 14px 4px rgba(224, 83, 61, 0.6); }
+.rm-pin.boss.live.combat { box-shadow: 0 0 0 2px var(--rm-gold-light), 0 0 0 4px var(--rm-combat), 0 0 16px 5px rgba(224, 83, 61, 0.75); }
+
+.rm-pin.boss.dead {
+  background: var(--rm-skull) center / 72% no-repeat, #2a221b;
+  border-color: var(--rm-dead);
+  box-shadow: 0 0 0 1px rgba(139, 132, 120, 0.6);
+  filter: grayscale(1);
+  opacity: 0.8;
+}
+
 @keyframes rm-ping {
   0% { transform: scale(0.6); opacity: 0.9; }
   100% { transform: scale(1.5); opacity: 0; }
@@ -259,6 +283,14 @@ button, input { font: inherit; color: inherit; }
 .rm-key.elite { border-radius: 2px; rotate: 45deg; box-shadow: 0 0 0 2px var(--rm-elite); }
 .rm-key.live { box-shadow: 0 0 0 2px var(--rm-bg), 0 0 0 4px var(--rm-live); }
 .rm-key.dead { border: 2px solid var(--rm-dead); }
+.rm-key.boss {
+  width: 16px;
+  height: 16px;
+  margin: -2px;
+  background: var(--rm-skull) center / 72% no-repeat, var(--rm-boss);
+  box-shadow: 0 0 0 1px var(--rm-gold-light), 0 0 6px rgba(224, 83, 61, 0.6);
+}
+.rm-key.boss.dead { background: var(--rm-skull) center / 72% no-repeat, #2a221b; border: none; box-shadow: 0 0 0 1px var(--rm-dead); filter: grayscale(1); }
 
 /* Side list ------------------------------------------------------------- */
 .rm-side {
@@ -285,6 +317,16 @@ button, input { font: inherit; color: inherit; }
 .rm-filters input[type="search"]:focus { outline: none; border-color: var(--rm-gold); }
 .rm-check { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: var(--rm-muted); cursor: pointer; }
 .rm-check input { accent-color: var(--rm-gold); }
+.rm-hint { opacity: 0.75; }
+
+.rm-bosses { flex: none; border-bottom: 1px solid var(--rm-line); }
+.rm-bosses h3 {
+  margin: 0;
+  padding: 10px 14px 4px;
+  color: var(--rm-gold-light);
+  font: 400 16px var(--rm-serif);
+}
+.rm-rare.boss.up .name { color: var(--rm-gold-light); }
 
 .rm-zones { margin: 0; padding: 0; list-style: none; overflow-y: auto; }
 
