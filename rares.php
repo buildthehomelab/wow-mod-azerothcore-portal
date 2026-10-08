@@ -1,6 +1,6 @@
 <?php
 /**
- * Live rare map: every open-world rare that's up right now, from mod-rare-tracker.
+ * Live rare map: every open-world rare and world boss, from mod-rare-tracker.
  *
  * The list comes from api/rares.php (which asks the worldserver) and the map images from
  * WORLDMAP_URL (default realm/worldmap/, built with mod-rare-tracker's tools/build_worldmaps.py).
@@ -22,7 +22,7 @@ if (!$enabled) {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Rare Map · <?php echo $h($siteTitle); ?></title>
-    <meta name="description" content="Live map of the rare creatures that are up right now.">
+    <meta name="description" content="Live map of the rare creatures and world bosses that are up right now.">
     <link href="favicon.ico" rel="icon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
@@ -58,6 +58,7 @@ if (!$enabled) {
             <ul class="rm-legend">
                 <li><i class="rm-key up"></i>Up</li>
                 <li><i class="rm-key up elite"></i>Rare elite</li>
+                <li><i class="rm-key up boss"></i>World boss</li>
                 <li><i class="rm-key up live"></i>Someone is nearby (live position)</li>
                 <li><i class="rm-key dead"></i>Dead, respawning</li>
             </ul>
@@ -65,9 +66,13 @@ if (!$enabled) {
 
         <aside class="rm-side" aria-label="Rares">
             <div class="rm-filters">
-                <input type="search" id="rm-search" placeholder="Find a rare or zone" aria-label="Find a rare or zone" autocomplete="off">
-                <label class="rm-check"><input type="checkbox" id="rm-dead"> Show dead rares</label>
+                <input type="search" id="rm-search" placeholder="Find a rare, boss or zone" aria-label="Find a rare, boss or zone" autocomplete="off">
+                <label class="rm-check"><input type="checkbox" id="rm-dead"> Show dead rares <span class="rm-hint">(world bosses always show)</span></label>
             </div>
+            <section class="rm-bosses" id="rm-bosses" aria-labelledby="rm-bosses-title" hidden>
+                <h3 id="rm-bosses-title">World Bosses</h3>
+                <ul class="rm-rares" id="rm-boss-list"></ul>
+            </section>
             <ul class="rm-zones" id="rm-zones"></ul>
         </aside>
     </div>
