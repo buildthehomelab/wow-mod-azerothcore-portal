@@ -4,4 +4,10 @@
 CREATE USER IF NOT EXISTS 'wow_register'@'%' IDENTIFIED BY 'CHANGE_ME';
 GRANT SELECT, INSERT, UPDATE ON acore_auth.account  TO 'wow_register'@'%';
 GRANT SELECT                 ON acore_characters.*  TO 'wow_register'@'%';
+
+-- Launcher API (LAUNCHER_ENABLED=true): its own database, whose tables the portal creates itself,
+-- and ban checks. Safe to run again on an existing install.
+CREATE DATABASE IF NOT EXISTS acore_launcher;
+GRANT ALL                    ON acore_launcher.*          TO 'wow_register'@'%';
+GRANT SELECT                 ON acore_auth.account_banned TO 'wow_register'@'%';
 FLUSH PRIVILEGES;

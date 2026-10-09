@@ -49,11 +49,21 @@ services:
       DB_AUTH_NAME: acore_auth
       DB_CHARACTERS_NAME: acore_characters
       DEBUG_MODE: ${DEBUG_MODE:-false}
+      LAUNCHER_ENABLED: ${LAUNCHER_ENABLED:-false}
+      LAUNCHER_DB_NAME: ${LAUNCHER_DB_NAME:-acore_launcher}
+      LAUNCHER_TOKEN_DAYS: ${LAUNCHER_TOKEN_DAYS:-30}
+      LAUNCHER_TORRENT_DIR: /srv/launcher/torrents
+      LAUNCHER_CLIENT_DIR: /srv/launcher/client
+      LAUNCHER_PATCH_DIR: ${LAUNCHER_PATCH_DIR:-/var/www/html/realm}
+      LAUNCHER_PATCH_URL: ${LAUNCHER_PATCH_URL:-}
     volumes:
       # mod-realm-config output directory (realm.conf), served read-only at /realm/
       - ${REALM_CONFIG_DIR:-./realm-data}:/var/www/html/realm:ro
       # AzerothCore's modules/ folder: the patch notes read which commit each module is on
       - ${AC_MODULES_DIR:-./ac-modules}:/srv/ac-modules:ro
+      # Launcher downloads: the .torrent files and the client they describe (web seed), read-only
+      - ${LAUNCHER_TORRENT_DIR:-./launcher-torrents}:/srv/launcher/torrents:ro
+      - ${LAUNCHER_CLIENT_DIR:-./launcher-client}:/srv/launcher/client:ro
     networks:
       - ac-network   # to reach ac-database
       - traefik      # so Traefik can reach this container
