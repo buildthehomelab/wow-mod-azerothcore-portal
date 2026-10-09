@@ -205,7 +205,7 @@ The module doesn't delete profile files for characters that are deleted or drop 
 The portal can also back the Portalkeeper launcher (our fork, [wow-Portalkeeper](https://github.com/buildthehomelab/wow-Portalkeeper)) with three things:
 
 - **Login:** players sign in to the launcher with their game account. The password is checked against the account's SRP6 verifier, and the launcher gets a token that lasts `LAUNCHER_TOKEN_DAYS` (30) from its last use. Only the token's SHA-256 is stored. Failed logins are throttled: 5 per account name and 20 per address every 15 minutes. Banned accounts are refused.
-- **A private BitTorrent tracker** for the client download. It only tracks the torrents in `LAUNCHER_TORRENT_DIR`, and only gives peers to logged-in players. Players on the server's own network are only handed to each other.
+- **A private BitTorrent tracker** for the client download. It only tracks the torrents in `LAUNCHER_TORRENT_DIR`, and only gives peers to logged-in players. Players on the server's own network are only handed to each other, and players behind the same router elsewhere get each other's home-network address first, so a copy in the next room beats the internet.
 - **A web seed** that serves the client files over HTTPS with byte ranges, so a download never stalls when no other player is sharing.
 - **Patch torrents:** every patch MPQ in the realm folder (`/realm/`) gets its own torrent, so players share patches with each other too. The realm folder stays the source of truth. Upload a new `patch-X.MPQ` as usual: the portal builds a new torrent from it the first time someone asks, cached per file size and modification time. The web seed is the patch's normal `/realm/` URL, and Portalkeeper still checks the SHA-256 from realm.conf.
 

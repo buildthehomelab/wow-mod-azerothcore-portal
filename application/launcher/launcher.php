@@ -129,6 +129,7 @@ function launcher_schema(PDO $pdo): void
         peer_id BINARY(20) NOT NULL,
         account_id INT UNSIGNED NOT NULL,
         ip VARCHAR(45) NOT NULL,
+        lan_ip VARCHAR(45) NULL,
         port SMALLINT UNSIGNED NOT NULL,
         uploaded BIGINT UNSIGNED NOT NULL DEFAULT 0,
         downloaded BIGINT UNSIGNED NOT NULL DEFAULT 0,

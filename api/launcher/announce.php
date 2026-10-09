@@ -6,6 +6,10 @@
  * Only torrents in LAUNCHER_TORRENT_DIR and the patch torrents from patch-torrent.php are tracked, and only players with a passkey (a launcher
  * login) on an account that isn't banned get peers. Players on the server's own network are only
  * handed to each other: their private addresses mean nothing to anyone outside.
+ *
+ * Players behind the same router (same public address) get each other's LAN address, reported
+ * with the "ip" parameter, at the top of the list: a copy in the next room beats the internet.
+ * Only private addresses are accepted there, so it can't point peers at someone else's machine.
  **/
 
 declare(strict_types=1);
@@ -59,6 +63,14 @@ if (!$tracked) {
 }
 
 $ip = launcher_client_ip();
+$lanIp = null;
+foreach (['ip', 'ipv4'] as $param) {
+    $reported = (string)($_GET[$param] ?? '');
+    if (filter_var($reported, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false && launcher_is_private_ip($reported)) {
+        $lanIp = $reported;
+        break;
+    }
+}
 $left = max(0, (int)($_GET['left'] ?? 0));
 $now = time();
 $event = (string)($_GET['event'] ?? '');
@@ -68,11 +80,11 @@ if ($event === 'stopped') {
     tracker_reply(['interval' => TRACKER_INTERVAL, 'peers' => '']);
 }
 
-$pdo->prepare('INSERT INTO launcher_peer (info_hash, peer_id, account_id, ip, port, uploaded, downloaded, bytes_left, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE account_id = VALUES(account_id), ip = VALUES(ip), port = VALUES(port),
+$pdo->prepare('INSERT INTO launcher_peer (info_hash, peer_id, account_id, ip, lan_ip, port, uploaded, downloaded, bytes_left, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE account_id = VALUES(account_id), ip = VALUES(ip), lan_ip = VALUES(lan_ip), port = VALUES(port),
             uploaded = VALUES(uploaded), downloaded = VALUES(downloaded), bytes_left = VALUES(bytes_left), updated_at = VALUES(updated_at)')
-    ->execute([$infoHash, $peerId, $accountId, $ip, $port,
+    ->execute([$infoHash, $peerId, $accountId, $ip, $lanIp, $port,
         max(0, (int)($_GET['uploaded'] ?? 0)), max(0, (int)($_GET['downloaded'] ?? 0)), $left, $now]);
 
 if (random_int(1, 50) === 1) {
@@ -88,10 +100,10 @@ $count = $counts->fetch();
 $numwant = (int)($_GET['numwant'] ?? TRACKER_DEFAULT_PEERS);
 $numwant = max(0, min(TRACKER_MAX_PEERS, $numwant ?: TRACKER_DEFAULT_PEERS));
 
-// Seeders don't need other seeders.
-$peers = $pdo->prepare('SELECT ip, port FROM launcher_peer WHERE info_hash = ? AND peer_id <> ? AND updated_at > ?'
-    . ($left === 0 ? ' AND bytes_left > 0' : '') . ' ORDER BY RAND() LIMIT ' . (TRACKER_MAX_PEERS * 2));
-$peers->execute([$infoHash, $peerId, $fresh]);
+// Seeders don't need other seeders. Peers behind the same public address come first.
+$peers = $pdo->prepare('SELECT ip, lan_ip, port FROM launcher_peer WHERE info_hash = ? AND peer_id <> ? AND updated_at > ?'
+    . ($left === 0 ? ' AND bytes_left > 0' : '') . ' ORDER BY (ip = ?) DESC, RAND() LIMIT ' . (TRACKER_MAX_PEERS * 2));
+$peers->execute([$infoHash, $peerId, $fresh, $ip]);
 
 $requesterPrivate = launcher_is_private_ip($ip);
 $peers4 = '';
@@ -102,10 +114,15 @@ foreach ($peers as $peer) {
         break;
     }
     $peerIp = (string)$peer['ip'];
-    if ($peerIp === $ip && (int)$peer['port'] === $port) {
+    if ($peerIp === $ip && !$requesterPrivate) {
+        // Same household: only reachable on its LAN address.
+        if ($peer['lan_ip'] === null || $peer['lan_ip'] === $lanIp && (int)$peer['port'] === $port) {
+            continue;
+        }
+        $peerIp = (string)$peer['lan_ip'];
+    } elseif ($peerIp === $ip && (int)$peer['port'] === $port) {
         continue;
-    }
-    if (!$requesterPrivate && launcher_is_private_ip($peerIp)) {
+    } elseif (!$requesterPrivate && launcher_is_private_ip($peerIp)) {
         continue;
     }
     $packed = @inet_pton($peerIp);
