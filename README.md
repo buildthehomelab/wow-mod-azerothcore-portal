@@ -226,7 +226,13 @@ Send the token as `Authorization: Bearer <token>`. Each player's torrent carries
 ### Setting it up
 
 1. **Database:** run the launcher lines of [docker/create-db-user.sql.example](docker/create-db-user.sql.example) as root. They create `acore_launcher` and let the portal user read `acore_auth.account_banned`. The portal creates its tables on first use.
-2. **Files:** put the client in a folder on the host, for example `/srv/wow-launcher/client/World of Warcraft 3.3.5a/`. Build the torrent from that inner folder, so the torrent's name is the folder's name, and save it as `/srv/wow-launcher/torrents/client.torrent`. Mark it private and leave out the announce URL: the portal adds both URLs for each player.
+2. **Files:** copy a clean 3.3.5a client to a folder on the host, for example `/srv/wow-launcher/client/World of Warcraft 3.3.5a/`. The folder's name becomes the torrent's name and the folder players get. Then build the torrent:
+
+   ```bash
+   python3 tools/make-client-torrent.py "/srv/wow-launcher/client/World of Warcraft 3.3.5a" /srv/wow-launcher/torrents/client.torrent
+   ```
+
+   It leaves out what the launcher or the game writes to (`realmlist.wtf`, `WTF`, `Cache`, `Logs`, `Interface`), so players' copies keep matching and keep being shared. It also leaves out realm patches (`patch-4.MPQ` and up, `patch-A.MPQ`...), which come from the realm folder through their own torrents. Run it again only when the client files themselves change. A new client torrent means everyone downloads the changed files again.
 3. **`.env`:** set `LAUNCHER_ENABLED=true`, `LAUNCHER_TORRENT_DIR=/srv/wow-launcher/torrents` and `LAUNCHER_CLIENT_DIR=/srv/wow-launcher/client`, then run `docker compose up -d`.
 
 Patch torrents need nothing extra: they use the realm folder the portal already serves. Override `LAUNCHER_PATCH_DIR` (default `/var/www/html/realm`) or `LAUNCHER_PATCH_URL` (default `BASE_URL/realm`) only if the patches live somewhere else.
