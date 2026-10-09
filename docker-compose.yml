@@ -68,6 +68,8 @@ services:
       LAUNCHER_CLIENT_IP_HEADER: ${LAUNCHER_CLIENT_IP_HEADER:-}
       LAUNCHER_PUBLIC_ADDRESS: ${LAUNCHER_PUBLIC_ADDRESS:-}
       LAUNCHER_DOWNLOAD_URL: ${LAUNCHER_DOWNLOAD_URL:-}
+      LAUNCHER_RELEASE_REPO: ${LAUNCHER_RELEASE_REPO:-}
+      LAUNCHER_VERSION_CACHE_SECONDS: ${LAUNCHER_VERSION_CACHE_SECONDS:-}
     volumes:
       # mod-realm-config output directory (realm.conf), served read-only at /realm/
       - ${REALM_CONFIG_DIR:-./realm-data}:/var/www/html/realm:ro

@@ -220,10 +220,13 @@ With it on, the home page's "How to connect" shows three steps instead of the ma
 | `POST api/launcher/logout.php` | Forgets the token. |
 | `GET api/launcher/torrent.php` | Lists the torrents. `?name=client` returns `client.torrent` rewritten for this player. |
 | `GET api/launcher/patch-torrent.php?file=patch-P.MPQ` | The torrent for one patch in the realm folder |
+| `GET api/launcher/version.php` | The newest launcher release, `{"tag", "version"}`. No login needed. |
 | `api/launcher/announce.php/<passkey>` | Tracker announce URL, inside the player's torrent |
 | `api/launcher/seed.php/<passkey>/` | Web seed URL, inside the player's torrent |
 
-Send the token as `Authorization: Bearer <token>`. Each player's torrent carries their own passkey in the announce and web seed URLs. Those sit outside the torrent's info dictionary, so every player still has the same info hash and joins the same swarm.
+Send the token as `Authorization: Bearer <token>` (except to `version.php`). Each player's torrent carries their own passkey in the announce and web seed URLs. Those sit outside the torrent's info dictionary, so every player still has the same info hash and joins the same swarm.
+
+**Launcher updates:** Portalkeeper asks `version.php` every few minutes and updates itself when there's a newer release, so publishing a GitHub release is all it takes. The portal asks GitHub for the latest release of `LAUNCHER_RELEASE_REPO` (default `buildthehomelab/wow-Portalkeeper`) at most once every `LAUNCHER_VERSION_CACHE_SECONDS` (120) and keeps the last answer when GitHub fails. When the API is out of requests (60 an hour per address without `GITHUB_TOKEN`), it reads the release from github.com's `/releases/latest` redirect instead. The launcher still downloads the installer from GitHub and checks it there.
 
 ### Setting it up
 
