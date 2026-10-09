@@ -207,6 +207,7 @@ The portal can also back the Portalkeeper launcher (our fork, [wow-Portalkeeper]
 - **Login:** players sign in to the launcher with their game account. The password is checked against the account's SRP6 verifier, and the launcher gets a token that lasts `LAUNCHER_TOKEN_DAYS` (30) from its last use. Only the token's SHA-256 is stored. Failed logins are throttled: 5 per account name and 20 per address every 15 minutes. Banned accounts are refused.
 - **A private BitTorrent tracker** for the client download. It only tracks the torrents in `LAUNCHER_TORRENT_DIR`, and only gives peers to logged-in players. Players on the server's own network are only handed to each other.
 - **A web seed** that serves the client files over HTTPS with byte ranges, so a download never stalls when no other player is sharing.
+- **Patch torrents:** every patch MPQ in the realm folder (`/realm/`) gets its own torrent, so players share patches with each other too. The realm folder stays the source of truth. Upload a new `patch-X.MPQ` as usual: the portal builds a new torrent from it the first time someone asks, cached per file size and modification time. The web seed is the patch's normal `/realm/` URL, and Portalkeeper still checks the SHA-256 from realm.conf.
 
 It's off until you set `LAUNCHER_ENABLED=true`.
 
@@ -216,6 +217,7 @@ It's off until you set `LAUNCHER_ENABLED=true`.
 | `GET api/launcher/session.php` | Who the token belongs to. 401 when it has expired, 403 for banned accounts. |
 | `POST api/launcher/logout.php` | Forgets the token. |
 | `GET api/launcher/torrent.php` | Lists the torrents. `?name=client` returns `client.torrent` rewritten for this player. |
+| `GET api/launcher/patch-torrent.php?file=patch-P.MPQ` | The torrent for one patch in the realm folder |
 | `api/launcher/announce.php/<passkey>` | Tracker announce URL, inside the player's torrent |
 | `api/launcher/seed.php/<passkey>/` | Web seed URL, inside the player's torrent |
 
@@ -226,6 +228,8 @@ Send the token as `Authorization: Bearer <token>`. Each player's torrent carries
 1. **Database:** run the launcher lines of [docker/create-db-user.sql.example](docker/create-db-user.sql.example) as root. They create `acore_launcher` and let the portal user read `acore_auth.account_banned`. The portal creates its tables on first use.
 2. **Files:** put the client in a folder on the host, for example `/srv/wow-launcher/client/World of Warcraft 3.3.5a/`. Build the torrent from that inner folder, so the torrent's name is the folder's name, and save it as `/srv/wow-launcher/torrents/client.torrent`. Mark it private and leave out the announce URL: the portal adds both URLs for each player.
 3. **`.env`:** set `LAUNCHER_ENABLED=true`, `LAUNCHER_TORRENT_DIR=/srv/wow-launcher/torrents` and `LAUNCHER_CLIENT_DIR=/srv/wow-launcher/client`, then run `docker compose up -d`.
+
+Patch torrents need nothing extra: they use the realm folder the portal already serves. Override `LAUNCHER_PATCH_DIR` (default `/var/www/html/realm`) or `LAUNCHER_PATCH_URL` (default `BASE_URL/realm`) only if the patches live somewhere else.
 
 Check it with `curl -X POST -d 'username=you&password=...' https://SERVICE_NAME.DOMAIN/api/launcher/login.php`.
 

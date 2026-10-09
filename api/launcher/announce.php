@@ -3,7 +3,7 @@
  * Private BitTorrent tracker (BEP 3, compact peers per BEP 23 and BEP 7).
  * Announce URL: api/launcher/announce.php/<passkey>, handed out inside torrent.php's torrents.
  *
- * Only torrents in LAUNCHER_TORRENT_DIR are tracked, and only players with a passkey (a launcher
+ * Only torrents in LAUNCHER_TORRENT_DIR and the patch torrents from patch-torrent.php are tracked, and only players with a passkey (a launcher
  * login) on an account that isn't banned get peers. Players on the server's own network are only
  * handed to each other: their private addresses mean nothing to anyone outside.
  **/
@@ -48,8 +48,8 @@ if (strlen($infoHash) !== 20 || strlen($peerId) !== 20 || $port < 1 || $port > 6
 }
 
 $tracked = false;
-foreach (launcher_torrents() as $entry) {
-    if (hash_equals($entry['info_hash'], $infoHash)) {
+foreach (launcher_tracked_hashes() as $hash) {
+    if (hash_equals($hash, $infoHash)) {
         $tracked = true;
         break;
     }

@@ -271,6 +271,111 @@ function launcher_client_dir(): string
     return rtrim(launcher_env('LAUNCHER_CLIENT_DIR', '/srv/launcher/client'), '/');
 }
 
+/** The realm folder (mod-realm-config's output, with the patch MPQs) and its public URL. */
+function launcher_patch_dir(): string
+{
+    return rtrim(launcher_env('LAUNCHER_PATCH_DIR', '/var/www/html/realm'), '/');
+}
+
+function launcher_patch_url(): string
+{
+    return rtrim(launcher_env('LAUNCHER_PATCH_URL', launcher_base_url() . '/realm'), '/') . '/';
+}
+
+function launcher_patch_cache_dir(): string
+{
+    return sys_get_temp_dir() . '/portal-launcher-patches';
+}
+
+/**
+ * A single-file torrent for one patch MPQ in the realm folder, so players share patches with each
+ * other. The realm folder stays the source of truth: the torrent is made from whatever file is there
+ * now, cached per file size and modification time, and a replaced patch simply gets a new torrent.
+ * Hashing a 2 GB patch takes a few seconds, once per version.
+ *
+ * @return array{name:string, length:int, info_hash:string, raw_info:string}|null null when there's no such patch
+ */
+function launcher_patch_torrent(string $name): ?array
+{
+    if (!preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]*\.(?i:mpq)$/', $name)) {
+        return null;
+    }
+    $path = launcher_patch_dir() . '/' . $name;
+    clearstatcache(true, $path);
+    if (!is_file($path)) {
+        return null;
+    }
+    $size = filesize($path);
+    $mtime = filemtime($path);
+
+    $cache = launcher_patch_cache_dir();
+    if (!is_dir($cache)) {
+        @mkdir($cache, 0700, true);
+    }
+    $prefix = $cache . '/' . $name . '~' . $size . '~' . $mtime . '~';
+    $found = glob($prefix . '*.info') ?: [];
+    if ($found !== []) {
+        return launcher_patch_entry($name, $size, (string)file_get_contents($found[0]));
+    }
+
+    // One request hashes a new version; the others wait for it.
+    $lock = fopen($cache . '/' . $name . '.lock', 'c');
+    flock($lock, LOCK_EX);
+    try {
+        $found = glob($prefix . '*.info') ?: [];
+        if ($found !== []) {
+            return launcher_patch_entry($name, $size, (string)file_get_contents($found[0]));
+        }
+
+        // About 2000 pieces, 256 KiB to 16 MiB each.
+        $pieceLength = 262144;
+        while ($pieceLength < 16777216 && $size / $pieceLength > 2000) {
+            $pieceLength *= 2;
+        }
+
+        set_time_limit(0);
+        $pieces = '';
+        $handle = fopen($path, 'rb');
+        while (!feof($handle)) {
+            $piece = '';
+            while (strlen($piece) < $pieceLength && !feof($handle)) {
+                $piece .= (string)fread($handle, $pieceLength - strlen($piece));
+            }
+            if ($piece !== '') {
+                $pieces .= sha1($piece, true);
+            }
+        }
+        fclose($handle);
+
+        $rawInfo = bencode(['length' => $size, 'name' => $name, 'piece length' => $pieceLength, 'pieces' => $pieces, 'private' => 1]);
+        foreach (glob($cache . '/' . $name . '~*.info') ?: [] as $old) {
+            @unlink($old); // older versions of this patch
+        }
+        file_put_contents($prefix . sha1($rawInfo) . '.info', $rawInfo);
+        return launcher_patch_entry($name, $size, $rawInfo);
+    } finally {
+        flock($lock, LOCK_UN);
+        fclose($lock);
+    }
+}
+
+function launcher_patch_entry(string $name, int $size, string $rawInfo): array
+{
+    return ['name' => $name, 'length' => $size, 'info_hash' => sha1($rawInfo, true), 'raw_info' => $rawInfo];
+}
+
+/** Info hashes the tracker accepts: the torrent files plus the current patch torrents. */
+function launcher_tracked_hashes(): array
+{
+    $hashes = array_map(static fn($entry) => $entry['info_hash'], array_values(launcher_torrents()));
+    foreach (glob(launcher_patch_cache_dir() . '/*.info') ?: [] as $file) {
+        if (preg_match('/~([0-9a-f]{40})\.info$/', $file, $match)) {
+            $hashes[] = hex2bin($match[1]);
+        }
+    }
+    return $hashes;
+}
+
 /**
  * Every torrent the tracker serves, from the .torrent files in LAUNCHER_TORRENT_DIR.
  *
