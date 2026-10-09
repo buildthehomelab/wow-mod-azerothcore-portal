@@ -202,6 +202,21 @@ function launcher_client_ip(): string
     return $remote;
 }
 
+/**
+ * The public address of the server's own network (LAUNCHER_PUBLIC_ADDRESS, an IP or a host name
+ * such as the realmlist), for handing players on that network to outside peers. Null when unset,
+ * unresolvable or private.
+ */
+function launcher_public_ip(): ?string
+{
+    $address = trim(launcher_env('LAUNCHER_PUBLIC_ADDRESS'));
+    if ($address === '') {
+        return null;
+    }
+    $ip = filter_var($address, FILTER_VALIDATE_IP) !== false ? $address : gethostbyname($address);
+    return filter_var($ip, FILTER_VALIDATE_IP) !== false && !launcher_is_private_ip($ip) ? $ip : null;
+}
+
 function launcher_is_banned(PDO $pdo, int $accountId): bool
 {
     // AzerothCore marks a permanent ban with unbandate = bandate.
