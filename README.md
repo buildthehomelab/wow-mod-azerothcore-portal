@@ -240,11 +240,15 @@ Patch torrents need nothing extra: they use the realm folder the portal already 
 
 Check it with `curl -X POST -d 'username=you&password=...' https://SERVICE_NAME.DOMAIN/api/launcher/login.php`.
 
-The tracker reads the player's address from the last `X-Forwarded-For` entry, which Traefik adds. That entry is only trusted when the request comes from a private address (Traefik on the Docker network). If you put another proxy such as Cloudflare in front of Traefik, every player shows up with the proxy's address.
+The tracker reads the player's address from the last `X-Forwarded-For` entry, which Traefik adds. That entry is only trusted when the request comes from a private address (Traefik on the Docker network). If you put another proxy such as Cloudflare in front of Traefik, every player shows up with the proxy's address, peers get handed addresses nobody can connect to, and the login throttle counts all players as one address.
 
-### Behind Cloudflare: a separate seed host
+### Behind Cloudflare
 
-When the main host is proxied by Cloudflare (or another proxy), give the tracker and web seeds a host of their own that reaches Traefik directly:
+**Through a cloudflared tunnel or the Cloudflare proxy:** set `LAUNCHER_CLIENT_IP_HEADER=CF-Connecting-IP` in `.env` and run `docker compose up -d`. Cloudflare puts the player's address in that header, so the tracker and the login throttle use it. It's only read on requests that came from a private address (Traefik), and only set it when every outside request reaches Traefik through Cloudflare, since Cloudflare overwrites the header but a client talking to Traefik directly could send its own. Requests without the header, such as players on your own network going straight to Traefik, fall back to `X-Forwarded-For`.
+
+The web seeds then also go through Cloudflare. Check that Cloudflare's terms allow that much traffic on your plan; players sharing with each other takes most of it off the web seed once a few have the client.
+
+**With an open port instead:** give the tracker and web seeds a host of their own that reaches Traefik directly:
 
 1. Add a DNS-only record (grey cloud in Cloudflare), for example `seed.example.com`, pointing at the server's public address. Port 443 has to reach Traefik, and Let's Encrypt has to be able to issue a certificate for the host (port 80 too if your resolver uses the HTTP challenge).
 2. Set `LAUNCHER_SEED_HOST=seed.example.com` in `.env` and run `docker compose up -d`.
