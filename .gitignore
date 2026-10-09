@@ -10,3 +10,7 @@ realm-data
 
 # Default AC_MODULES_DIR mount (empty when AC_MODULES_DIR is unset)
 ac-modules
+
+# Default launcher mounts (empty when LAUNCHER_TORRENT_DIR / LAUNCHER_CLIENT_DIR are unset)
+launcher-torrents
+launcher-client

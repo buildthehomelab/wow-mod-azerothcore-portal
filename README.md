@@ -200,6 +200,37 @@ Everything in that folder is public, so only point it at a folder that holds pub
 
 The module doesn't delete profile files for characters that are deleted or drop out of the roster, so `characters/<guid>.json` for those stays reachable until you remove it from `realm-public/armory/characters/`. Character names, gear and appearance are public by design. No account names, emails or IPs are included.
 
+## Launcher login and client download
+
+The portal can also back the Portalkeeper launcher (our fork, [wow-Portalkeeper](https://github.com/buildthehomelab/wow-Portalkeeper)) with three things:
+
+- **Login:** players sign in to the launcher with their game account. The password is checked against the account's SRP6 verifier, and the launcher gets a token that lasts `LAUNCHER_TOKEN_DAYS` (30) from its last use. Only the token's SHA-256 is stored. Failed logins are throttled: 5 per account name and 20 per address every 15 minutes. Banned accounts are refused.
+- **A private BitTorrent tracker** for the client download. It only tracks the torrents in `LAUNCHER_TORRENT_DIR`, and only gives peers to logged-in players. Players on the server's own network are only handed to each other.
+- **A web seed** that serves the client files over HTTPS with byte ranges, so a download never stalls when no other player is sharing.
+
+It's off until you set `LAUNCHER_ENABLED=true`.
+
+| Endpoint | What it does |
+| --- | --- |
+| `POST api/launcher/login.php` | `{"username", "password"}` (JSON or form) → `{"token", "expires_at", "account": {"id", "name"}}` |
+| `GET api/launcher/session.php` | Who the token belongs to. 401 when it has expired, 403 for banned accounts. |
+| `POST api/launcher/logout.php` | Forgets the token. |
+| `GET api/launcher/torrent.php` | Lists the torrents. `?name=client` returns `client.torrent` rewritten for this player. |
+| `api/launcher/announce.php/<passkey>` | Tracker announce URL, inside the player's torrent |
+| `api/launcher/seed.php/<passkey>/` | Web seed URL, inside the player's torrent |
+
+Send the token as `Authorization: Bearer <token>`. Each player's torrent carries their own passkey in the announce and web seed URLs. Those sit outside the torrent's info dictionary, so every player still has the same info hash and joins the same swarm.
+
+### Setting it up
+
+1. **Database:** run the launcher lines of [docker/create-db-user.sql.example](docker/create-db-user.sql.example) as root. They create `acore_launcher` and let the portal user read `acore_auth.account_banned`. The portal creates its tables on first use.
+2. **Files:** put the client in a folder on the host, for example `/srv/wow-launcher/client/World of Warcraft 3.3.5a/`. Build the torrent from that inner folder, so the torrent's name is the folder's name, and save it as `/srv/wow-launcher/torrents/client.torrent`. Mark it private and leave out the announce URL: the portal adds both URLs for each player.
+3. **`.env`:** set `LAUNCHER_ENABLED=true`, `LAUNCHER_TORRENT_DIR=/srv/wow-launcher/torrents` and `LAUNCHER_CLIENT_DIR=/srv/wow-launcher/client`, then run `docker compose up -d`.
+
+Check it with `curl -X POST -d 'username=you&password=...' https://SERVICE_NAME.DOMAIN/api/launcher/login.php`.
+
+The tracker reads the player's address from the last `X-Forwarded-For` entry, which Traefik adds. That entry is only trusted when the request comes from a private address (Traefik on the Docker network). If you put another proxy such as Cloudflare in front of Traefik, every player shows up with the proxy's address.
+
 ## Rare map (mod-rare-tracker)
 
 `rares.php` is a live map of every open-world rare that's up right now. It has continent and zone
@@ -347,6 +378,7 @@ If you only changed `.env` (title, contact email, closing registration and so on
 - Locked to AzerothCore with SRP6, using a least-privilege database user instead of root.
 - Uses the built-in image captcha by default, so there are no third-party captcha keys to set up. You can switch to hCaptcha, reCAPTCHA or Turnstile with `CAPTCHA_TYPE`.
 - Can host [mod-realm-config](https://github.com/Hisha/mod-realm-config)'s `realm.conf` and [mod-realm-armory](https://github.com/Hisha/mod-realm-armory)'s JSON for Portalkeeper, and shows Portalkeeper setup steps.
+- **Launcher API** ([api/launcher/](api/launcher/)): game-account login for Portalkeeper, plus a private tracker and web seed for the client download.
 - **Rare map** ([rares.php](rares.php)): live open-world rares from mod-rare-tracker on the game's own maps.
 - **Patch notes** ([changelog.php](changelog.php)): Blizzard-style patch notes built from merged pull requests on GitHub.
 - **Vote system is off,** because it alters `acore_auth.account` and creates new tables.
