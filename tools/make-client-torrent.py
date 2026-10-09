@@ -9,7 +9,8 @@ the web seed serves, so keep the folder in LAUNCHER_CLIENT_DIR under exactly thi
 name without spaces, such as Evermore.
 
 Left out on purpose:
-- Files the launcher or the game writes to (realmlist.wtf, WTF, Cache, Logs, Interface, ...).
+- Files the launcher or the game writes to (realmlist.wtf, and the top-level WTF, Cache, Logs,
+  Interface, ... folders; Data/<locale>/Interface/Cinematics, the intro movies, stays in).
   If they were in the torrent, a player's copy would stop matching after the first launch and
   Portalkeeper would stop sharing it.
 - The realm's own patches: every [Patch.*] FileName in the realm.conf given with --realm-conf.
@@ -69,7 +70,9 @@ def bencode(value):
 def client_files(root, realm_patches):
     found = []
     for directory, dirs, files in os.walk(root):
-        dirs[:] = sorted(d for d in dirs if d.lower() not in SKIP_DIRS and not d.startswith("."))
+        # Only the client's own top-level folders: Data/enUS/Interface holds the intro cinematics.
+        top = os.path.samefile(directory, root)
+        dirs[:] = sorted(d for d in dirs if not (top and d.lower() in SKIP_DIRS) and not d.startswith("."))
         for name in sorted(files):
             lower = name.lower()
             if lower in SKIP_FILES or lower.endswith(SKIP_SUFFIXES) or name.startswith(".") or lower in realm_patches:

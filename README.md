@@ -211,6 +211,8 @@ The portal can also back the Portalkeeper launcher (our fork, [wow-Portalkeeper]
 
 It's off until you set `LAUNCHER_ENABLED=true`.
 
+With it on, the home page's "How to connect" shows three steps instead of the manual realmlist checklist: register, download the launcher (`LAUNCHER_DOWNLOAD_URL`, default the fork's latest GitHub release), then INSTALL WOW and ENTER REALM.
+
 | Endpoint | What it does |
 | --- | --- |
 | `POST api/launcher/login.php` | `{"username", "password"}` (JSON or form) → `{"token", "expires_at", "account": {"id", "name"}}` |
