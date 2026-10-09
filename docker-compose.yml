@@ -54,6 +54,8 @@ services:
       LAUNCHER_TOKEN_DAYS: ${LAUNCHER_TOKEN_DAYS:-30}
       LAUNCHER_TORRENT_DIR: /srv/launcher/torrents
       LAUNCHER_CLIENT_DIR: /srv/launcher/client
+      LAUNCHER_PATCH_DIR: ${LAUNCHER_PATCH_DIR:-/var/www/html/realm}
+      LAUNCHER_PATCH_URL: ${LAUNCHER_PATCH_URL:-}
     volumes:
       # mod-realm-config output directory (realm.conf), served read-only at /realm/
       - ${REALM_CONFIG_DIR:-./realm-data}:/var/www/html/realm:ro

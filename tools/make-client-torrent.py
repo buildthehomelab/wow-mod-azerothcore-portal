@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
 """Builds the realm's client torrent (LAUNCHER_TORRENT_DIR/client.torrent) from a clean WoW folder.
 
-    python3 tools/make-client-torrent.py "/srv/wow-launcher/client/World of Warcraft 3.3.5a" \
-        /srv/wow-launcher/torrents/client.torrent
+    python3 tools/make-client-torrent.py /srv/wow-launcher/client/Evermore \
+        /srv/wow-launcher/torrents/client.torrent --realm-conf /path/to/realm-public/azeroth.realm.conf
 
 The torrent is named after the folder, and that name is also the folder players get and the path
-the web seed serves, so keep the folder in LAUNCHER_CLIENT_DIR under exactly this name.
+the web seed serves, so keep the folder in LAUNCHER_CLIENT_DIR under exactly this name. Use a short
+name without spaces, such as Evermore.
 
 Left out on purpose:
 - Files the launcher or the game writes to (realmlist.wtf, WTF, Cache, Logs, Interface, ...).
   If they were in the torrent, a player's copy would stop matching after the first launch and
   Portalkeeper would stop sharing it.
-- Realm patches (patch-4.MPQ and up, patch-A.MPQ ... in Data or a locale folder). Those come from
-  the realm folder through their own torrents, so they can change without a new client torrent.
+- The realm's own patches: every [Patch.*] FileName in the realm.conf given with --realm-conf.
+  Those come from the realm folder through their own torrents, so they can change without a new
+  client torrent. Every other MPQ stays in, including a graphics pack's own patch-X.MPQ files
+  (a base client such as an HD repack ships those as part of the client).
 
 The torrent is private (peers only come from the realm's tracker) and has no announce URL or web
 seed: the portal adds both for each player. Needs only Python 3.
@@ -29,8 +32,23 @@ PIECE_LENGTH = 4 * 1024 * 1024  # ~4,300 pieces for a 17 GB client
 SKIP_DIRS = {"wtf", "cache", "logs", "interface", "screenshots", "errors", ".portalkeeper"}
 SKIP_FILES = {"realmlist.wtf", "config.wtf", "thumbs.db", "desktop.ini", ".ds_store"}
 SKIP_SUFFIXES = (".log", ".tmp", ".bak")
-# Stock 3.3.5a ships patch.MPQ, patch-2.MPQ, patch-3.MPQ (and patch-<locale>[-2|-3].MPQ).
-REALM_PATCH = re.compile(r"^patch-(?:[a-z]{2}[A-Z]{2}-)?(?:[4-9]|[A-Za-z])\.mpq$", re.IGNORECASE)
+
+
+def realm_patch_names(paths):
+    """File names of the patches realm.conf delivers itself ([Patch.*] FileName=...), lower-cased."""
+    names = set()
+    for path in paths:
+        section = ""
+        with open(path, encoding="utf-8-sig") as handle:
+            for raw in handle:
+                line = raw.strip()
+                if line.startswith("[") and line.endswith("]"):
+                    section = line[1:-1].strip()
+                elif section.lower().startswith("patch.") and "=" in line:
+                    key, value = (part.strip() for part in line.split("=", 1))
+                    if key.lower() == "filename" and value:
+                        names.add(value.lower())
+    return names
 
 
 def bencode(value):
@@ -48,13 +66,13 @@ def bencode(value):
     raise TypeError(type(value))
 
 
-def client_files(root):
+def client_files(root, realm_patches):
     found = []
     for directory, dirs, files in os.walk(root):
         dirs[:] = sorted(d for d in dirs if d.lower() not in SKIP_DIRS and not d.startswith("."))
         for name in sorted(files):
             lower = name.lower()
-            if lower in SKIP_FILES or lower.endswith(SKIP_SUFFIXES) or name.startswith(".") or REALM_PATCH.match(name):
+            if lower in SKIP_FILES or lower.endswith(SKIP_SUFFIXES) or name.startswith(".") or lower in realm_patches:
                 continue
             path = os.path.join(directory, name)
             if os.path.islink(path) or not os.path.isfile(path):
@@ -67,14 +85,22 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("client", help="the clean client folder (its name becomes the torrent name)")
     parser.add_argument("output", help="where to write the .torrent, e.g. .../torrents/client.torrent")
+    parser.add_argument("--realm-conf", action="append", default=[],
+                        help="realm.conf whose [Patch.*] files are left out (they ship as their own torrents); repeatable")
     args = parser.parse_args()
 
     root = os.path.abspath(args.client)
     if not os.path.isfile(os.path.join(root, "Wow.exe")):
         sys.exit(f"{root} has no Wow.exe; point this at the client folder itself.")
     name = os.path.basename(root.rstrip(os.sep))
+    if not re.fullmatch(r"[A-Za-z0-9._-]+", name):
+        sys.exit(f"Rename the folder to something without spaces or special characters, such as Evermore (it's {name!r}).")
 
-    files = client_files(root)
+    realm_patches = realm_patch_names(args.realm_conf)
+    if not args.realm_conf:
+        print("note: no --realm-conf given, so every MPQ in the folder goes into the torrent", file=sys.stderr)
+    files = client_files(root, realm_patches)
+    left_out = sorted(realm_patches)
     total = sum(os.path.getsize(os.path.join(root, *parts)) for parts in files)
     pieces = bytearray()
     buffer = bytearray()
@@ -109,6 +135,8 @@ def main():
 
     print(f"{args.output}: {name!r}, {len(files)} files, {total / 1024 ** 3:.2f} GB")
     print(f"info hash {hashlib.sha1(bencode(info)).hexdigest()}")
+    if left_out:
+        print("left out (realm patches): " + ", ".join(left_out))
     for parts in files:
         print("  " + "/".join(parts))
 

@@ -12,7 +12,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../include/functions.php'; // verifySRP6()
 require_once __DIR__ . '/bencode.php';
 
-const LAUNCHER_SCHEMA_VERSION = 1;
+const LAUNCHER_SCHEMA_VERSION = 2;
 
 function launcher_env(string $key, string $default = ''): string
 {
@@ -137,6 +137,16 @@ function launcher_schema(PDO $pdo): void
         updated_at INT UNSIGNED NOT NULL,
         PRIMARY KEY (info_hash, peer_id),
         KEY updated (updated_at)
+    ) ENGINE=InnoDB');
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS launcher_patch_torrent (
+        name VARCHAR(255) NOT NULL PRIMARY KEY,
+        size BIGINT UNSIGNED NOT NULL,
+        mtime BIGINT NOT NULL,
+        info_hash BINARY(20) NOT NULL,
+        raw_info MEDIUMBLOB NOT NULL,
+        created_at INT UNSIGNED NOT NULL,
+        KEY info_hash (info_hash)
     ) ENGINE=InnoDB');
 
     @touch($flag);
@@ -283,7 +293,8 @@ function launcher_patch_url(): string
     return rtrim(launcher_env('LAUNCHER_PATCH_URL', launcher_base_url() . '/realm'), '/') . '/';
 }
 
-function launcher_patch_cache_dir(): string
+/** Lock files for patch hashing (only coordinates concurrent requests; the torrents live in the database). */
+function launcher_patch_lock_dir(): string
 {
     return sys_get_temp_dir() . '/portal-launcher-patches';
 }
@@ -291,12 +302,13 @@ function launcher_patch_cache_dir(): string
 /**
  * A single-file torrent for one patch MPQ in the realm folder, so players share patches with each
  * other. The realm folder stays the source of truth: the torrent is made from whatever file is there
- * now, cached per file size and modification time, and a replaced patch simply gets a new torrent.
+ * now, stored in launcher_patch_torrent per file size and modification time (so it survives
+ * restarts and the tracker keeps accepting it), and a replaced patch simply gets a new torrent.
  * Hashing a 2 GB patch takes a few seconds, once per version.
  *
  * @return array{name:string, length:int, info_hash:string, raw_info:string}|null null when there's no such patch
  */
-function launcher_patch_torrent(string $name): ?array
+function launcher_patch_torrent(PDO $pdo, string $name): ?array
 {
     if (!preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]*\.(?i:mpq)$/', $name)) {
         return null;
@@ -309,23 +321,25 @@ function launcher_patch_torrent(string $name): ?array
     $size = filesize($path);
     $mtime = filemtime($path);
 
-    $cache = launcher_patch_cache_dir();
-    if (!is_dir($cache)) {
-        @mkdir($cache, 0700, true);
-    }
-    $prefix = $cache . '/' . $name . '~' . $size . '~' . $mtime . '~';
-    $found = glob($prefix . '*.info') ?: [];
-    if ($found !== []) {
-        return launcher_patch_entry($name, $size, (string)file_get_contents($found[0]));
+    $find = $pdo->prepare('SELECT info_hash, raw_info FROM launcher_patch_torrent WHERE name = ? AND size = ? AND mtime = ?');
+    $find->execute([$name, $size, $mtime]);
+    if (($row = $find->fetch()) !== false) {
+        return ['name' => $name, 'length' => $size, 'info_hash' => (string)$row['info_hash'], 'raw_info' => (string)$row['raw_info']];
     }
 
     // One request hashes a new version; the others wait for it.
-    $lock = fopen($cache . '/' . $name . '.lock', 'c');
-    flock($lock, LOCK_EX);
+    $locks = launcher_patch_lock_dir();
+    if (!is_dir($locks)) {
+        @mkdir($locks, 0700, true);
+    }
+    $lock = @fopen($locks . '/' . $name . '.lock', 'c');
+    if ($lock !== false) {
+        flock($lock, LOCK_EX);
+    }
     try {
-        $found = glob($prefix . '*.info') ?: [];
-        if ($found !== []) {
-            return launcher_patch_entry($name, $size, (string)file_get_contents($found[0]));
+        $find->execute([$name, $size, $mtime]);
+        if (($row = $find->fetch()) !== false) {
+            return ['name' => $name, 'length' => $size, 'info_hash' => (string)$row['info_hash'], 'raw_info' => (string)$row['raw_info']];
         }
 
         // About 2000 pieces, 256 KiB to 16 MiB each.
@@ -349,30 +363,26 @@ function launcher_patch_torrent(string $name): ?array
         fclose($handle);
 
         $rawInfo = bencode(['length' => $size, 'name' => $name, 'piece length' => $pieceLength, 'pieces' => $pieces, 'private' => 1]);
-        foreach (glob($cache . '/' . $name . '~*.info') ?: [] as $old) {
-            @unlink($old); // older versions of this patch
-        }
-        file_put_contents($prefix . sha1($rawInfo) . '.info', $rawInfo);
-        return launcher_patch_entry($name, $size, $rawInfo);
+        $infoHash = sha1($rawInfo, true);
+        // Older versions of this patch stop being tracked: their files are gone from the realm folder.
+        $pdo->prepare('DELETE FROM launcher_patch_torrent WHERE name = ?')->execute([$name]);
+        $pdo->prepare('INSERT INTO launcher_patch_torrent (name, size, mtime, info_hash, raw_info, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+            ->execute([$name, $size, $mtime, $infoHash, $rawInfo, time()]);
+        return ['name' => $name, 'length' => $size, 'info_hash' => $infoHash, 'raw_info' => $rawInfo];
     } finally {
-        flock($lock, LOCK_UN);
-        fclose($lock);
+        if ($lock !== false) {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
     }
 }
 
-function launcher_patch_entry(string $name, int $size, string $rawInfo): array
-{
-    return ['name' => $name, 'length' => $size, 'info_hash' => sha1($rawInfo, true), 'raw_info' => $rawInfo];
-}
-
 /** Info hashes the tracker accepts: the torrent files plus the current patch torrents. */
-function launcher_tracked_hashes(): array
+function launcher_tracked_hashes(PDO $pdo): array
 {
     $hashes = array_map(static fn($entry) => $entry['info_hash'], array_values(launcher_torrents()));
-    foreach (glob(launcher_patch_cache_dir() . '/*.info') ?: [] as $file) {
-        if (preg_match('/~([0-9a-f]{40})\.info$/', $file, $match)) {
-            $hashes[] = hex2bin($match[1]);
-        }
+    foreach ($pdo->query('SELECT info_hash FROM launcher_patch_torrent') as $row) {
+        $hashes[] = (string)$row['info_hash'];
     }
     return $hashes;
 }

@@ -52,7 +52,7 @@ if (strlen($infoHash) !== 20 || strlen($peerId) !== 20 || $port < 1 || $port > 6
 }
 
 $tracked = false;
-foreach (launcher_tracked_hashes() as $hash) {
+foreach (launcher_tracked_hashes($pdo) as $hash) {
     if (hash_equals($hash, $infoHash)) {
         $tracked = true;
         break;

@@ -19,7 +19,7 @@ $pdo = launcher_db();
 $session = launcher_require_session($pdo);
 
 $file = (string)($_GET['file'] ?? '');
-$patch = launcher_patch_torrent($file);
+$patch = launcher_patch_torrent($pdo, $file);
 if ($patch === null) {
     launcher_json(404, ['error' => 'There is no patch called ' . $file . '.']);
 }
