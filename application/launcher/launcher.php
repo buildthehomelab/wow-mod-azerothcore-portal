@@ -30,6 +30,17 @@ function launcher_base_url(): string
     return rtrim(launcher_env('BASE_URL', 'http://localhost:8080'), '/');
 }
 
+/**
+ * Where torrents point the tracker and web seeds. LAUNCHER_SEED_HOST names a host that reaches
+ * Traefik directly (DNS only, not behind Cloudflare or another proxy), so the tracker sees players'
+ * real addresses and the downloads skip the proxy. Without it, everything uses BASE_URL.
+ */
+function launcher_seed_url(): string
+{
+    $host = trim(launcher_env('LAUNCHER_SEED_HOST'), "/ \t");
+    return $host === '' ? launcher_base_url() : 'https://' . $host;
+}
+
 function launcher_token_days(): int
 {
     return max(1, (int)launcher_env('LAUNCHER_TOKEN_DAYS', '30'));
@@ -290,7 +301,7 @@ function launcher_patch_dir(): string
 
 function launcher_patch_url(): string
 {
-    return rtrim(launcher_env('LAUNCHER_PATCH_URL', launcher_base_url() . '/realm'), '/') . '/';
+    return rtrim(launcher_env('LAUNCHER_PATCH_URL', launcher_seed_url() . '/realm'), '/') . '/';
 }
 
 /** Lock files for patch hashing (only coordinates concurrent requests; the torrents live in the database). */

@@ -14,7 +14,15 @@ services:
       - "traefik.http.routers.${SERVICE_NAME}.entrypoints=websecure"
       - "traefik.http.routers.${SERVICE_NAME}.tls=true"
       - "traefik.http.routers.${SERVICE_NAME}.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.${SERVICE_NAME}.service=${SERVICE_NAME}"
       - "traefik.http.services.${SERVICE_NAME}.loadbalancer.server.port=80"
+      # Launcher tracker and web seeds on LAUNCHER_SEED_HOST (a DNS-only host, so Traefik sees the
+      # player's real address). Only those paths answer there; the rest of the site stays on the main host.
+      - "traefik.http.routers.${SERVICE_NAME}-seed.rule=Host(`${LAUNCHER_SEED_HOST:-${SERVICE_NAME}.${DOMAIN}}`) && (PathPrefix(`/api/launcher/announce.php`) || PathPrefix(`/api/launcher/seed.php`) || PathPrefix(`/realm/`))"
+      - "traefik.http.routers.${SERVICE_NAME}-seed.entrypoints=websecure"
+      - "traefik.http.routers.${SERVICE_NAME}-seed.tls=true"
+      - "traefik.http.routers.${SERVICE_NAME}-seed.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.${SERVICE_NAME}-seed.service=${SERVICE_NAME}"
     # No published ports: all traffic comes in through Traefik over HTTPS.
     environment:
       BASE_URL: https://${SERVICE_NAME}.${DOMAIN}
@@ -56,6 +64,7 @@ services:
       LAUNCHER_CLIENT_DIR: /srv/launcher/client
       LAUNCHER_PATCH_DIR: ${LAUNCHER_PATCH_DIR:-/var/www/html/realm}
       LAUNCHER_PATCH_URL: ${LAUNCHER_PATCH_URL:-}
+      LAUNCHER_SEED_HOST: ${LAUNCHER_SEED_HOST:-}
     volumes:
       # mod-realm-config output directory (realm.conf), served read-only at /realm/
       - ${REALM_CONFIG_DIR:-./realm-data}:/var/www/html/realm:ro

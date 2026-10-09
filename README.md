@@ -236,11 +236,20 @@ Send the token as `Authorization: Bearer <token>`. Each player's torrent carries
    It leaves out what the launcher or the game writes to (`realmlist.wtf`, `WTF`, `Cache`, `Logs`, `Interface`), so players' copies keep matching and keep being shared. With `--realm-conf` it also leaves out the realm's own patches (every `[Patch.*]` `FileName`), which come from the realm folder through their own torrents. Everything else stays in, including a graphics client's own `patch-X.MPQ` files when you base the client on an HD repack. Run it again only when the client files themselves change. A new client torrent means everyone downloads the changed files again.
 3. **`.env`:** set `LAUNCHER_ENABLED=true`, `LAUNCHER_TORRENT_DIR=/srv/wow-launcher/torrents` and `LAUNCHER_CLIENT_DIR=/srv/wow-launcher/client`, then run `docker compose up -d`.
 
-Patch torrents need nothing extra: they use the realm folder the portal already serves. Override `LAUNCHER_PATCH_DIR` (default `/var/www/html/realm`) or `LAUNCHER_PATCH_URL` (default `BASE_URL/realm`) only if the patches live somewhere else.
+Patch torrents need nothing extra: they use the realm folder the portal already serves. Override `LAUNCHER_PATCH_DIR` (default `/var/www/html/realm`) or `LAUNCHER_PATCH_URL` (default `/realm` on the seed host, see below, or on `BASE_URL`) only if the patches live somewhere else.
 
 Check it with `curl -X POST -d 'username=you&password=...' https://SERVICE_NAME.DOMAIN/api/launcher/login.php`.
 
 The tracker reads the player's address from the last `X-Forwarded-For` entry, which Traefik adds. That entry is only trusted when the request comes from a private address (Traefik on the Docker network). If you put another proxy such as Cloudflare in front of Traefik, every player shows up with the proxy's address.
+
+### Behind Cloudflare: a separate seed host
+
+When the main host is proxied by Cloudflare (or another proxy), give the tracker and web seeds a host of their own that reaches Traefik directly:
+
+1. Add a DNS-only record (grey cloud in Cloudflare), for example `seed.example.com`, pointing at the server's public address. Port 443 has to reach Traefik, and Let's Encrypt has to be able to issue a certificate for the host (port 80 too if your resolver uses the HTTP challenge).
+2. Set `LAUNCHER_SEED_HOST=seed.example.com` in `.env` and run `docker compose up -d`.
+
+Torrents handed out from then on announce to `https://seed.example.com/api/launcher/announce.php/<passkey>` and use the web seeds there (`seed.php` for the client, `/realm/` for patches), so the tracker sees players' real addresses and the big downloads skip the proxy. Login and the torrent files themselves stay on the main host. The seed host only answers the tracker, web seed and `/realm/` paths; the rest of the site isn't reachable through it. If your router doesn't loop public addresses back to the LAN, add a local DNS record for the seed host on your network too.
 
 ## Rare map (mod-rare-tracker)
 

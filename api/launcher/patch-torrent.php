@@ -26,7 +26,7 @@ if ($patch === null) {
 
 $passkey = launcher_passkey($pdo, $session['id']);
 $torrent = [
-    'announce' => launcher_base_url() . '/api/launcher/announce.php/' . $passkey,
+    'announce' => launcher_seed_url() . '/api/launcher/announce.php/' . $passkey,
     'created by' => 'Vaultrona portal',
     'info' => new BencodeRaw($patch['raw_info']),
     // BEP 19 single-file form: the file's own URL. (MonoTorrent turns the "folder/" form into "folder/name/".)

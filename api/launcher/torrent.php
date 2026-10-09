@@ -40,7 +40,7 @@ if (!isset($torrents[$name])) {
 
 $entry = $torrents[$name];
 $passkey = launcher_passkey($pdo, $session['id']);
-$base = launcher_base_url() . '/api/launcher';
+$base = launcher_seed_url() . '/api/launcher';
 
 $torrent = $entry['torrent'];
 unset($torrent['announce-list']);
