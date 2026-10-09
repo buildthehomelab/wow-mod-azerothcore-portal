@@ -174,10 +174,23 @@ function launcher_is_private_ip(string $ip): bool
  * private Docker address, and Traefik appends the real client address as the LAST X-Forwarded-For
  * entry. Earlier entries come from the client and can be forged, so they're ignored; the header is
  * only read at all when the request came from a private address.
+ *
+ * Behind Cloudflare (proxy or cloudflared tunnel) that last entry is Cloudflare's or the tunnel's
+ * address, so LAUNCHER_CLIENT_IP_HEADER can name the header that carries the player instead
+ * (CF-Connecting-IP). Only set it when every outside request passes through that proxy, because it
+ * overwrites the header; otherwise a client could send its own.
  */
 function launcher_client_ip(): string
 {
     $remote = (string)($_SERVER['REMOTE_ADDR'] ?? '');
+    $header = trim(launcher_env('LAUNCHER_CLIENT_IP_HEADER'));
+    if ($header !== '' && launcher_is_private_ip($remote)) {
+        $value = trim((string)($_SERVER['HTTP_' . strtoupper(str_replace('-', '_', $header))] ?? ''));
+        if (filter_var($value, FILTER_VALIDATE_IP) !== false) {
+            return $value;
+        }
+    }
+
     $forwarded = (string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? '');
     if ($forwarded !== '' && launcher_is_private_ip($remote)) {
         $parts = array_map('trim', explode(',', $forwarded));
@@ -187,6 +200,21 @@ function launcher_client_ip(): string
         }
     }
     return $remote;
+}
+
+/**
+ * The public address of the server's own network (LAUNCHER_PUBLIC_ADDRESS, an IP or a host name
+ * such as the realmlist), for handing players on that network to outside peers. Null when unset,
+ * unresolvable or private.
+ */
+function launcher_public_ip(): ?string
+{
+    $address = trim(launcher_env('LAUNCHER_PUBLIC_ADDRESS'));
+    if ($address === '') {
+        return null;
+    }
+    $ip = filter_var($address, FILTER_VALIDATE_IP) !== false ? $address : gethostbyname($address);
+    return filter_var($ip, FILTER_VALIDATE_IP) !== false && !launcher_is_private_ip($ip) ? $ip : null;
 }
 
 function launcher_is_banned(PDO $pdo, int $accountId): bool

@@ -205,7 +205,7 @@ The module doesn't delete profile files for characters that are deleted or drop 
 The portal can also back the Portalkeeper launcher (our fork, [wow-Portalkeeper](https://github.com/buildthehomelab/wow-Portalkeeper)) with three things:
 
 - **Login:** players sign in to the launcher with their game account. The password is checked against the account's SRP6 verifier, and the launcher gets a token that lasts `LAUNCHER_TOKEN_DAYS` (30) from its last use. Only the token's SHA-256 is stored. Failed logins are throttled: 5 per account name and 20 per address every 15 minutes. Banned accounts are refused.
-- **A private BitTorrent tracker** for the client download. It only tracks the torrents in `LAUNCHER_TORRENT_DIR`, and only gives peers to logged-in players. Players on the server's own network are only handed to each other, and players behind the same router elsewhere get each other's home-network address first, so a copy in the next room beats the internet.
+- **A private BitTorrent tracker** for the client download. It only tracks the torrents in `LAUNCHER_TORRENT_DIR`, and only gives peers to logged-in players. Players behind the same router get each other's home-network address first, so a copy in the next room beats the internet. Players on the server's own network are only handed to each other, unless you set `LAUNCHER_PUBLIC_ADDRESS` (see below).
 - **A web seed** that serves the client files over HTTPS with byte ranges, so a download never stalls when no other player is sharing.
 - **Patch torrents:** every patch MPQ in the realm folder (`/realm/`) gets its own torrent, so players share patches with each other too. The realm folder stays the source of truth. Upload a new `patch-X.MPQ` as usual: the portal builds a new torrent from it the first time someone asks, and stores it in the database per file size and modification time. The web seed is the patch's normal `/realm/` URL, and Portalkeeper still checks the SHA-256 from realm.conf.
 
@@ -240,11 +240,17 @@ Patch torrents need nothing extra: they use the realm folder the portal already 
 
 Check it with `curl -X POST -d 'username=you&password=...' https://SERVICE_NAME.DOMAIN/api/launcher/login.php`.
 
-The tracker reads the player's address from the last `X-Forwarded-For` entry, which Traefik adds. That entry is only trusted when the request comes from a private address (Traefik on the Docker network). If you put another proxy such as Cloudflare in front of Traefik, every player shows up with the proxy's address.
+The tracker reads the player's address from the last `X-Forwarded-For` entry, which Traefik adds. That entry is only trusted when the request comes from a private address (Traefik on the Docker network). If you put another proxy such as Cloudflare in front of Traefik, every player shows up with the proxy's address, peers get handed addresses nobody can connect to, and the login throttle counts all players as one address.
 
-### Behind Cloudflare: a separate seed host
+### Behind Cloudflare
 
-When the main host is proxied by Cloudflare (or another proxy), give the tracker and web seeds a host of their own that reaches Traefik directly:
+**Through a cloudflared tunnel or the Cloudflare proxy:** set `LAUNCHER_CLIENT_IP_HEADER=CF-Connecting-IP` in `.env` and run `docker compose up -d`. Cloudflare puts the player's address in that header, so the tracker and the login throttle use it. It's only read on requests that came from a private address (Traefik), and only set it when every outside request reaches Traefik through Cloudflare, since Cloudflare overwrites the header but a client talking to Traefik directly could send its own. Requests without the header, such as players on your own network going straight to Traefik, fall back to `X-Forwarded-For`.
+
+The web seeds then also go through Cloudflare. Check that Cloudflare's terms allow that much traffic on your plan; players sharing with each other takes most of it off the web seed once a few have the client.
+
+**Sharing from the server's own network:** a launcher on the same network as the server talks to Traefik directly, so the tracker sees its private address and can't hand it to outside players. Set `LAUNCHER_PUBLIC_ADDRESS` to the network's public IP or a host name that resolves to it (your realmlist, e.g. `realm.example.com`; the container has to resolve it to the public address, not a local override). Outside players then get those launchers at that address. Their router has to forward the launcher's port to them: turn on UPnP (the launcher asks for it) or forward the port by hand. Players on that network who come in through Cloudflare (same public address) are treated as being on it.
+
+**With an open port instead:** give the tracker and web seeds a host of their own that reaches Traefik directly:
 
 1. Add a DNS-only record (grey cloud in Cloudflare), for example `seed.example.com`, pointing at the server's public address. Port 443 has to reach Traefik, and Let's Encrypt has to be able to issue a certificate for the host (port 80 too if your resolver uses the HTTP challenge).
 2. Set `LAUNCHER_SEED_HOST=seed.example.com` in `.env` and run `docker compose up -d`.

@@ -65,6 +65,8 @@ services:
       LAUNCHER_PATCH_DIR: ${LAUNCHER_PATCH_DIR:-/var/www/html/realm}
       LAUNCHER_PATCH_URL: ${LAUNCHER_PATCH_URL:-}
       LAUNCHER_SEED_HOST: ${LAUNCHER_SEED_HOST:-}
+      LAUNCHER_CLIENT_IP_HEADER: ${LAUNCHER_CLIENT_IP_HEADER:-}
+      LAUNCHER_PUBLIC_ADDRESS: ${LAUNCHER_PUBLIC_ADDRESS:-}
     volumes:
       # mod-realm-config output directory (realm.conf), served read-only at /realm/
       - ${REALM_CONFIG_DIR:-./realm-data}:/var/www/html/realm:ro

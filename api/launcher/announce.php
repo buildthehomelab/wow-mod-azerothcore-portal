@@ -4,8 +4,10 @@
  * Announce URL: api/launcher/announce.php/<passkey>, handed out inside torrent.php's torrents.
  *
  * Only torrents in LAUNCHER_TORRENT_DIR and the patch torrents from patch-torrent.php are tracked, and only players with a passkey (a launcher
- * login) on an account that isn't banned get peers. Players on the server's own network are only
- * handed to each other: their private addresses mean nothing to anyone outside.
+ * login) on an account that isn't banned get peers. Players on the server's own network show up
+ * with private addresses, which mean nothing to anyone outside. With LAUNCHER_PUBLIC_ADDRESS set,
+ * outside players get them at that network's public address instead (the player's router has to
+ * forward their port, e.g. by UPnP); without it they're only handed to each other.
  *
  * Players behind the same router (same public address) get each other's LAN address, reported
  * with the "ip" parameter, at the top of the list: a copy in the next room beats the internet.
@@ -105,7 +107,11 @@ $peers = $pdo->prepare('SELECT ip, lan_ip, port FROM launcher_peer WHERE info_ha
     . ($left === 0 ? ' AND bytes_left > 0' : '') . ' ORDER BY (ip = ?) DESC, RAND() LIMIT ' . (TRACKER_MAX_PEERS * 2));
 $peers->execute([$infoHash, $peerId, $fresh, $ip]);
 
-$requesterPrivate = launcher_is_private_ip($ip);
+$publicIp = launcher_public_ip();
+// On the server's own network: a private address (straight to Traefik), or the network's public
+// address (came in through the proxy from home).
+$onServerNetwork = static fn(string $address): bool => launcher_is_private_ip($address) || $address === $publicIp;
+$requesterHome = $onServerNetwork($ip);
 $peers4 = '';
 $peers6 = '';
 $given = 0;
@@ -114,16 +120,26 @@ foreach ($peers as $peer) {
         break;
     }
     $peerIp = (string)$peer['ip'];
-    if ($peerIp === $ip && !$requesterPrivate) {
-        // Same household: only reachable on its LAN address.
-        if ($peer['lan_ip'] === null || $peer['lan_ip'] === $lanIp && (int)$peer['port'] === $port) {
+    $peerLan = $peer['lan_ip'] === null ? null : (string)$peer['lan_ip'];
+    $peerHome = $onServerNetwork($peerIp);
+    if ($requesterHome && $peerHome) {
+        // Both on the server's network: its LAN address, when it reported one.
+        $peerIp = $peerLan ?? $peerIp;
+        if ($peerIp === ($lanIp ?? $ip) && (int)$peer['port'] === $port) {
             continue;
         }
-        $peerIp = (string)$peer['lan_ip'];
-    } elseif ($peerIp === $ip && (int)$peer['port'] === $port) {
-        continue;
-    } elseif (!$requesterPrivate && launcher_is_private_ip($peerIp)) {
-        continue;
+    } elseif ($peerHome) {
+        // On the server's network: reachable from outside only through its public address.
+        if ($publicIp === null) {
+            continue;
+        }
+        $peerIp = $publicIp;
+    } elseif ($peerIp === $ip) {
+        // Same household elsewhere: only reachable on its LAN address.
+        if ($peerLan === null || $peerLan === $lanIp && (int)$peer['port'] === $port) {
+            continue;
+        }
+        $peerIp = $peerLan;
     }
     $packed = @inet_pton($peerIp);
     if ($packed === false) {
