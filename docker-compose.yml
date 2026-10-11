@@ -69,6 +69,9 @@ services:
       LAUNCHER_WEB_SEEDS: ${LAUNCHER_WEB_SEEDS:-4}
       LAUNCHER_PUBLIC_ADDRESS: ${LAUNCHER_PUBLIC_ADDRESS:-}
       LAUNCHER_DOWNLOAD_URL: ${LAUNCHER_DOWNLOAD_URL:-}
+      LAUNCHER_RELEASE_REPO: ${LAUNCHER_RELEASE_REPO:-}
+      LAUNCHER_RELEASE_SECRET: ${LAUNCHER_RELEASE_SECRET:-}
+      LAUNCHER_VERSION_CACHE_SECONDS: ${LAUNCHER_VERSION_CACHE_SECONDS:-}
     volumes:
       # mod-realm-config output directory (realm.conf), served read-only at /realm/
       - ${REALM_CONFIG_DIR:-./realm-data}:/var/www/html/realm:ro
