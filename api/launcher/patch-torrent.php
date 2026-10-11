@@ -30,7 +30,8 @@ $torrent = [
     'created by' => 'Vaultrona portal',
     'info' => new BencodeRaw($patch['raw_info']),
     // BEP 19 single-file form: the file's own URL. (MonoTorrent turns the "folder/" form into "folder/name/".)
-    'url-list' => [launcher_patch_url() . rawurlencode($patch['name'])],
+    // Several addresses for the same file: clients open one connection per address.
+    'url-list' => launcher_patch_web_seeds(launcher_patch_url() . rawurlencode($patch['name'])),
 ];
 
 header('Content-Type: application/x-bittorrent');

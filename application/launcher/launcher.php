@@ -299,6 +299,47 @@ function launcher_passkey(PDO $pdo, int $accountId): string
     return (string)$statement->fetchColumn();
 }
 
+/**
+ * How many web seed addresses each torrent lists (LAUNCHER_WEB_SEEDS, default 4). Torrent clients
+ * open one connection per address and ask each for a couple of MB at a time, one request after the
+ * other, so a single address leaves most of the line idle; several run side by side.
+ */
+function launcher_web_seed_count(): int
+{
+    return min(16, max(1, (int)launcher_env('LAUNCHER_WEB_SEEDS', '4')));
+}
+
+/**
+ * The client torrent's web seeds: seed.php/<passkey>/ and seed.php/<passkey>.2/ ... .N/, all the
+ * same files (the suffix only makes the addresses differ). They end in "/", so clients append
+ * "<name>/<path>" (BEP 19).
+ */
+function launcher_client_web_seeds(string $passkey): array
+{
+    $base = launcher_seed_url() . '/api/launcher/seed.php/' . $passkey;
+    $urls = [$base . '/'];
+    for ($n = 2; $n <= launcher_web_seed_count(); $n++) {
+        $urls[] = $base . '.' . $n . '/';
+    }
+    return $urls;
+}
+
+/** A patch torrent's web seeds: the patch's public URL, then the same URL with ?seed=2 ... N. */
+function launcher_patch_web_seeds(string $url): array
+{
+    $urls = [$url];
+    for ($n = 2; $n <= launcher_web_seed_count(); $n++) {
+        $urls[] = $url . '?seed=' . $n;
+    }
+    return $urls;
+}
+
+/** The passkey in a web seed path segment: "<passkey>" or "<passkey>.<n>" (launcher_client_web_seeds). */
+function launcher_seed_passkey(string $segment): string
+{
+    return (string)preg_replace('/\.[0-9]{1,2}$/', '', $segment);
+}
+
 /** The account behind a passkey, or 0 when it's unknown or the account is banned. */
 function launcher_passkey_account(PDO $pdo, string $passkey): int
 {

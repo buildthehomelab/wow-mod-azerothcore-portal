@@ -46,7 +46,7 @@ $torrent = $entry['torrent'];
 unset($torrent['announce-list']);
 $torrent['announce'] = $base . '/announce.php/' . $passkey;
 // BEP 19: for a multi-file torrent the client appends "<name>/<path>" to a URL ending in "/".
-$torrent['url-list'] = [$base . '/seed.php/' . $passkey . '/'];
+$torrent['url-list'] = launcher_client_web_seeds($passkey);
 $torrent['info'] = new BencodeRaw($entry['raw_info']);
 
 header('Content-Type: application/x-bittorrent');

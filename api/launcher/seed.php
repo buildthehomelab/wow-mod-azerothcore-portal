@@ -1,6 +1,7 @@
 <?php
 /**
  * HTTP web seed (BEP 19): api/launcher/seed.php/<passkey>/<torrent name>/<path in the torrent>
+ * (or <passkey>.<n>: the torrent lists several addresses so clients download over several connections)
  *
  * Serves the client files in LAUNCHER_CLIENT_DIR with byte ranges, so downloads keep going when no
  * other player is sharing. Torrent clients ask for one range per request; a request for several
@@ -33,7 +34,7 @@ if ($method !== 'GET' && $method !== 'HEAD') {
 }
 
 $parts = explode('/', ltrim((string)($_SERVER['PATH_INFO'] ?? ''), '/'));
-$passkey = (string)array_shift($parts);
+$passkey = launcher_seed_passkey((string)array_shift($parts));
 if (launcher_passkey_account(launcher_db(), $passkey) === 0) {
     seed_fail(403, 'Unknown passkey. Log in to Portalkeeper again.');
 }
