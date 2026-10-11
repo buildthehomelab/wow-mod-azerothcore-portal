@@ -16,6 +16,9 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/* \
  && mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
+# Patch notes cache (CHANGELOG_CACHE_DIR). docker-compose.yml mounts a volume here, which takes over this owner.
+RUN mkdir -p /var/cache/portal && chown www-data:www-data /var/cache/portal
+
 COPY docker/apache-security.conf /etc/apache2/conf-enabled/zz-security.conf
 COPY --chown=www-data:www-data . /var/www/html/
 COPY --from=vendor --chown=www-data:www-data /app/vendor /var/www/html/application/vendor

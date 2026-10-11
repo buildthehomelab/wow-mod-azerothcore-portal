@@ -365,9 +365,15 @@ Notes take their category from the repo name (see `CL_REPO_SECTIONS` in
 "Fix", every bullet starts with "Fixed", or `fix` is set.
 
 GitHub's answers are cached for `CHANGELOG_CACHE_SECONDS` (10 minutes), and the old copy is kept
-if GitHub is down. The first load after a restart looks up every module's commit and can take
-half a minute; after that, commit dates are remembered. Without `GITHUB_TOKEN`, GitHub allows 60
-requests an hour, which is enough once the cache is warm.
+if GitHub is down. The cache lives in the `portal-cache` volume, so it survives a redeploy. The very
+first load looks up every module's commit and every README, and can take half a minute; after that,
+those answers are remembered.
+
+Set `GITHUB_TOKEN` if you have more than a few dozen modules. Without one, GitHub allows 60 requests
+an hour for your whole network, and the first build needs about one per module and README. The page
+then says the patch notes couldn't be loaded until it has got through them all: each attempt keeps
+what it looked up, waits 5 minutes after a failure, and carries on when GitHub allows more, so it
+takes a few hours. With a token the first load just works.
 
 ## Managing accounts
 
