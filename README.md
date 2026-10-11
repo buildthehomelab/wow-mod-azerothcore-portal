@@ -221,12 +221,18 @@ With it on, the home page's "How to connect" shows three steps instead of the ma
 | `GET api/launcher/torrent.php` | Lists the torrents. `?name=client` returns `client.torrent` rewritten for this player. |
 | `GET api/launcher/patch-torrent.php?file=patch-P.MPQ` | The torrent for one patch in the realm folder |
 | `GET api/launcher/version.php` | The newest launcher release, `{"tag", "version"}`. No login needed. |
+| `POST api/launcher/version.php` | The launcher's release workflow announces a new release: `{"tag", "time"}`, signed with `LAUNCHER_RELEASE_SECRET` |
 | `api/launcher/announce.php/<passkey>` | Tracker announce URL, inside the player's torrent |
 | `api/launcher/seed.php/<passkey>/` | Web seed URL, inside the player's torrent |
 
 Send the token as `Authorization: Bearer <token>` (except to `version.php`). Each player's torrent carries their own passkey in the announce and web seed URLs. Those sit outside the torrent's info dictionary, so every player still has the same info hash and joins the same swarm.
 
-**Launcher updates:** Portalkeeper asks `version.php` every few minutes and updates itself when there's a newer release, so publishing a GitHub release is all it takes. The portal asks GitHub for the latest release of `LAUNCHER_RELEASE_REPO` (default `buildthehomelab/wow-Portalkeeper`) at most once every `LAUNCHER_VERSION_CACHE_SECONDS` (120) and keeps the last answer when GitHub fails. When the API is out of requests (60 an hour per address without `GITHUB_TOKEN`), it reads the release from github.com's `/releases/latest` redirect instead. The launcher still downloads the installer from GitHub and checks it there.
+**Launcher updates:** Portalkeeper asks `version.php` every minute and updates itself when there's a newer release. The portal learns about a release in two ways:
+
+- **The release announces itself.** Set `LAUNCHER_RELEASE_SECRET` in `.env` (for example `openssl rand -hex 32`) and add the same value to the launcher repo as the Actions secret `PORTAL_RELEASE_SECRET`. The release workflow then POSTs `{"tag": "v1.2.3", "time": <unix time>}` to `version.php` with `X-Signature: sha256=<HMAC-SHA256 of the body>`, and open launchers pick the release up within about a minute. The time has to be within 5 minutes of the portal's clock, so a recorded announcement can't be sent again later. Without the secret the endpoint answers 404.
+- **The portal asks GitHub** for the latest release of `LAUNCHER_RELEASE_REPO` (default `buildthehomelab/wow-Portalkeeper`) once every `LAUNCHER_VERSION_CACHE_SECONDS`. The default is 3600 with a secret set, as a safety net for an announcement that didn't arrive, and 120 without one. It keeps the last answer when GitHub fails. When the API is out of requests (60 an hour per address without `GITHUB_TOKEN`), it reads the release from github.com's `/releases/latest` redirect instead.
+
+The portal only names the release. The launcher still downloads the installer from GitHub and checks it there.
 
 ### Setting it up
 

@@ -3,11 +3,20 @@
  * GET api/launcher/version.php
  *
  * The newest stable Portalkeeper release: {"tag": "v0.5.8", "version": "0.5.8"}. Launchers ask every
- * few minutes, so a new release reaches them quickly without each one using up GitHub's 60 requests
- * an hour per address (friends on one network share that). The portal asks GitHub at most once per
- * LAUNCHER_VERSION_CACHE_SECONDS (120) and keeps the last answer when GitHub fails. No login needed:
- * a launcher that's signed out still has to update. Launchers still download and verify the
- * installer from the GitHub release itself.
+ * minute, so a new release reaches them quickly without each one using up GitHub's 60 requests an
+ * hour per address (friends on one network share that). No login needed: a launcher that's signed
+ * out still has to update. Launchers still download and verify the installer from the GitHub
+ * release itself.
+ *
+ * POST api/launcher/version.php with {"tag": "v0.5.9", "time": <unix time>} and
+ * "X-Signature: sha256=<HMAC-SHA256 of the body with LAUNCHER_RELEASE_SECRET>"
+ *
+ * The launcher's release workflow announces a new release here, so the portal knows right away
+ * instead of finding out from GitHub. Off (404) until LAUNCHER_RELEASE_SECRET is set.
+ *
+ * The portal also asks GitHub itself once per LAUNCHER_VERSION_CACHE_SECONDS: every hour when
+ * announcements are on (a safety net for one that didn't arrive), every 2 minutes when they're off.
+ * It keeps the last answer when GitHub fails.
  **/
 
 declare(strict_types=1);
@@ -16,10 +25,10 @@ require __DIR__ . '/../../application/launcher/launcher.php';
 require_once __DIR__ . '/../../application/include/changelog.php'; // cl_github()
 
 launcher_require_enabled();
-launcher_require_method('GET');
 
 $repo = launcher_env('LAUNCHER_RELEASE_REPO', 'buildthehomelab/wow-Portalkeeper');
-$ttl = max(30, (int)launcher_env('LAUNCHER_VERSION_CACHE_SECONDS', '120'));
+$secret = launcher_env('LAUNCHER_RELEASE_SECRET');
+$ttl = max(30, (int)launcher_env('LAUNCHER_VERSION_CACHE_SECONDS', $secret === '' ? '120' : '3600'));
 $file = sys_get_temp_dir() . '/portal-launcher-version-' . md5($repo) . '.json';
 
 /** "v1.2.3" → "1.2.3", or null for anything that isn't a plain stable version tag. */
@@ -50,6 +59,39 @@ $latestFromWeb = static function () use ($repo): ?string {
 };
 
 $read = static fn(): ?array => is_file($file) ? (json_decode((string)@file_get_contents($file), true) ?: null) : null;
+
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    if ($secret === '') {
+        launcher_json(404, ['error' => 'Release announcements are turned off.']);
+    }
+    $body = (string)file_get_contents('php://input', false, null, 0, 4096);
+    $expected = 'sha256=' . hash_hmac('sha256', $body, $secret);
+    if (!hash_equals($expected, (string)($_SERVER['HTTP_X_SIGNATURE'] ?? ''))) {
+        launcher_json(401, ['error' => 'The signature does not match.']);
+    }
+    $input = json_decode($body, true);
+    $tag = is_array($input) ? ($input['tag'] ?? null) : null;
+    // The time is signed too, so a recorded announcement can't be sent again later to bring back an old release.
+    if ($stableVersion($tag) === null || abs(time() - (int)($input['time'] ?? 0)) > 300) {
+        launcher_json(400, ['error' => 'Send {"tag": "v1.2.3", "time": <unix time now>}.']);
+    }
+    // Wait for a GitHub lookup that's under way, so its older answer can't replace this one.
+    $lock = fopen($file . '.lock', 'c');
+    if ($lock) {
+        flock($lock, LOCK_EX);
+    }
+    $announced = ['tag' => $tag, 'checked' => time()];
+    file_put_contents($file, json_encode($announced), LOCK_EX);
+    if ($lock) {
+        flock($lock, LOCK_UN);
+        fclose($lock);
+    }
+    $respond($announced);
+}
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
+    header('Allow: GET, POST');
+    launcher_json(405, ['error' => 'Use GET or POST.']);
+}
 
 $cached = $read();
 if ($cached && $cached['checked'] + $ttl > time()) {
