@@ -14,8 +14,8 @@
  * server modules only show changes merged before the commit the realm runs, and modules the realm
  * doesn't run don't show at all. Addons, the launcher and this website aren't gated.
  *
- * GitHub answers are cached in the temp dir for CHANGELOG_CACHE_SECONDS, and the old copy is kept
- * when GitHub fails, so the page never waits on GitHub more than once per period.
+ * GitHub answers are cached in CHANGELOG_CACHE_DIR (or the temp dir) for CHANGELOG_CACHE_SECONDS, and
+ * the old copy is kept when GitHub fails, so the page never waits on GitHub more than once per period.
  **/
 
 // Where docker-compose.yml mounts the server's modules/ folder (AC_MODULES_DIR).
@@ -84,6 +84,9 @@ const CL_REPO_SECTIONS = [
 
 // PR titles skipped when there are no hand-written notes and no "Patch Notes" section.
 const CL_NOISE = '/^(bump|pin|merge|revert|rename|prepare|patch notes|readme|docs?|ci|chore|build|test)\b|\b(IsHeadless|IsBot|core[- ]align|compile|syntax|README|uninstall|conf\.dist)\b/i';
+
+// After a failed build, how long before GitHub is asked again.
+const CL_RETRY_SECONDS = 300;
 
 function cl_env(string $key, string $default = ''): string
 {
@@ -356,15 +359,35 @@ function cl_fetch(array &$memo): array
     return ['built' => time(), 'gated' => $pins !== null, 'entries' => $entries];
 }
 
-/** Cached GitHub data. Rebuilds at most once per CHANGELOG_CACHE_SECONDS; serves the old copy if GitHub fails. */
+/**
+ * Where the GitHub answers are kept. CHANGELOG_CACHE_DIR (a volume in docker-compose.yml) survives a
+ * redeploy, so the page doesn't have to look everything up again; without it, the temp dir.
+ */
+function cl_cache_dir(): string
+{
+    $dir = rtrim(cl_env('CHANGELOG_CACHE_DIR'), '/');
+    return ($dir !== '' && is_dir($dir) && is_writable($dir)) ? $dir : sys_get_temp_dir();
+}
+
+/**
+ * Cached GitHub data. Rebuilds at most once per CHANGELOG_CACHE_SECONDS and serves the old copy if
+ * GitHub fails. A failed build keeps the lookups that did work, and GitHub isn't asked again for
+ * CL_RETRY_SECONDS, so a build that runs out of requests (60 an hour without GITHUB_TOKEN) gets
+ * further each hour instead of starting over on every page view.
+ */
 function cl_data(): ?array
 {
-    $file = sys_get_temp_dir() . '/portal-changelog.json';
-    $memoFile = sys_get_temp_dir() . '/portal-changelog-memo.json';
+    $file = cl_cache_dir() . '/portal-changelog.json';
+    $memoFile = cl_cache_dir() . '/portal-changelog-memo.json';
+    $failedFile = cl_cache_dir() . '/portal-changelog-failed';
     $ttl = max(60, (int)cl_env('CHANGELOG_CACHE_SECONDS', '600'));
+    $failedLately = static function () use ($failedFile): bool {
+        clearstatcache(true, $failedFile);
+        return is_file($failedFile) && filemtime($failedFile) + CL_RETRY_SECONDS > time();
+    };
 
     $cached = is_file($file) ? json_decode((string)file_get_contents($file), true) : null;
-    if ($cached && $cached['built'] + $ttl > time()) {
+    if (($cached && $cached['built'] + $ttl > time()) || $failedLately()) {
         return $cached;
     }
 
@@ -378,19 +401,21 @@ function cl_data(): ?array
         if ($fresh && $fresh['built'] + $ttl > time()) {
             return $fresh;
         }
+        if ($failedLately()) {
+            return $cached; // the build we waited for failed
+        }
         $memo = is_file($memoFile) ? (json_decode((string)file_get_contents($memoFile), true) ?: []) : [];
         try {
             $data = cl_fetch($memo);
         } catch (RuntimeException $e) {
             error_log('changelog: ' . $e->getMessage());
-            if ($cached) {
-                $cached['built'] = time() - $ttl + 120; // try GitHub again in two minutes
-                file_put_contents($file, json_encode($cached), LOCK_EX);
-            }
+            file_put_contents($memoFile, json_encode($memo), LOCK_EX);
+            touch($failedFile);
             return $cached;
         }
         file_put_contents($memoFile, json_encode($memo), LOCK_EX);
         file_put_contents($file, json_encode($data), LOCK_EX);
+        @unlink($failedFile);
         return $data;
     } finally {
         flock($lock, LOCK_UN);

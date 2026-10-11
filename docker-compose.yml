@@ -46,6 +46,7 @@ services:
       CHANGELOG_UNGATED: ${CHANGELOG_UNGATED:-}
       CHANGELOG_TIMEZONE: ${CHANGELOG_TIMEZONE:-}
       CHANGELOG_CACHE_SECONDS: ${CHANGELOG_CACHE_SECONDS:-}
+      CHANGELOG_CACHE_DIR: /var/cache/portal
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
       CAPTCHA_TYPE: ${CAPTCHA_TYPE:-0}
       CAPTCHA_KEY: ${CAPTCHA_KEY:-}
@@ -77,12 +78,17 @@ services:
       - ${REALM_CONFIG_DIR:-./realm-data}:/var/www/html/realm:ro
       # AzerothCore's modules/ folder: the patch notes read which commit each module is on
       - ${AC_MODULES_DIR:-./ac-modules}:/srv/ac-modules:ro
+      # Patch notes cache, kept across redeploys so the page doesn't look everything up on GitHub again
+      - portal-cache:/var/cache/portal
       # Launcher downloads: the .torrent files and the client they describe (web seed), read-only
       - ${LAUNCHER_TORRENT_DIR:-./launcher-torrents}:/srv/launcher/torrents:ro
       - ${LAUNCHER_CLIENT_DIR:-./launcher-client}:/srv/launcher/client:ro
     networks:
       - ac-network   # to reach ac-database
       - traefik      # so Traefik can reach this container
+
+volumes:
+  portal-cache:
 
 networks:
   ac-network:
