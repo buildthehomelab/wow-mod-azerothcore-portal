@@ -14,7 +14,7 @@
 
 declare(strict_types=1);
 
-const CLOG_DIGEST_VERSION = 1;
+const CLOG_DIGEST_VERSION = 2;
 const CLOG_FIGHT_GAP = 15.0;        // seconds without group-vs-hostile contact that end a fight
 const CLOG_RUN_GAP = 1200.0;        // seconds between fights that start a new run
 const CLOG_DEATH_WINDOW = 8.0;      // hits this long before a death are listed with it
@@ -22,6 +22,13 @@ const CLOG_ACTIVITY_BUCKET = 5.0;   // a player is "active" in a bucket they did
 const CLOG_TABLE_ROWS = 40;         // rows kept per table per fight
 const CLOG_MAX_RAW = 4294967296;    // bytes of log read before giving up: a real one is a few hundred MB
 const CLOG_FEIGN_DEATH = '5384';
+const CLOG_ALIVE_WINDOW = 15.0;     // a player who acts this soon after a UNIT_DIED, with no rez, didn't die
+const CLOG_IN_FLIGHT = 1.5;         // a shot landing this soon after a death was fired before it
+const CLOG_DEATH_BUFFS = 3;         // a real death strips the buffs: this many removed within a second of it
+/** Spells a dead player casts to come back; acting with them doesn't mean the player was alive. */
+const CLOG_SELF_REZ = ['Reincarnation' => 1, 'Use Soulstone' => 1, 'Soulstone Resurrection' => 1];
+/** Spirit of Redemption: a priest keeps healing for 15 s after a real death. */
+const CLOG_SPIRIT_OF_REDEMPTION = ['27827' => 1, '27792' => 1];
 
 const CLOG_GROUP = 1;
 const CLOG_PLAYER = 2;
@@ -90,6 +97,10 @@ final class ClogDigest
     private array $feignAt = [];
     /** @var array<string,array{fight:int,index:int,t:float}> the newest death per player, for a Feign Death aura that arrives just after */
     private array $lastDeath = [];
+    /** @var array<string,array{fight:int,index:int,t:float,drops:int}> deaths that could still turn out not to be (the player acts again) */
+    private array $maybeAlive = [];
+    /** @var array<string,list<float>> when group players lost a buff, over the last second */
+    private array $buffDrops = [];
 
     private ?array $fight = null;
     private float $lastContact = 0.0;
@@ -184,6 +195,12 @@ final class ClogDigest
         }
         if ($this->logger === null && ($srcKind & CLOG_MINE) && ($srcKind & CLOG_PLAYER)) {
             $this->logger = trim($f[2], '"');
+        }
+        if ($event === 'SPELL_AURA_REMOVED' && $dstPlayer && ($f[10] ?? '') === 'BUFF') {
+            $this->buffDropped($t, $dst);
+        }
+        if ($this->maybeAlive) {
+            $this->checkAlive($t, $event, $f, $src, $dst);
         }
 
         $isDamage = false;
@@ -507,6 +524,7 @@ final class ClogDigest
             ], $hits),
         ];
         unset($this->recent[$guid]);
+        $death['alive'] = false;
 
         if ($this->fight !== null) {
             $this->fight['deaths'][] = $death;
@@ -515,17 +533,142 @@ final class ClogDigest
             $this->strayDeaths[] = $death;
             $this->lastDeath[$guid] = ['fight' => -1, 'index' => count($this->strayDeaths) - 1, 't' => $t];
         }
+        // A killing blow with overkill is a real death, whatever comes after it.
+        $overkill = $last !== null && $last[4] > 0 && $t - $last[0] <= 1.0;
+        if (!$death['feign'] && !$overkill) {
+            $drops = 0;
+            foreach ($this->buffDrops[$guid] ?? [] as $at) {
+                if ($t - $at <= 1.0) {
+                    $drops++;
+                }
+            }
+            $this->maybeAlive[$guid] = $this->lastDeath[$guid] + ['drops' => $drops];
+        }
+    }
+
+    /** The buffs go in the same tick as a real death, logged just before or after its UNIT_DIED. */
+    private function buffDropped(float $t, string $guid): void
+    {
+        $drops = [];
+        foreach ($this->buffDrops[$guid] ?? [] as $at) {
+            if ($t - $at <= 1.0) {
+                $drops[] = $at;
+            }
+        }
+        $drops[] = $t;
+        $this->buffDrops[$guid] = $drops;
+        if (isset($this->maybeAlive[$guid]) && $t - $this->maybeAlive[$guid]['t'] <= 1.0) {
+            $this->maybeAlive[$guid]['drops']++;
+        }
     }
 
     /** A hunter's Feign Death logs UNIT_DIED too; the aura line can come a moment after it. */
     private function markFeign(array $death): void
     {
+        $this->markDeath($death, 'feign');
+    }
+
+    private function markDeath(array $death, string $flag): void
+    {
         if ($death['fight'] === -1) {
-            $this->strayDeaths[$death['index']]['feign'] = true;
+            $this->strayDeaths[$death['index']][$flag] = true;
         } elseif ($death['fight'] === count($this->fights) && $this->fight !== null) {
-            $this->fight['deaths'][$death['index']]['feign'] = true;
-        } elseif (isset($this->fights[$death['fight']]['deaths'][$death['index']])) {
-            $this->fights[$death['fight']]['deaths'][$death['index']]['feign'] = true;
+            $this->fight['deaths'][$death['index']][$flag] = true;
+        } elseif (isset($this->fights[$death['fight']]['died'][$death['index']])) {
+            // The fight is already summed up: take the death back out of its counts.
+            $fight = &$this->fights[$death['fight']];
+            $died = &$fight['died'][$death['index']];
+            if (!$died['feign'] && !$died['alive']) {
+                $fight['deaths']--;
+                foreach ($fight['taken'] as &$row) {
+                    if ($died['by'] !== null && $row['kills'] > 0 && $row['name'] === $died['by']['spell'] && $row['src'] === $died['by']['src']) {
+                        $row['kills']--;
+                        break;
+                    }
+                }
+                unset($row);
+            }
+            $died[$flag] = true;
+            unset($died, $fight);
+        }
+    }
+
+    /** A dropped fight's deaths become stray ones; point the references that wait on them there too. */
+    private function moveDeathToStray(int $index): void
+    {
+        $from = count($this->fights);
+        $to = count($this->strayDeaths) - 1;
+        foreach (['lastDeath', 'maybeAlive'] as $list) {
+            foreach ($this->{$list} as $guid => $ref) {
+                if ($ref['fight'] === $from && $ref['index'] === $index) {
+                    $this->{$list}[$guid] = ['fight' => -1, 'index' => $to] + $ref;
+                }
+            }
+        }
+    }
+
+    /**
+     * Some UNIT_DIED lines are for players who never died: on 2026-10-13 two hunters in BRD "died"
+     * 12 times between them and fired again 0.1 to 6.5 s later, with no rez, no Feign Death and no
+     * buff lost (11 more hunters in a BWL log; nobody else). A death counts as not one when its last
+     * hit had no overkill, the player kept their buffs, and then swings, starts or finishes a cast,
+     * or lands a shot fired after it, before any rez. Damage from a ground spell (Death and Decay)
+     * goes on after a real death, and bots can be rezzed with no log line, so acting again is not
+     * enough on its own.
+     */
+    private function checkAlive(float $t, string $event, array $f, string $src, string $dst): void
+    {
+        foreach ($this->maybeAlive as $guid => $death) {
+            if ($t - $death['t'] > CLOG_ALIVE_WINDOW) {
+                unset($this->maybeAlive[$guid]);
+            }
+        }
+
+        if ($event === 'SPELL_RESURRECT' && isset($this->maybeAlive[$dst])) {
+            unset($this->maybeAlive[$dst]);
+            return;
+        }
+        if ($event === 'SPELL_AURA_APPLIED' && isset($this->maybeAlive[$dst], CLOG_SPIRIT_OF_REDEMPTION[(string)($f[7] ?? '')])) {
+            unset($this->maybeAlive[$dst]);
+            return;
+        }
+
+        $death = $this->maybeAlive[$src] ?? null;
+        if ($death === null) {
+            return;
+        }
+        $since = $t - $death['t'];
+        switch ($event) {
+            case 'SPELL_CAST_START':
+            case 'SPELL_CAST_SUCCESS':
+                if (isset(CLOG_SELF_REZ[trim((string)($f[8] ?? ''), '"')])) {
+                    unset($this->maybeAlive[$src]);
+                    return;
+                }
+                $acted = $since > 0.05;
+                break;
+            case 'SWING_DAMAGE':
+            case 'SWING_MISSED':
+                $acted = $since > 0.05;
+                break;
+            case 'RANGE_DAMAGE':
+            case 'RANGE_MISSED':
+                $acted = $since > CLOG_IN_FLIGHT;
+                break;
+            default:
+                $acted = false;
+        }
+        if ($acted && $since <= 1.0) {
+            // The buffs of a real death can still be on their way.
+            return;
+        }
+        if ($acted && $death['drops'] >= CLOG_DEATH_BUFFS) {
+            unset($this->maybeAlive[$src]);
+            return;
+        }
+        if ($acted) {
+            $this->markDeath($death, 'alive');
+            unset($this->maybeAlive[$src]);
         }
     }
 
@@ -548,8 +691,9 @@ final class ClogDigest
         usort($enemies, static fn(array $a, array $b): int => $b['taken'] <=> $a['taken']);
         // Nothing but a stray hit or a critter: not a fight.
         if (!$enemies || ($totalTaken === 0 && !$fight['deaths'])) {
-            foreach ($fight['deaths'] as $death) {
+            foreach ($fight['deaths'] as $index => $death) {
                 $this->strayDeaths[] = $death;
+                $this->moveDeathToStray($index);
             }
             return;
         }
@@ -570,7 +714,7 @@ final class ClogDigest
 
         $deaths = 0;
         foreach ($fight['deaths'] as $death) {
-            if ($death['feign']) {
+            if ($death['feign'] || $death['alive']) {
                 continue;
             }
             $deaths++;
@@ -667,7 +811,7 @@ final class ClogDigest
         $deaths = 0;
         foreach ($this->fights as $fight) {
             foreach ($fight['died'] as $death) {
-                if ($death['feign']) {
+                if ($death['feign'] || $death['alive']) {
                     continue;
                 }
                 $deaths++;

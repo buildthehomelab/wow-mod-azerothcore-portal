@@ -180,10 +180,11 @@ $name = static fn(string $player): string => $h($player) . (isset($bots[$player]
                 <thead><tr><th>At</th><th>Player</th><th>Killed by</th><th>Last hits</th></tr></thead>
                 <tbody>
                 <?php foreach ($fight['died'] as $death) { ?>
-                    <tr<?php echo $death['feign'] ? ' class="is-feign"' : ''; ?>>
+                    <?php $alive = !empty($death['alive']); ?>
+                    <tr<?php echo $death['feign'] || $alive ? ' class="is-feign"' : ''; ?>>
                         <td><?php echo $h(substr($death['clock'], 0, 8)); ?></td>
                         <td><?php echo $name($death['name']); ?></td>
-                        <td><?php if ($death['feign']) { ?>Feign Death<?php } elseif ($death['by'] === null) { ?><span class="cl-dim">nothing in the last <?php echo (int)CLOG_DEATH_WINDOW; ?> s</span><?php } else { ?>
+                        <td><?php if ($death['feign']) { ?>Feign Death<?php } elseif ($alive) { ?>Not a death <span class="cl-dim">(acted again, no rez)</span><?php } elseif ($death['by'] === null) { ?><span class="cl-dim">nothing in the last <?php echo (int)CLOG_DEATH_WINDOW; ?> s</span><?php } else { ?>
                             <?php echo $h($death['by']['spell']); ?> <span class="cl-dim"><?php echo $h($death['by']['src']); ?></span><?php } ?></td>
                         <td class="cl-hits"><?php foreach ($death['hits'] as $hit) { ?>
                             <span title="<?php echo $h($hit['src']); ?>"><?php echo $h($hit['spell']); ?> <?php echo $n($hit['amount']); ?> <i>-<?php echo $h((string)$hit['ago']); ?>s</i></span>
@@ -307,7 +308,7 @@ $name = static fn(string $player): string => $h($player) . (isset($bots[$player]
         <table class="cl-table">
             <thead><tr><th>At</th><th>Player</th><th>Killed by</th></tr></thead>
             <tbody>
-            <?php foreach ($digest['stray_deaths'] as $death) { if ($death['feign']) { continue; } ?>
+            <?php foreach ($digest['stray_deaths'] as $death) { if ($death['feign'] || !empty($death['alive'])) { continue; } ?>
                 <tr><td><?php echo $h(substr($death['clock'], 0, 8)); ?></td><td><?php echo $name($death['name']); ?></td>
                     <td><?php echo $death['by'] === null ? '' : $h($death['by']['spell']) . ' <span class="cl-dim">' . $h($death['by']['src']) . '</span>'; ?></td></tr>
             <?php } ?>
