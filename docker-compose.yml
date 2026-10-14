@@ -83,6 +83,8 @@ services:
       SHOP_CACHE_SECONDS: ${SHOP_CACHE_SECONDS:-15}
       SHOP_BUYS_PER_MINUTE: ${SHOP_BUYS_PER_MINUTE:-6}
       SHOP_CACHE_DIR: /var/cache/portal/shop
+      SHOP_PREVIEW_DIR: ${SHOP_PREVIEW_DIR:-/var/www/html/realm/shop}
+      SHOP_PREVIEW_URL: ${SHOP_PREVIEW_URL:-}
       SOAP_URL: ${SOAP_URL:-http://ac-worldserver:7878/}
       SOAP_USER: ${SOAP_USER:-}
       SOAP_PASSWORD: ${SOAP_PASSWORD:-}
