@@ -317,6 +317,27 @@ curl -H "X-Portal-Key: $KEY" https://SERVICE_NAME.DOMAIN/api/combatlogs.php
 
 Every request carries the player's launcher token. `GET api/launcher/combatlog.php` says whether the realm collects logs (404 when it doesn't), which is what makes the launcher show the setting. An upload is `POST ?action=begin` with the gzip file's size and SHA-256, then `?action=part&upload=<id>&offset=<n>` with at most 4 MiB at a time, then `?action=finish`, which checks the size and checksum. Sending the same file again resumes it or answers that it's already here, so the launcher simply retries after a failure.
 
+## Coin shop
+
+With [mod-boss-coins](https://github.com/buildthehomelab/wow-mod-boss-coins) on the worldserver, every account has a wallet of **Tarnished Undermine Reals**, and the launcher gets a **Shop** window: mounts, companions and character services (rename, new looks, race and faction change) for coins. The module keeps the wallet and the catalogue (its table `mod_boss_coins_shop`). The portal only asks it over SOAP, on behalf of the player logged in to the launcher.
+
+### Setting it up
+
+1. **Worldserver:** turn SOAP on and let it listen on the container network (in AzerothCore's docker setup, `AC_SOAP_ENABLED: "1"` and `AC_SOAP_IP: "0.0.0.0"` on the worldserver). Don't publish port 7878 to the outside: only the portal should reach it.
+2. **A SOAP account:** SOAP takes an account of GM level 3. Make one just for the portal, on the worldserver console:
+
+   ```
+   account create portalsoap <a long random password>
+   account set gmlevel portalsoap 3 -1
+   ```
+
+   Nobody plays on it. The shop's commands are console-only, so a game master can't run them in game, but this account can do anything the console can: keep its password as safe as the database's.
+3. **`.env`:** set `SHOP_ENABLED=true` (the launcher API has to be on too), `SOAP_USER` and `SOAP_PASSWORD`. `SOAP_URL` defaults to `http://ac-worldserver:7878/`. Run `docker compose up -d --build`.
+
+`GET api/launcher/shop.php` with a player's token then answers the wallet balance, the account's characters and the offers, with the characters that own each one already or can't use it. The launcher shows the Shop button when it answers 200. `POST` with `{"offer", "character"}` buys. A listing is reused for `SHOP_CACHE_SECONDS` (15), because the worldserver answers it on its main thread. A purchase clears it. An account can only have one purchase on its way at a time, and at most `SHOP_BUYS_PER_MINUTE` (6) a minute.
+
+When the game server is down the shop answers 503 and the launcher says so. When a purchase gets no answer (502), it may or may not have gone through. Every wallet change is in the characters table `mod_boss_coins_ledger`.
+
 ## Rare map (mod-rare-tracker)
 
 `rares.php` is a live map of every open-world rare that's up right now. It has continent and zone
@@ -471,6 +492,7 @@ If you only changed `.env` (title, contact email, closing registration and so on
 - Uses the built-in image captcha by default, so there are no third-party captcha keys to set up. You can switch to hCaptcha, reCAPTCHA or Turnstile with `CAPTCHA_TYPE`.
 - Can host [mod-realm-config](https://github.com/Hisha/mod-realm-config)'s `realm.conf` and [mod-realm-armory](https://github.com/Hisha/mod-realm-armory)'s JSON for Portalkeeper, and shows Portalkeeper setup steps.
 - **Launcher API** ([api/launcher/](api/launcher/)): game-account login for Portalkeeper, plus a private tracker and web seed for the client download.
+- **Coin shop** ([api/launcher/shop.php](api/launcher/shop.php)): the launcher's Shop window, spending mod-boss-coins' wallet over SOAP.
 - **Rare map** ([rares.php](rares.php)): live open-world rares from mod-rare-tracker on the game's own maps.
 - **Patch notes** ([changelog.php](changelog.php)): Blizzard-style patch notes built from merged pull requests on GitHub.
 - **Vote system is off,** because it alters `acore_auth.account` and creates new tables.
