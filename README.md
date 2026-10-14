@@ -347,7 +347,7 @@ The launcher shows a picture of a mount or companion that you can spin with the 
 }
 ```
 
-A strip is `frames` pictures of the same size side by side, left to right, one per angle as the model turns (WebP, PNG or JPEG; a transparent background looks best). [wow-mod-retail-creatures](https://github.com/buildthehomelab/wow-mod-retail-creatures)' `tools/turntable.py` draws them from a converted model. An offer without a picture keeps its drawn icon. The listing gives each picture's URL with the file's time and size on it, so a replaced picture gets a new URL and the launcher fetches it again (within the listing's `SHOP_CACHE_SECONDS`).
+A strip is `frames` pictures of the same size side by side, left to right, one per angle as the model turns (WebP, PNG or JPEG; a transparent background looks best). [wow-mod-retail-creatures](https://github.com/buildthehomelab/wow-mod-retail-creatures)' `tools/turntable.py` draws them from a converted model. An offer without a picture keeps its drawn icon. The listing gives each picture's URL with the file's time and size on it, so a replaced picture gets a new URL and the launcher fetches it again (within the listing's `SHOP_CACHE_SECONDS`). The folder is the realm folder's `shop/` even when the patches live in a subfolder (`LAUNCHER_PATCH_DIR`); `SHOP_PREVIEW_DIR` and `SHOP_PREVIEW_URL` (default `BASE_URL/realm/shop`) move it.
 
 When the game server is down the shop answers 503 and the launcher says so. When a purchase gets no answer (502), it may or may not have gone through. Every wallet change is in the characters table `mod_boss_coins_ledger`.
 

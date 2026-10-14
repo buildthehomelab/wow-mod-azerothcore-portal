@@ -98,14 +98,27 @@ function shop_soap(string $command, int $timeout): ?array
 }
 
 /**
- * Turntable pictures of the offers, from shop/previews.json in the realm folder (served at
- * /realm/shop/): {"<offer id>": {"file": "201.webp", "frames": 36}, ...}, each file a strip of
+ * The pictures' folder and its public URL: the realm folder's shop/, served at /realm/shop/.
+ * Not the patch folder (LAUNCHER_PATCH_DIR), which a realm may keep in a subfolder.
+ */
+function shop_preview_dir(): string
+{
+    return rtrim(launcher_env('SHOP_PREVIEW_DIR', '/var/www/html/realm/shop'), '/');
+}
+
+function shop_preview_url(): string
+{
+    return rtrim(launcher_env('SHOP_PREVIEW_URL', launcher_base_url() . '/realm/shop'), '/') . '/';
+}
+
+/**
+ * Turntable pictures of the offers, from previews.json in shop_preview_dir(): {"<offer id>": {"file": "201.webp", "frames": 36}, ...}, each file a strip of
  * `frames` pictures side by side, one per angle. Returns {offer id: {"url", "frames"}} for the
  * files that are there; the url carries the file's time and size, so a new picture gets a new url.
  */
 function shop_previews(): array
 {
-    $dir = launcher_patch_dir() . '/shop';
+    $dir = shop_preview_dir();
     $manifest = @file_get_contents($dir . '/previews.json');
     if ($manifest === false) {
         return [];
@@ -130,7 +143,7 @@ function shop_previews(): array
             continue;
         }
         $previews[(int)$id] = [
-            'url' => launcher_patch_url() . 'shop/' . rawurlencode($file) . '?v=' . $mtime . '-' . $size,
+            'url' => shop_preview_url() . rawurlencode($file) . '?v=' . $mtime . '-' . $size,
             'frames' => $frames,
         ];
     }
