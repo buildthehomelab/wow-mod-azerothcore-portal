@@ -275,11 +275,14 @@ function cl_fetch(array &$memo): array
     $pattern = '/' . str_replace('/', '\/', cl_env('CHANGELOG_REPOS', '^(wow-|mod-)')) . '/';
     $ungated = array_filter(array_map('trim', explode(',', strtolower(cl_env('CHANGELOG_UNGATED', 'wow-mod-azerothcore-portal')))));
 
+    // CHANGELOG_ORG may be a user account; once page 1 says so, ask for every page that way.
     $repos = [];
+    $owner = 'orgs';
     for ($page = 1; $page <= 5; $page++) {
-        [$status, $list] = cl_github("orgs/$org/repos?type=all&per_page=100&page=$page");
+        [$status, $list] = cl_github("$owner/$org/repos?type=all&per_page=100&page=$page");
         if ($status === 404 && $page === 1) {
-            [$status, $list] = cl_github("users/$org/repos?type=all&per_page=100&page=$page");
+            $owner = 'users';
+            [$status, $list] = cl_github("$owner/$org/repos?type=all&per_page=100&page=$page");
         }
         if ($status !== 200 || !is_array($list)) {
             throw new RuntimeException("GitHub repo list failed ($status).");
