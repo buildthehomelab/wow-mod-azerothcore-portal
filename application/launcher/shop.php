@@ -97,6 +97,46 @@ function shop_soap(string $command, int $timeout): ?array
     return null;
 }
 
+/**
+ * Turntable pictures of the offers, from shop/previews.json in the realm folder (served at
+ * /realm/shop/): {"<offer id>": {"file": "201.webp", "frames": 36}, ...}, each file a strip of
+ * `frames` pictures side by side, one per angle. Returns {offer id: {"url", "frames"}} for the
+ * files that are there; the url carries the file's time and size, so a new picture gets a new url.
+ */
+function shop_previews(): array
+{
+    $dir = launcher_patch_dir() . '/shop';
+    $manifest = @file_get_contents($dir . '/previews.json');
+    if ($manifest === false) {
+        return [];
+    }
+    $entries = json_decode($manifest, true);
+    if (!is_array($entries) || ($entries !== [] && array_is_list($entries))) {
+        error_log('shop: ' . $dir . '/previews.json is not a JSON object');
+        return [];
+    }
+
+    $previews = [];
+    foreach ($entries as $id => $entry) {
+        $file = is_array($entry) ? (string)($entry['file'] ?? '') : '';
+        $frames = is_array($entry) ? (int)($entry['frames'] ?? 1) : 0;
+        if (!ctype_digit((string)$id) || (int)$id < 1 || $frames < 1 || $frames > 360
+            || !preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]*\.(webp|png|jpe?g)\z/i', $file)) {
+            continue;
+        }
+        $mtime = @filemtime($dir . '/' . $file);
+        $size = @filesize($dir . '/' . $file);
+        if ($mtime === false || $size === false) {
+            continue;
+        }
+        $previews[(int)$id] = [
+            'url' => launcher_patch_url() . 'shop/' . rawurlencode($file) . '?v=' . $mtime . '-' . $size,
+            'frames' => $frames,
+        ];
+    }
+    return $previews;
+}
+
 function shop_cache_path(string $dir, int $accountId): string
 {
     return $dir . '/list-' . $accountId . '.json';
@@ -124,7 +164,8 @@ function shop_handle_request(array $session): never
 
 /**
  * GET: {"balance", "characters": [...], "offers": [...], "cached_at"}, as mod-boss-coins answers
- * .coinshop list, minus its "ok".
+ * .coinshop list, minus its "ok", with a "preview" ({"url", "frames"}) on the offers that have
+ * one (shop_previews()).
  */
 function shop_list(array $session): never
 {
@@ -151,10 +192,20 @@ function shop_list(array $session): never
         launcher_json(503, ['error' => (string)($answer['message'] ?? 'The shop is closed.'), 'code' => (string)($answer['error'] ?? '')]);
     }
 
+    $offers = is_array($answer['offers'] ?? null) ? $answer['offers'] : [];
+    $previews = shop_previews();
+    foreach ($offers as &$offer) {
+        $id = is_array($offer) ? (int)($offer['id'] ?? 0) : 0;
+        if ($id > 0 && isset($previews[$id])) {
+            $offer['preview'] = $previews[$id];
+        }
+    }
+    unset($offer);
+
     $body = [
         'balance' => (int)($answer['balance'] ?? 0),
         'characters' => is_array($answer['characters'] ?? null) ? $answer['characters'] : [],
-        'offers' => is_array($answer['offers'] ?? null) ? $answer['offers'] : [],
+        'offers' => $offers,
         'cached_at' => time(),
     ];
 

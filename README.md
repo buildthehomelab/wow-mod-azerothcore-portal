@@ -336,6 +336,19 @@ With [mod-boss-coins](https://github.com/buildthehomelab/wow-mod-boss-coins) on 
 
 `GET api/launcher/shop.php` with a player's token then answers the wallet balance, the account's characters and the offers, with the characters that own each one already or can't use it. The launcher shows the Shop button when it answers 200. `POST` with `{"offer", "character"}` buys. A listing is reused for `SHOP_CACHE_SECONDS` (15), because the worldserver answers it on its main thread. A purchase clears it. An account can only have one purchase on its way at a time, and at most `SHOP_BUYS_PER_MINUTE` (6) a minute.
 
+### Pictures of the offers
+
+The launcher shows a picture of a mount or companion that you can spin with the mouse when the realm folder (what is served at `/realm/`) has a `shop/` folder with one picture strip per offer and a `shop/previews.json` naming them, by offer id:
+
+```json
+{
+  "201": { "file": "201.webp", "frames": 36 },
+  "101": { "file": "101.webp", "frames": 36 }
+}
+```
+
+A strip is `frames` pictures of the same size side by side, left to right, one per angle as the model turns (WebP, PNG or JPEG; a transparent background looks best). [wow-mod-retail-creatures](https://github.com/buildthehomelab/wow-mod-retail-creatures)' `tools/turntable.py` draws them from a converted model. An offer without a picture keeps its drawn icon. The listing gives each picture's URL with the file's time and size on it, so a replaced picture gets a new URL and the launcher fetches it again (within the listing's `SHOP_CACHE_SECONDS`).
+
 When the game server is down the shop answers 503 and the launcher says so. When a purchase gets no answer (502), it may or may not have gone through. Every wallet change is in the characters table `mod_boss_coins_ledger`.
 
 ## Rare map (mod-rare-tracker)
