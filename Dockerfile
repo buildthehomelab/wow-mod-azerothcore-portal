@@ -18,6 +18,8 @@ RUN apt-get update \
 
 # Patch notes cache (CHANGELOG_CACHE_DIR). docker-compose.yml mounts a volume here, which takes over this owner.
 RUN mkdir -p /var/cache/portal && chown www-data:www-data /var/cache/portal
+# Shared combat logs (COMBATLOG_DIR), a volume the same way.
+RUN mkdir -p /srv/combatlogs && chown www-data:www-data /srv/combatlogs
 
 COPY docker/apache-security.conf /etc/apache2/conf-enabled/zz-security.conf
 COPY --chown=www-data:www-data . /var/www/html/

@@ -73,6 +73,13 @@ services:
       LAUNCHER_RELEASE_REPO: ${LAUNCHER_RELEASE_REPO:-}
       LAUNCHER_RELEASE_SECRET: ${LAUNCHER_RELEASE_SECRET:-}
       LAUNCHER_VERSION_CACHE_SECONDS: ${LAUNCHER_VERSION_CACHE_SECONDS:-}
+      COMBATLOG_ENABLED: ${COMBATLOG_ENABLED:-false}
+      COMBATLOG_DIR: /srv/combatlogs
+      COMBATLOG_VIEW_KEY: ${COMBATLOG_VIEW_KEY:-}
+      COMBATLOG_KEEP_DAYS: ${COMBATLOG_KEEP_DAYS:-60}
+      COMBATLOG_MAX_MB: ${COMBATLOG_MAX_MB:-512}
+      COMBATLOG_BOT_ACCOUNTS: ${COMBATLOG_BOT_ACCOUNTS:-RNDBOT%}
+      DB_WORLD_NAME: ${DB_WORLD_NAME:-acore_world}
     volumes:
       # mod-realm-config output directory (realm.conf), served read-only at /realm/
       - ${REALM_CONFIG_DIR:-./realm-data}:/var/www/html/realm:ro
@@ -83,12 +90,15 @@ services:
       # Launcher downloads: the .torrent files and the client they describe (web seed), read-only
       - ${LAUNCHER_TORRENT_DIR:-./launcher-torrents}:/srv/launcher/torrents:ro
       - ${LAUNCHER_CLIENT_DIR:-./launcher-client}:/srv/launcher/client:ro
+      # Combat logs players share from the launcher, and their digests
+      - ${COMBATLOG_HOST_DIR:-portal-combatlogs}:/srv/combatlogs
     networks:
       - ac-network   # to reach ac-database
       - traefik      # so Traefik can reach this container
 
 volumes:
   portal-cache:
+  portal-combatlogs:
 
 networks:
   ac-network:

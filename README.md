@@ -222,6 +222,7 @@ With it on, the home page's "How to connect" shows three steps instead of the ma
 | `GET api/launcher/patch-torrent.php?file=patch-P.MPQ` | The torrent for one patch in the realm folder |
 | `GET api/launcher/version.php` | The newest launcher release, `{"tag", "version"}`. No login needed. |
 | `POST api/launcher/version.php` | The launcher's release workflow announces a new release: `{"tag", "time"}`, signed with `LAUNCHER_RELEASE_SECRET` |
+| `api/launcher/combatlog.php` | Combat log uploads from players who opted in, see [Combat logs](#combat-logs) |
 | `api/launcher/announce.php/<passkey>` | Tracker announce URL, inside the player's torrent |
 | `api/launcher/seed.php/<passkey>/` | Web seed URL, inside the player's torrent |
 
@@ -267,6 +268,54 @@ The web seeds then also go through Cloudflare. Check that Cloudflare's terms all
 2. Set `LAUNCHER_SEED_HOST=seed.example.com` in `.env` and run `docker compose up -d`.
 
 Torrents handed out from then on announce to `https://seed.example.com/api/launcher/announce.php/<passkey>` and use the web seeds there (`seed.php` for the client, `/realm/` for patches), so the tracker sees players' real addresses and the big downloads skip the proxy. Login and the torrent files themselves stay on the main host. The seed host only answers the tracker, web seed and `/realm/` paths; the rest of the site isn't reachable through it. If your router doesn't loop public addresses back to the LAN, add a local DNS record for the seed host on your network too.
+
+## Combat logs
+
+Players can turn on **Share combat logs** in the launcher's settings (off by default). The launcher then switches combat logging on inside dungeons and raids and uploads `Logs/WoWCombatLog.txt` when the game closes. The portal keeps each log and digests it, which is what you want when you're tuning bots: what they died to, which casts nobody interrupted, which debuffs stayed on.
+
+`combatlogs.php` (not in the menu) lists the uploads. Each one is cut into fights, and each fight shows:
+
+- **Deaths:** who died, what killed them and the hits just before. A hunter's Feign Death is told apart from a death.
+- **Damage players took**, per enemy ability: hits, players hit, total, biggest hit and deaths.
+- **Enemy casts** that had a cast time, and how many were interrupted, by whom.
+- **Debuffs on players:** how often each was applied, how often it was dispelled and how long that took.
+- **Enemy buffs** (enrages and the like) and whether anyone removed them.
+- **Crowd control broken**, by whom and with what.
+- **Players:** damage, healing, overheal, damage taken, how much of the fight they were doing something and how long they took to start. Characters on bot accounts are marked.
+
+The 3.3.5 combat log has no zone or encounter lines, so a fight is a stretch of damage between the group and hostile creatures with no pause longer than 15 seconds, named after its boss or the creature that took the most damage.
+
+### Setting it up
+
+1. **`.env`:** set `COMBATLOG_ENABLED=true` (the launcher API has to be on too) and `COMBATLOG_VIEW_KEY` to a long random value, for example `openssl rand -hex 32`. Run `docker compose up -d --build`.
+2. **Optional, better boss names:** run the combat log lines of [docker/create-db-user.sql.example](docker/create-db-user.sql.example) as root, so the digest reads which creatures are bosses from the realm's database. Without them it guesses from the log (a creature that only ever shows up alone and soaks up far more damage than the rest), and the page says so.
+3. Open `https://SERVICE_NAME.DOMAIN/combatlogs.php` and enter the key.
+
+Logs live in the `portal-combatlogs` volume (or `COMBATLOG_HOST_DIR`) as the gzip file the launcher sent, plus a JSON digest. They're deleted after `COMBATLOG_KEEP_DAYS` (60; 0 keeps them). An upload can be at most `COMBATLOG_MAX_MB` (512) of gzip; a 4-hour 40-player raid is about 10 MB.
+
+The digest is made in the background right after an upload, and on first view if that didn't happen. To redo them all, for instance after granting the database access:
+
+```bash
+docker exec -u www-data wow-register sh -c 'rm -f /srv/combatlogs/logs/*.digest.json && php application/launcher/combatlog_cli.php --all'
+```
+
+### Reading the logs from a script
+
+Send the key as `X-Portal-Key`:
+
+| Request | Answer |
+| --- | --- |
+| `GET api/combatlogs.php` | The uploads, newest first, each with a short summary |
+| `GET api/combatlogs.php?log=<id>` | One upload's digest: every fight with the tables above |
+| `GET api/combatlogs.php?log=<id>&raw=1` | The log itself, gzip |
+
+```bash
+curl -H "X-Portal-Key: $KEY" https://SERVICE_NAME.DOMAIN/api/combatlogs.php
+```
+
+### What the launcher sends
+
+Every request carries the player's launcher token. `GET api/launcher/combatlog.php` says whether the realm collects logs (404 when it doesn't), which is what makes the launcher show the setting. An upload is `POST ?action=begin` with the gzip file's size and SHA-256, then `?action=part&upload=<id>&offset=<n>` with at most 4 MiB at a time, then `?action=finish`, which checks the size and checksum. Sending the same file again resumes it or answers that it's already here, so the launcher simply retries after a failure.
 
 ## Rare map (mod-rare-tracker)
 

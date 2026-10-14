@@ -10,4 +10,9 @@ GRANT SELECT                 ON acore_characters.*  TO 'wow_register'@'%';
 CREATE DATABASE IF NOT EXISTS acore_launcher;
 GRANT ALL                    ON acore_launcher.*          TO 'wow_register'@'%';
 GRANT SELECT                 ON acore_auth.account_banned TO 'wow_register'@'%';
+
+-- Combat logs (COMBATLOG_ENABLED=true), optional: lets the digest name bosses from the realm's own
+-- creature data instead of guessing them from the log.
+GRANT SELECT                 ON acore_world.creature_template   TO 'wow_register'@'%';
+GRANT SELECT                 ON acore_world.instance_encounters TO 'wow_register'@'%';
 FLUSH PRIVILEGES;

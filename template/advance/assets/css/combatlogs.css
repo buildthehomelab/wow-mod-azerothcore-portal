@@ -1,0 +1,124 @@
+/*--------------------------------------------------------------
+# Combat logs (combatlogs.php): dense tables in the patch notes' colours (changelog.css has the variables)
+--------------------------------------------------------------*/
+.cl-body { font-size: 14px; line-height: 1.5; }
+
+.cl-head {
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+  padding: 18px 28px;
+  border-bottom: 1px solid var(--pn-line);
+  background: var(--pn-panel);
+}
+.cl-head h1 { font-size: 24px; flex: 1; }
+.cl-head h1 a { color: inherit; }
+.cl-head .pn-home { position: static; }
+.cl-out { color: var(--pn-muted); }
+
+.cl-main { max-width: 1280px; margin: 0 auto; padding: 24px 28px 80px; }
+.cl-narrow { max-width: 420px; }
+.cl-none { color: var(--pn-muted); max-width: 60ch; }
+.cl-dim { color: var(--pn-muted); }
+.cl-bad { color: #e8836f; font-weight: 600; }
+
+.cl-key { display: grid; gap: 10px; margin-top: 60px; }
+.cl-key label { font-family: var(--pn-serif); color: var(--pn-parchment); font-size: 18px; }
+.cl-key input, .cl-key button {
+  font: inherit;
+  padding: 9px 12px;
+  border: 1px solid var(--pn-line);
+  border-radius: 3px;
+  background: var(--pn-panel);
+  color: var(--pn-parchment);
+}
+.cl-key button { background: var(--pn-gold); border-color: var(--pn-gold); color: #1c130c; font-weight: 600; cursor: pointer; }
+.cl-key button:hover { background: var(--pn-gold-light); }
+.cl-error { color: #e8836f; margin: 0; }
+
+.cl-summary { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+.cl-kicker { margin: 0; color: var(--pn-gold); text-transform: uppercase; letter-spacing: 0.12em; font-size: 12px; }
+.cl-summary h2 { font-size: 34px; }
+.cl-summary h2 small, .cl-block h3 small { font: 14px var(--pn-sans); color: var(--pn-muted); margin-left: 10px; }
+.cl-meta { margin: 6px 0 0; color: var(--pn-muted); }
+.cl-stats { display: flex; gap: 10px; margin: 0; }
+.cl-stats div { min-width: 96px; padding: 10px 14px; background: var(--pn-panel); border: 1px solid var(--pn-line); border-radius: 3px; }
+.cl-stats dt { color: var(--pn-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+.cl-stats dd { margin: 0; font: 26px var(--pn-serif); color: var(--pn-parchment); }
+
+.cl-block { margin-bottom: 32px; }
+.cl-block h3 { font-size: 22px; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--pn-line); }
+
+.cl-table { width: 100%; border-collapse: collapse; }
+.cl-table th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--pn-muted);
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--pn-line);
+  white-space: nowrap;
+}
+.cl-table td { padding: 5px 10px; border-bottom: 1px solid rgba(201, 164, 92, 0.1); vertical-align: top; }
+.cl-table tbody tr:hover { background: rgba(201, 164, 92, 0.06); }
+.cl-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cl-table tr.is-feign { color: var(--pn-muted); }
+.cl-block > .cl-table { max-width: 720px; }
+.cl-list td { padding: 9px 10px; }
+.cl-list td:first-child { white-space: nowrap; }
+
+.cl-bot {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pn-muted);
+  border: 1px solid var(--pn-line);
+  border-radius: 2px;
+  padding: 0 4px;
+  margin-left: 4px;
+}
+.cl-kill, .cl-wipe { display: inline-block; padding: 0 7px; border-radius: 2px; margin: 1px 2px 1px 0; white-space: nowrap; }
+.cl-kill { color: var(--pn-fix); border: 1px solid rgba(143, 199, 164, 0.4); }
+.cl-wipe { color: #e8836f; border: 1px solid rgba(232, 131, 111, 0.4); }
+
+.cl-hits span { display: inline-block; margin-right: 12px; white-space: nowrap; }
+.cl-hits i { color: var(--pn-muted); font-style: normal; font-size: 12px; }
+
+.cl-fight { border: 1px solid rgba(201, 164, 92, 0.16); border-left: 3px solid transparent; border-radius: 3px; margin-bottom: 4px; background: var(--pn-panel); }
+.cl-fight.is-boss { border-left-color: var(--pn-gold); }
+.cl-fight.is-boss.is-wipe, .cl-fight.is-boss.is-left { border-left-color: #e8836f; }
+.cl-fight[open] { padding-bottom: 14px; margin-bottom: 14px; background: var(--pn-panel-2); }
+.cl-fight summary {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) 60px 96px 64px 76px;
+  gap: 12px;
+  align-items: baseline;
+  padding: 8px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+.cl-fight summary::-webkit-details-marker { display: none; }
+.cl-fight summary:hover { background: rgba(201, 164, 92, 0.06); }
+.cl-time, .cl-len { color: var(--pn-muted); font-variant-numeric: tabular-nums; }
+.cl-len, .cl-deaths { text-align: right; }
+.cl-name { color: var(--pn-parchment); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cl-fight.is-boss .cl-name { font-family: var(--pn-serif); font-size: 17px; }
+.cl-name small { color: var(--pn-muted); font: 12px var(--pn-sans); }
+.cl-tag { color: var(--pn-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+.cl-fight.is-boss .cl-tag { color: var(--pn-gold); }
+.cl-fight.is-kill .cl-outcome { color: var(--pn-fix); }
+.cl-fight.is-wipe .cl-outcome { color: #e8836f; }
+.cl-fight.is-left .cl-outcome { color: var(--pn-muted); }
+.cl-deaths { color: var(--pn-muted); }
+.cl-deaths.has { color: #e8836f; }
+.cl-fight h4 { font: 600 12px var(--pn-sans); text-transform: uppercase; letter-spacing: 0.1em; color: var(--pn-gold); margin: 18px 14px 4px; }
+.cl-fight .cl-table { width: calc(100% - 28px); margin: 0 14px; }
+
+@media (max-width: 760px) {
+  .cl-main { padding: 16px 12px 60px; }
+  .cl-fight summary { grid-template-columns: 64px minmax(0, 1fr) 70px; }
+  .cl-tag, .cl-outcome, .cl-len { display: none; }
+  .cl-fight .cl-table, .cl-block > .cl-table { display: block; overflow-x: auto; }
+}
