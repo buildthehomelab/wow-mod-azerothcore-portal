@@ -79,6 +79,13 @@ services:
       COMBATLOG_KEEP_DAYS: ${COMBATLOG_KEEP_DAYS:-60}
       COMBATLOG_MAX_MB: ${COMBATLOG_MAX_MB:-512}
       COMBATLOG_BOT_ACCOUNTS: ${COMBATLOG_BOT_ACCOUNTS:-RNDBOT%}
+      SHOP_ENABLED: ${SHOP_ENABLED:-false}
+      SHOP_CACHE_SECONDS: ${SHOP_CACHE_SECONDS:-15}
+      SHOP_BUYS_PER_MINUTE: ${SHOP_BUYS_PER_MINUTE:-6}
+      SHOP_CACHE_DIR: /var/cache/portal/shop
+      SOAP_URL: ${SOAP_URL:-http://ac-worldserver:7878/}
+      SOAP_USER: ${SOAP_USER:-}
+      SOAP_PASSWORD: ${SOAP_PASSWORD:-}
       DB_WORLD_NAME: ${DB_WORLD_NAME:-acore_world}
     volumes:
       # mod-realm-config output directory (realm.conf), served read-only at /realm/
