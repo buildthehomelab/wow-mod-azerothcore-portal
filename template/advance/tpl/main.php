@@ -186,12 +186,12 @@ $account_message = ob_get_clean();
                         <?php } ?>
                         <div class="input-group">
                             <span class="input-group"><?php elang('password'); ?></span>
-                            <input type="password" class="form-control" minlength="4" maxlength="16" required
+                            <input type="password" class="form-control" minlength="8" maxlength="16" required
                                 placeholder="<?php elang('password'); ?>" name="password">
                         </div>
                         <div class="input-group">
                             <span class="input-group"><?php elang('retype_password'); ?></span>
-                            <input type="password" class="form-control" minlength="4" maxlength="16" required
+                            <input type="password" class="form-control" minlength="8" maxlength="16" required
                                 placeholder="<?php elang('retype_password'); ?>" name="repassword">
                         </div>
                         <?php echo GetCaptchaHTML(); ?>
@@ -241,12 +241,12 @@ $account_message = ob_get_clean();
                         </div>
                         <div class="input-group">
                             <span class="input-group"><?php elang('password'); ?></span>
-                            <input type="password" class="form-control"
+                            <input type="password" class="form-control" minlength="8" maxlength="16" required
                                 placeholder="<?php elang('password'); ?>" name="password">
                         </div>
                         <div class="input-group">
                             <span class="input-group"><?php elang('retype_password'); ?></span>
-                            <input type="password" class="form-control"
+                            <input type="password" class="form-control" minlength="8" maxlength="16" required
                                 placeholder="<?php elang('retype_password'); ?>" name="repassword">
                         </div>
                         <?php echo GetCaptchaHTML(); ?>

@@ -12,7 +12,16 @@ declare(strict_types=1);
 require_once __DIR__ . '/../include/functions.php'; // verifySRP6()
 require_once __DIR__ . '/bencode.php';
 
-const LAUNCHER_SCHEMA_VERSION = 2;
+const LAUNCHER_SCHEMA_VERSION = 3;
+
+// Failed password checks (launcher login and the website's Change Password form) share one counter.
+const LAUNCHER_FAILURE_WINDOW = 900;   // seconds
+const LAUNCHER_FAILURES_PER_NAME = 5;  // per account name within the window
+const LAUNCHER_FAILURES_PER_IP = 20;   // per address within the window
+
+// Website sign-ups that get as far as the "name taken?" check, per address.
+const SIGNUP_WINDOW = 3600;            // seconds
+const SIGNUP_ATTEMPTS_PER_IP = 10;     // per address within the window
 
 function launcher_env(string $key, string $default = ''): string
 {
@@ -128,6 +137,13 @@ function launcher_schema(PDO $pdo): void
         KEY ip_at (ip, at)
     ) ENGINE=InnoDB');
 
+    $pdo->exec('CREATE TABLE IF NOT EXISTS web_signup_attempt (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        ip VARCHAR(45) NOT NULL,
+        at INT UNSIGNED NOT NULL,
+        KEY ip_at (ip, at)
+    ) ENGINE=InnoDB');
+
     $pdo->exec('CREATE TABLE IF NOT EXISTS launcher_passkey (
         account_id INT UNSIGNED NOT NULL PRIMARY KEY,
         passkey CHAR(32) NOT NULL,
@@ -200,6 +216,45 @@ function launcher_client_ip(): string
         }
     }
     return $remote;
+}
+
+/** True when this name or address has too many recent failed password checks. */
+function launcher_login_throttled(PDO $pdo, string $username, string $ip): bool
+{
+    $since = time() - LAUNCHER_FAILURE_WINDOW;
+    $failures = $pdo->prepare('SELECT
+            (SELECT COUNT(*) FROM launcher_login_failure WHERE username = ? AND at > ?) AS by_name,
+            (SELECT COUNT(*) FROM launcher_login_failure WHERE ip = ? AND at > ?) AS by_ip');
+    $failures->execute([$username, $since, $ip, $since]);
+    $count = $failures->fetch();
+    return (int)$count['by_name'] >= LAUNCHER_FAILURES_PER_NAME || (int)$count['by_ip'] >= LAUNCHER_FAILURES_PER_IP;
+}
+
+function launcher_login_failed(PDO $pdo, string $username, string $ip): void
+{
+    $pdo->prepare('INSERT INTO launcher_login_failure (username, ip, at) VALUES (?, ?, ?)')
+        ->execute([substr($username, 0, 32), $ip, time()]);
+}
+
+/** Counts a website sign-up attempt and says whether this address is over the limit (that one isn't counted). */
+function launcher_signup_attempt(PDO $pdo, string $ip): bool
+{
+    $now = time();
+    $count = $pdo->prepare('SELECT COUNT(*) FROM web_signup_attempt WHERE ip = ? AND at > ?');
+    $count->execute([$ip, $now - SIGNUP_WINDOW]);
+    if ((int)$count->fetchColumn() >= SIGNUP_ATTEMPTS_PER_IP) {
+        return false;
+    }
+    $pdo->prepare('INSERT INTO web_signup_attempt (ip, at) VALUES (?, ?)')->execute([$ip, $now]);
+    return true;
+}
+
+/** Drops old failure and sign-up rows; callers run it now and then. */
+function launcher_prune_throttles(PDO $pdo): void
+{
+    $now = time();
+    $pdo->prepare('DELETE FROM launcher_login_failure WHERE at < ?')->execute([$now - 86400]);
+    $pdo->prepare('DELETE FROM web_signup_attempt WHERE at < ?')->execute([$now - 86400]);
 }
 
 /**

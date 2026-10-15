@@ -11,6 +11,34 @@ class user
 {
     public static $captcha;
 
+    const PASSWORD_MIN_LENGTH = 8;
+    const PASSWORD_MAX_LENGTH = 16; // the 3.3.5 client sends at most 16 characters
+
+    /**
+     * The launcher's database, which also holds the failed-login and sign-up counters for the web
+     * forms (one counter for launcher and website, so neither gets around the other). Null when it
+     * can't be reached; the forms then refuse rather than run unthrottled.
+     */
+    private static function throttle_db(): ?PDO
+    {
+        require_once app_path . 'launcher/launcher.php';
+        try {
+            $pdo = launcher_db();
+            if (random_int(1, 20) === 1) {
+                launcher_prune_throttles($pdo);
+            }
+            return $pdo;
+        } catch (Throwable $e) {
+            error_log('portal: throttle database unavailable: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    private static function password_length_ok(string $password): bool
+    {
+        return strlen($password) >= self::PASSWORD_MIN_LENGTH && strlen($password) <= self::PASSWORD_MAX_LENGTH;
+    }
+
     public static function post_handler()
     {
         if (empty(get_config('disable_restorepassword')) && !empty($_GET['restore']) && !empty($_GET['key'])) {
@@ -260,13 +288,25 @@ class user
             return false;
         }
 
-        if (!(strlen($_POST['password']) >= 4 && strlen($_POST['password']) <= 16)) {
+        if (!self::password_length_ok((string)$_POST['password'])) {
             error_msg(lang('passwords_length'));
             return false;
         }
 
         if (!(strlen($_POST['username']) >= 2 && strlen($_POST['username']) <= 16)) {
             error_msg(lang('username_length'));
+            return false;
+        }
+
+        // The "already exists" answers below tell which names and emails are taken, so each address
+        // only gets a few of them an hour.
+        $pdo = self::throttle_db();
+        if ($pdo === null) {
+            error_msg(lang('error_try_again'));
+            return false;
+        }
+        if (!launcher_signup_attempt($pdo, launcher_client_ip())) {
+            error_msg(lang('too_many_signups'));
             return false;
         }
 
@@ -522,7 +562,8 @@ class user
             return false;
         }
 
-        if ($_POST['submit'] != 'changepass' || empty($_POST['password']) || empty($_POST['old_password']) || empty($_POST['repassword']) || empty($_POST['username'])) {
+        if ($_POST['submit'] != 'changepass' || empty($_POST['password']) || empty($_POST['old_password']) || empty($_POST['repassword']) || empty($_POST['username'])
+            || !is_string($_POST['username']) || !is_string($_POST['old_password']) || !is_string($_POST['password'])) {
             return false;
         }
 
@@ -535,24 +576,49 @@ class user
             return false;
         }
 
-        if (!(strlen($_POST['password']) >= 4 && strlen($_POST['password']) <= 16)) {
+        if (!self::password_length_ok($_POST['password'])) {
             error_msg(lang('passwords_length'));
             return false;
         }
 
-        $userinfo = self::get_user_by_username(strtoupper($_POST['username']));
+        // Same failed-login counter and limits as the launcher login, and one answer for "no such
+        // account" and "wrong password", so this form can't be used to find names or guess passwords.
+        $username = strtoupper(trim($_POST['username']));
+        if ($username === '' || strlen($username) > 32 || strlen($_POST['old_password']) > 128) {
+            error_msg(lang('wrong_username_or_password'));
+            return false;
+        }
+        $pdo = self::throttle_db();
+        if ($pdo === null) {
+            error_msg(lang('error_try_again'));
+            return false;
+        }
+        $ip = launcher_client_ip();
+        if (launcher_login_throttled($pdo, $username, $ip)) {
+            error_msg(lang('too_many_failed_logins'));
+            return false;
+        }
+
+        $userinfo = self::get_user_by_username($username);
         if (empty($userinfo['username'])) {
-            error_msg(lang('username_not_correct'));
+            // Spend the same time as a real check so response times don't reveal which names exist.
+            verifySRP6($username, $_POST['old_password'], random_bytes(32), random_bytes(32));
+            $old_password_ok = false;
+        } elseif (empty(get_config('srp6_support'))) {
+            $Old_hashed_pass = strtoupper(sha1(strtoupper($userinfo['username'] . ':' . $_POST['old_password'])));
+            $old_password_ok = hash_equals(strtoupper((string)$userinfo['sha_pass_hash']), $Old_hashed_pass);
+        } else {
+            $old_password_ok = verifySRP6($userinfo['username'], $_POST['old_password'], $userinfo[get_core_config("salt_field")], $userinfo[get_core_config("verifier_field")]);
+        }
+
+        if (!$old_password_ok) {
+            launcher_login_failed($pdo, $username, $ip);
+            error_msg(lang('wrong_username_or_password'));
             return false;
         }
 
         if (empty(get_config('srp6_support'))) {
-            $Old_hashed_pass = strtoupper(sha1(strtoupper($userinfo['username'] . ':' . $_POST['old_password'])));
             $hashed_pass = strtoupper(sha1(strtoupper($userinfo['username'] . ':' . $_POST['password'])));
-            if (strtoupper($userinfo['sha_pass_hash']) != $Old_hashed_pass) {
-                error_msg(lang('old_password_not_valid'));
-                return false;
-            }
 
             $queryBuilder = database::$auth->createQueryBuilder();
             $queryBuilder->update('account')
@@ -565,11 +631,6 @@ class user
                 ->setParameter('id', $userinfo['id']);
             $queryBuilder->executeQuery();
         } else {
-            if (!verifySRP6($userinfo['username'], $_POST['old_password'], $userinfo[get_core_config("salt_field")], $userinfo[get_core_config("verifier_field")])) {
-                error_msg(lang('old_password_not_valid'));
-                return false;
-            }
-
             list($salt, $verifier) = getRegistrationData(strtoupper($userinfo['username']), $_POST['password']);
 
             $queryBuilder = database::$auth->createQueryBuilder();
@@ -582,6 +643,9 @@ class user
                 ->setParameter('id', $userinfo['id']);
             $queryBuilder->executeQuery();
         }
+
+        // A new password logs the launcher out everywhere, so an old stolen token stops working.
+        $pdo->prepare('DELETE FROM launcher_session WHERE account_id = ?')->execute([(int)$userinfo['id']]);
 
         success_msg(lang('password_changed'));
         return true;
