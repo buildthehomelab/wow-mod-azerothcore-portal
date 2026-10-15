@@ -28,27 +28,31 @@ $password = (string)($input['password'] ?? '');
 if ($username === '' || $password === '' || strlen($username) > 32 || strlen($password) > 128) {
     launcher_json(400, ['error' => 'Enter your account name and password.']);
 }
+if (preg_match('//u', $username) !== 1) { // not UTF-8: no account can have this name
+    launcher_json(401, ['error' => 'Wrong account name or password.']);
+}
 
 $pdo = launcher_db();
 $ip = launcher_client_ip();
 $now = time();
 
-if (launcher_login_throttled($pdo, $username, $ip)) {
-    header('Retry-After: ' . LAUNCHER_FAILURE_WINDOW);
-    launcher_json(429, ['error' => 'Too many failed logins. Try again in 15 minutes.']);
-}
-
 $statement = $pdo->prepare('SELECT id, username, salt, verifier FROM ' . launcher_auth_table('account') . ' WHERE username = ?');
 $statement->execute([$username]);
 $account = $statement->fetch();
 
-if ($account === false) {
-    // Spend the same time as a real check so response times don't reveal which names exist.
-    verifySRP6($username, $password, random_bytes(32), random_bytes(32));
+$ok = launcher_guarded_check($pdo, $account === false ? $username : (string)$account['username'], $ip, function () use ($account, $username, $password): bool {
+    if ($account === false) {
+        // Spend the same time as a real check so response times don't reveal which names exist.
+        verifySRP6($username, $password, random_bytes(32), random_bytes(32));
+        return false;
+    }
+    return verifySRP6((string)$account['username'], $password, (string)$account['salt'], (string)$account['verifier']);
+});
+if ($ok === null) {
+    header('Retry-After: ' . LAUNCHER_FAILURE_WINDOW);
+    launcher_json(429, ['error' => 'Too many failed logins. Try again in 15 minutes.']);
 }
-
-if ($account === false || !verifySRP6((string)$account['username'], $password, (string)$account['salt'], (string)$account['verifier'])) {
-    launcher_login_failed($pdo, $username, $ip);
+if (!$ok) {
     launcher_json(401, ['error' => 'Wrong account name or password.']);
 }
 

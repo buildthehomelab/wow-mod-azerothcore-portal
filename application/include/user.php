@@ -301,11 +301,17 @@ class user
         // The "already exists" answers below tell which names and emails are taken, so each address
         // only gets a few of them an hour.
         $pdo = self::throttle_db();
+        try {
+            $allowed = $pdo !== null && launcher_signup_attempt($pdo, launcher_client_ip());
+        } catch (Throwable $e) {
+            error_log('portal: sign-up throttle failed: ' . $e->getMessage());
+            $pdo = null;
+        }
         if ($pdo === null) {
             error_msg(lang('error_try_again'));
             return false;
         }
-        if (!launcher_signup_attempt($pdo, launcher_client_ip())) {
+        if (!$allowed) {
             error_msg(lang('too_many_signups'));
             return false;
         }
@@ -584,7 +590,7 @@ class user
         // Same failed-login counter and limits as the launcher login, and one answer for "no such
         // account" and "wrong password", so this form can't be used to find names or guess passwords.
         $username = strtoupper(trim($_POST['username']));
-        if ($username === '' || strlen($username) > 32 || strlen($_POST['old_password']) > 128) {
+        if ($username === '' || strlen($username) > 32 || strlen($_POST['old_password']) > 128 || preg_match('//u', $username) !== 1) {
             error_msg(lang('wrong_username_or_password'));
             return false;
         }
@@ -593,26 +599,34 @@ class user
             error_msg(lang('error_try_again'));
             return false;
         }
-        $ip = launcher_client_ip();
-        if (launcher_login_throttled($pdo, $username, $ip)) {
+
+        $userinfo = self::get_user_by_username($username);
+        $old_password = $_POST['old_password'];
+        $check = function () use ($userinfo, $username, $old_password): bool {
+            $srp6 = !empty(get_config('srp6_support'));
+            if (empty($userinfo['username'])) {
+                // Spend the same time as a real check so response times don't reveal which names exist.
+                $srp6 ? verifySRP6($username, $old_password, random_bytes(32), random_bytes(32)) : sha1($username . ':' . $old_password);
+                return false;
+            }
+            if (!$srp6) {
+                return hash_equals(strtoupper((string)$userinfo['sha_pass_hash']), strtoupper(sha1(strtoupper($userinfo['username'] . ':' . $old_password))));
+            }
+            return verifySRP6($userinfo['username'], $old_password, $userinfo[get_core_config("salt_field")], $userinfo[get_core_config("verifier_field")]);
+        };
+        try {
+            // Count under the account's own name, so spellings the auth database matches to it share one counter.
+            $ok = launcher_guarded_check($pdo, empty($userinfo['username']) ? $username : (string)$userinfo['username'], launcher_client_ip(), $check);
+        } catch (Throwable $e) {
+            error_log('portal: login throttle failed: ' . $e->getMessage());
+            error_msg(lang('error_try_again'));
+            return false;
+        }
+        if ($ok === null) {
             error_msg(lang('too_many_failed_logins'));
             return false;
         }
-
-        $userinfo = self::get_user_by_username($username);
-        if (empty($userinfo['username'])) {
-            // Spend the same time as a real check so response times don't reveal which names exist.
-            verifySRP6($username, $_POST['old_password'], random_bytes(32), random_bytes(32));
-            $old_password_ok = false;
-        } elseif (empty(get_config('srp6_support'))) {
-            $Old_hashed_pass = strtoupper(sha1(strtoupper($userinfo['username'] . ':' . $_POST['old_password'])));
-            $old_password_ok = hash_equals(strtoupper((string)$userinfo['sha_pass_hash']), $Old_hashed_pass);
-        } else {
-            $old_password_ok = verifySRP6($userinfo['username'], $_POST['old_password'], $userinfo[get_core_config("salt_field")], $userinfo[get_core_config("verifier_field")]);
-        }
-
-        if (!$old_password_ok) {
-            launcher_login_failed($pdo, $username, $ip);
+        if (!$ok) {
             error_msg(lang('wrong_username_or_password'));
             return false;
         }
@@ -645,7 +659,11 @@ class user
         }
 
         // A new password logs the launcher out everywhere, so an old stolen token stops working.
-        $pdo->prepare('DELETE FROM launcher_session WHERE account_id = ?')->execute([(int)$userinfo['id']]);
+        try {
+            $pdo->prepare('DELETE FROM launcher_session WHERE account_id = ?')->execute([(int)$userinfo['id']]);
+        } catch (Throwable $e) {
+            error_log('portal: could not end launcher sessions for account ' . (int)$userinfo['id'] . ': ' . $e->getMessage());
+        }
 
         success_msg(lang('password_changed'));
         return true;
