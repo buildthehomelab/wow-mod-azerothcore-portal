@@ -17,10 +17,6 @@ require __DIR__ . '/../../application/launcher/launcher.php';
 launcher_require_enabled();
 launcher_require_method('POST');
 
-const LAUNCHER_FAILURE_WINDOW = 900;   // seconds
-const LAUNCHER_FAILURES_PER_NAME = 5;  // per account name within the window
-const LAUNCHER_FAILURES_PER_IP = 20;   // per address within the window
-
 $input = $_POST;
 if (stripos((string)($_SERVER['CONTENT_TYPE'] ?? ''), 'application/json') !== false) {
     $input = json_decode((string)file_get_contents('php://input'), true);
@@ -32,32 +28,31 @@ $password = (string)($input['password'] ?? '');
 if ($username === '' || $password === '' || strlen($username) > 32 || strlen($password) > 128) {
     launcher_json(400, ['error' => 'Enter your account name and password.']);
 }
+if (preg_match('//u', $username) !== 1) { // not UTF-8: no account can have this name
+    launcher_json(401, ['error' => 'Wrong account name or password.']);
+}
 
 $pdo = launcher_db();
 $ip = launcher_client_ip();
 $now = time();
 
-$failures = $pdo->prepare('SELECT
-        (SELECT COUNT(*) FROM launcher_login_failure WHERE username = ? AND at > ?) AS by_name,
-        (SELECT COUNT(*) FROM launcher_login_failure WHERE ip = ? AND at > ?) AS by_ip');
-$failures->execute([$username, $now - LAUNCHER_FAILURE_WINDOW, $ip, $now - LAUNCHER_FAILURE_WINDOW]);
-$count = $failures->fetch();
-if ((int)$count['by_name'] >= LAUNCHER_FAILURES_PER_NAME || (int)$count['by_ip'] >= LAUNCHER_FAILURES_PER_IP) {
-    header('Retry-After: ' . LAUNCHER_FAILURE_WINDOW);
-    launcher_json(429, ['error' => 'Too many failed logins. Try again in 15 minutes.']);
-}
-
 $statement = $pdo->prepare('SELECT id, username, salt, verifier FROM ' . launcher_auth_table('account') . ' WHERE username = ?');
 $statement->execute([$username]);
 $account = $statement->fetch();
 
-if ($account === false) {
-    // Spend the same time as a real check so response times don't reveal which names exist.
-    verifySRP6($username, $password, random_bytes(32), random_bytes(32));
+$ok = launcher_guarded_check($pdo, $account === false ? $username : (string)$account['username'], $ip, function () use ($account, $username, $password): bool {
+    if ($account === false) {
+        // Spend the same time as a real check so response times don't reveal which names exist.
+        verifySRP6($username, $password, random_bytes(32), random_bytes(32));
+        return false;
+    }
+    return verifySRP6((string)$account['username'], $password, (string)$account['salt'], (string)$account['verifier']);
+});
+if ($ok === null) {
+    header('Retry-After: ' . LAUNCHER_FAILURE_WINDOW);
+    launcher_json(429, ['error' => 'Too many failed logins. Try again in 15 minutes.']);
 }
-
-if ($account === false || !verifySRP6((string)$account['username'], $password, (string)$account['salt'], (string)$account['verifier'])) {
-    $pdo->prepare('INSERT INTO launcher_login_failure (username, ip, at) VALUES (?, ?, ?)')->execute([$username, $ip, $now]);
+if (!$ok) {
     launcher_json(401, ['error' => 'Wrong account name or password.']);
 }
 
@@ -74,7 +69,7 @@ $pdo->prepare('INSERT INTO launcher_session (token_hash, account_id, created_at,
 // Housekeeping now and then: drop expired sessions and old failures.
 if (random_int(1, 20) === 1) {
     $pdo->prepare('DELETE FROM launcher_session WHERE expires_at < ?')->execute([$now]);
-    $pdo->prepare('DELETE FROM launcher_login_failure WHERE at < ?')->execute([$now - 86400]);
+    launcher_prune_throttles($pdo);
 }
 
 launcher_json(200, [
