@@ -14,7 +14,7 @@
 
 declare(strict_types=1);
 
-const CLOG_DIGEST_VERSION = 2;
+const CLOG_DIGEST_VERSION = 3;
 const CLOG_FIGHT_GAP = 15.0;        // seconds without group-vs-hostile contact that end a fight
 const CLOG_RUN_GAP = 1200.0;        // seconds between fights that start a new run
 const CLOG_DEATH_WINDOW = 8.0;      // hits this long before a death are listed with it
@@ -29,6 +29,13 @@ const CLOG_DEATH_BUFFS = 3;         // a real death strips the buffs: this many 
 const CLOG_SELF_REZ = ['Reincarnation' => 1, 'Use Soulstone' => 1, 'Soulstone Resurrection' => 1];
 /** Spirit of Redemption: a priest keeps healing for 15 s after a real death. */
 const CLOG_SPIRIT_OF_REDEMPTION = ['27827' => 1, '27792' => 1];
+/** A creature's PARTY_KILL and UNIT_DIED this close together are one death. */
+const CLOG_KILL_PAIR = 3.0;
+/**
+ * Bosses that never die: the encounter is won when these adds are dead. Majordomo Executus (12018)
+ * submits once his Flamewaker Healers (11663) and Elites (11664) fall.
+ */
+const CLOG_SUBMIT_BOSSES = [12018 => [11663, 11664]];
 
 const CLOG_GROUP = 1;
 const CLOG_PLAYER = 2;
@@ -109,6 +116,8 @@ final class ClogDigest
     private array $fights = [];
     /** @var list<array> deaths outside any fight (falls, lava on the way in) */
     private array $strayDeaths = [];
+    /** @var array<string, float> creature GUID => when its last death was counted */
+    private array $enemyDiedAt = [];
 
     public function __construct(int $loggedUntil, int $utcOffsetMinutes)
     {
@@ -405,7 +414,15 @@ final class ClogDigest
                 if ($dstPlayer) {
                     $this->death($t, $dst, trim($f[5], '"'));
                 } elseif ($inFight && $dstEnemy) {
-                    $this->enemy($dst, trim($f[5], '"'), 'died', 1);
+                    $this->enemyDied($t, $dst, trim($f[5], '"'));
+                }
+                return;
+
+            // Some creatures die without a UNIT_DIED line in the player's log (Ragnaros): the
+            // killing blow's PARTY_KILL is all there is.
+            case 'PARTY_KILL':
+                if ($inFight && $dstEnemy) {
+                    $this->enemyDied($t, $dst, trim($f[5], '"'));
                 }
                 return;
 
@@ -451,6 +468,16 @@ final class ClogDigest
         }
         $this->fight['enemies'][$key]['units'][$guid] = 1;
         $this->fight['enemies'][$key][$field] += $amount;
+    }
+
+    /** One creature death, from its PARTY_KILL or its UNIT_DIED, whichever comes first. */
+    private function enemyDied(float $t, string $guid, string $name): void
+    {
+        if (isset($this->enemyDiedAt[$guid]) && abs($t - $this->enemyDiedAt[$guid]) <= CLOG_KILL_PAIR) {
+            return;
+        }
+        $this->enemyDiedAt[$guid] = $t;
+        $this->enemy($guid, $name, 'died', 1);
     }
 
     private function &cast(string $id, string $name, string $source): array
@@ -918,6 +945,17 @@ function clog_apply_bosses(array &$digest, array $bossEntries): void
         $fight['name'] = $target['name'];
         $fight['entry'] = $target['entry'];
         $killed = $target['died'] > 0 && ($fight['boss'] || $target['died'] >= $target['count']);
+        if (!$killed && $fight['boss'] && isset(CLOG_SUBMIT_BOSSES[$target['entry']])) {
+            $adds = 0;
+            $killed = true;
+            foreach ($fight['enemies'] as $enemy) {
+                if (in_array($enemy['entry'], CLOG_SUBMIT_BOSSES[$target['entry']], true)) {
+                    $adds++;
+                    $killed = $killed && $enemy['died'] >= $enemy['count'];
+                }
+            }
+            $killed = $killed && $adds > 0;
+        }
         $fight['outcome'] = $killed ? 'kill'
             : ($fight['deaths'] >= max(3, (int)ceil(0.6 * count($fight['players']))) ? 'wipe' : 'left');
     }
