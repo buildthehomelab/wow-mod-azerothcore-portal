@@ -14,7 +14,7 @@
 
 declare(strict_types=1);
 
-const CLOG_DIGEST_VERSION = 3;
+const CLOG_DIGEST_VERSION = 4;
 const CLOG_FIGHT_GAP = 15.0;        // seconds without group-vs-hostile contact that end a fight
 const CLOG_RUN_GAP = 1200.0;        // seconds between fights that start a new run
 const CLOG_DEATH_WINDOW = 8.0;      // hits this long before a death are listed with it
@@ -36,6 +36,19 @@ const CLOG_KILL_PAIR = 3.0;
  * submits once his Flamewaker Healers (11663) and Elites (11664) fall.
  */
 const CLOG_SUBMIT_BOSSES = [12018 => [11663, 11664]];
+/**
+ * The classic raid bosses, by creature entry: always bosses, however the damage falls. The guess
+ * alone misses one pulled with a big pack (Lucifron with ten Core Hounds that soaked twenty times
+ * his damage). Molten Core, Onyxia, Blackwing Lair, Zul'Gurub, Ruins and Temple of Ahn'Qiraj.
+ */
+const CLOG_RAID_BOSSES = [
+    12118, 11982, 12259, 12057, 12264, 12056, 12098, 11988, 12018, 11502,
+    10184,
+    12435, 13020, 12017, 11983, 14601, 11981, 14020, 11583,
+    14507, 14517, 14510, 14509, 14515, 11382, 11380, 15114, 15082, 15083, 15084, 15085, 14834,
+    15348, 15341, 15340, 15370, 15369, 15339,
+    15263, 15544, 15543, 15511, 15516, 15510, 15299, 15509, 15276, 15275, 15517, 15727, 15589,
+];
 
 const CLOG_GROUP = 1;
 const CLOG_PLAYER = 2;
@@ -887,13 +900,23 @@ final class ClogDigest
 }
 
 /**
- * Which creatures look like bosses when nothing better is known: never more than one of them in a
- * fight, and far more damage soaked up than the log's usual creature.
+ * Which creatures look like bosses when nothing better is known: the known raid bosses, and any
+ * that is never more than one in a fight and soaks up far more damage than the log's usual
+ * creature.
  *
  * @return list<int> creature entries
  */
 function clog_guess_bosses(array $fights): array
 {
+    $bosses = [];
+    foreach ($fights as $fight) {
+        foreach ($fight['enemies'] as $enemy) {
+            if (in_array($enemy['entry'], CLOG_RAID_BOSSES, true)) {
+                $bosses[$enemy['entry']] = true;
+            }
+        }
+    }
+
     $most = [];
     $perUnit = [];
     foreach ($fights as $fight) {
@@ -905,12 +928,11 @@ function clog_guess_bosses(array $fights): array
         }
     }
     if (!$perUnit) {
-        return [];
+        return array_keys($bosses);
     }
     sort($perUnit);
     $usual = $perUnit[intdiv(count($perUnit), 2)];
 
-    $bosses = [];
     foreach ($fights as $fight) {
         if ($fight['duration'] < 30) {
             continue;
