@@ -1249,6 +1249,44 @@
         "Catches give the normal fishing loot for the area, can raise your Fishing skill and count toward fishing achievements. Salmon in a pool are a sure catch.",
         "A druid quest unlocks the relics, with one for each fishing rank."
       ]
+    },
+    "wow-mod-archaeology": {
+      "title": "Archaeology",
+      "notes": [
+        "**Archaeology** is now a secondary profession. Learn it from a trainer, survey dig sites on every continent, and dig up fragments and keystones from eight races: Dwarf, Night Elf, Troll, Fossil, Draenei, Orc, Nerubian and Vrykul.",
+        "Solve artifacts to raise your skill. Rare finds include companions, mounts, toys and usable equipment.",
+        "Archaeologists also piece together the **Unearthed Relic**, a weapon of their own that grows in rank as you dig.",
+        "The **ArchaeologyUI** addon marks dig sites on your map and adds a research window and a survey button. Type .arch to play without it."
+      ],
+      "section": "Professions"
+    },
+    "wow-mod-guild-levels": {
+      "title": "Guild Levels",
+      "notes": [
+        "Guilds now earn experience from their members' quests and from dungeon and raid bosses killed as a guild group, and climb from level 1 to 25.",
+        "Every level from 2 to 25 unlocks a guild perk.",
+        "Members earn reputation with their guild, which buys heirlooms, tabards, mounts, companions, battle standards and cauldrons from the guild vendor in each capital.",
+        "The **GuildLevels** addon shows your guild's level, perks, rewards and each member's contribution."
+      ],
+      "section": "General"
+    },
+    "wow-mod-black-market": {
+      "title": "Black Market",
+      "notes": [
+        "**Mister Chu** has opened a **Black Market Auction House** on the inn level of Booty Bay, selling rare mounts, companions and vanity items.",
+        "A new shipment arrives every day. Bidding only, no buyouts: outbid gold comes back by mail, and the winner receives the item by mail.",
+        "A bid in the final minutes keeps the auction open a little longer."
+      ],
+      "section": "Auction House"
+    },
+    "wow-mod-quick-lockpick": {
+      "title": "Quick Lockpick",
+      "notes": [
+        "Rogues can now right-click a locked box in their bags to cast **Pick Lock** on it.",
+        "When the lock opens, the box opens with it and the loot window comes up."
+      ],
+      "section": "Classes",
+      "sub": "Rogue"
     }
   }
 }

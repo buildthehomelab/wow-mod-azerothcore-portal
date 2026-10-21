@@ -426,6 +426,16 @@ function cl_data(): ?array
     }
 }
 
+/**
+ * The last cl_data() build, without ever asking GitHub: for pages like the homepage that must not wait
+ * on a cold rebuild. Null until changelog.php has built the cache once.
+ */
+function cl_cached(): ?array
+{
+    $file = cl_cache_dir() . '/portal-changelog.json';
+    return is_file($file) ? (json_decode((string)file_get_contents($file), true) ?: null) : null;
+}
+
 /** Hand-written notes (application/changelog-notes.json). */
 function cl_overrides(): array
 {

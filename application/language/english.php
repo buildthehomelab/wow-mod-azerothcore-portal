@@ -15,7 +15,11 @@ $language['change_lang_form_head'] = 'Select Language';
 $language['change_lang_sub'] = 'Change';
 
 $language['welcome_to'] = 'Welcome to';
-$language['welcome_message'] = 'Welcome to our private server, Join us now!';
+$language['welcome_message'] = 'A progression realm, from 2004 to the Frozen Throne';
+$language['welcome_pitch'] = 'Start where World of Warcraft started. Every raid you conquer moves your own world forward: Molten Core to Naxxramas, through the Dark Portal, and north to Icecrown, with Playerbots at your side.';
+$language['follow_journey'] = 'Follow the journey';
+$language['journey'] = 'The Journey';
+$language['features'] = 'Features';
 $language['get_started'] = 'Get Started';
 $language['home'] = 'Home';
 $language['about'] = 'About';

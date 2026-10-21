@@ -223,6 +223,42 @@ code {
   }
 }
 
+/* Below lg the links fold into the menu button: the bar spans the page, holds the logo and realm
+   name, and the (fixed) menu button sits inside its right end. */
+@media (max-width: 991.98px) {
+  #header > .container {
+    max-width: none;
+    width: calc(100% - 24px); /* #header is a flex row, so auto would shrink to the logo */
+    margin: 0 12px;
+    padding-left: 12px;
+    padding-right: 60px;
+  }
+
+  #header .logo a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+  }
+
+  #header .logo .logo-title {
+    font-family: var(--fv-serif);
+    font-size: 22px;
+    color: var(--fv-parchment);
+  }
+
+  .mobile-nav-toggle {
+    top: 22px;
+    right: 26px;
+  }
+
+  .mobile-nav {
+    top: 68px;
+    left: 12px;
+    right: 12px;
+  }
+}
+
 /* Mobile navigation */
 .mobile-nav-toggle i, .mobile-nav-active .mobile-nav-toggle i {
   color: var(--fv-parchment);

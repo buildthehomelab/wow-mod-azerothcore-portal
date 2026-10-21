@@ -34,6 +34,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Marcellus&display=swap" rel="stylesheet">
     <link href="<?php echo $antiXss->xss_clean(get_config("baseurl")); ?>/template/<?php echo $antiXss->xss_clean(get_config("template")); ?>/assets/css/forever.css"
           rel="stylesheet">
+    <link href="<?php echo $antiXss->xss_clean(get_config("baseurl")); ?>/template/<?php echo $antiXss->xss_clean(get_config("template")); ?>/assets/css/home.css"
+          rel="stylesheet">
     <?php echo getCaptchaJS(); ?>
 
     <?php echo(!empty(lang('custom_css')) ? '<style>' . lang('custom_css') . '</style>' : ''); ?>
@@ -47,9 +49,13 @@
                                                              src="<?php echo $antiXss->xss_clean(get_config("baseurl")); ?>/template/<?php echo $antiXss->xss_clean(get_config("template")); ?>/assets/img/logo-1.png"
                                                              alt=""></a>
         <h1 data-aos="zoom-in"
-            class="text-shadow1"><?php echo lang('welcome_to') . ' ' . $antiXss->xss_clean(get_config("page_title")); ?></h1>
+            class="text-shadow1"><?php echo $antiXss->xss_clean(get_config("page_title")); ?></h1>
         <h2 data-aos="fade-up" class="text-shadow1"><?php elang('welcome_message'); ?></h2>
-        <a data-aos="fade-up" href="#about" class="btn-get-started scrollto"><?php elang('get_started');  ?></a>
+        <p data-aos="fade-up" class="hero-pitch text-shadow1"><?php elang('welcome_pitch'); ?></p>
+        <div data-aos="fade-up" class="hero-actions">
+            <?php if (empty(get_config('disable_registration'))) { ?><a href="#" data-toggle="modal" data-target="#register-modal" class="btn-get-started"><?php elang('create_account'); ?></a><?php } ?>
+            <a href="#journey" class="btn-get-started btn-hero-secondary scrollto"><?php elang('follow_journey'); ?></a>
+        </div>
     </div>
 </section>
 <header id="header" class="d-flex align-items-center">
@@ -57,12 +63,13 @@
         <div class="logo d-block d-lg-none">
             <a href="index.php"><img
                         src="<?php echo $antiXss->xss_clean(get_config("baseurl")); ?>/template/<?php echo $antiXss->xss_clean(get_config("template")); ?>/assets/img/logo.png"
-                        alt="" class="img-fluid"></a>
+                        alt="" class="img-fluid"><span class="logo-title"><?php echo $antiXss->xss_clean(get_config("page_title")); ?></span></a>
         </div>
         <nav class="nav-menu d-none d-lg-block">
             <ul class="nav-inner">
                 <li class="active"><a href=""><?php elang('home');  ?></a></li>
-                <li><a href="#about"><?php elang('about');  ?></a></li>
+                <li><a href="#journey"><?php elang('journey');  ?></a></li>
+                <li><a href="#features"><?php elang('features');  ?></a></li>
                 <li><a href="#connect"><?php elang('how_to_connect');  ?></a></li>
                 <li class="nav-logo"><a href="index.php"><img
                                 src="<?php echo $antiXss->xss_clean(get_config("baseurl")); ?>/template/<?php echo $antiXss->xss_clean(get_config("template")); ?>/assets/img/logo.png"
