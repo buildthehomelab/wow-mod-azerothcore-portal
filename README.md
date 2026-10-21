@@ -49,7 +49,7 @@ Generate a password, e.g. with `openssl rand -base64 24`. Put it in two places:
 | `TRAEFIK_NETWORK` | The Docker network Traefik is on (`docker network ls`). |
 | `SERVICE_NAME` | Subdomain for the site, e.g. `register`. |
 | `DOMAIN` | Your domain, e.g. `example.com`. The site is served at `https://SERVICE_NAME.DOMAIN`. |
-| `AC_NETWORK_NAME` | AzerothCore's network. Find it with `docker network ls \| grep ac-network`. It's usually `<azerothcore folder>_ac-network` (on TrueNAS SCALE, `ix-azerothcore_ac-network`). |
+| `AC_NETWORK_NAME` | AzerothCore's network. Find it with `docker network ls \| grep ac-network`. It's usually `<azerothcore folder>_ac-network`. |
 | `REALMLIST` | The address players put in `realmlist.wtf`: your server's public IP or hostname. Leave empty to use the address from [mod-realm-config](#portalkeeper-and-mod-realm-config). |
 | `REALM_NAME` | Realm name shown on the site. Leave empty to use the name from mod-realm-config. |
 | `SITE_TITLE` | Title shown in the browser tab and header. |
