@@ -223,10 +223,13 @@ With it on, the home page's "How to connect" shows three steps instead of the ma
 | `GET api/launcher/version.php` | The newest launcher release, `{"tag", "version"}`. No login needed. |
 | `POST api/launcher/version.php` | The launcher's release workflow announces a new release: `{"tag", "time"}`, signed with `LAUNCHER_RELEASE_SECRET` |
 | `api/launcher/combatlog.php` | Combat log uploads from players who opted in, see [Combat logs](#combat-logs) |
+| `api/launcher/crashreport.php` | Crash reports players agreed to send, see [Crash reports](#crash-reports) |
+| `GET api/launcher/live.php` | Players online, uptime and a pending restart, events on, rares up. No login needed. See [Live info and what's new](#live-info-and-whats-new) |
+| `GET api/launcher/whatsnew.php?since=<time>` | The patch notes merged since then. No login needed. |
 | `api/launcher/announce.php/<passkey>` | Tracker announce URL, inside the player's torrent |
 | `api/launcher/seed.php/<passkey>/` | Web seed URL, inside the player's torrent |
 
-Send the token as `Authorization: Bearer <token>` (except to `version.php`). Each player's torrent carries their own passkey in the announce and web seed URLs. Those sit outside the torrent's info dictionary, so every player still has the same info hash and joins the same swarm.
+Send the token as `Authorization: Bearer <token>` (except to `version.php`, `live.php` and `whatsnew.php`). Each player's torrent carries their own passkey in the announce and web seed URLs. Those sit outside the torrent's info dictionary, so every player still has the same info hash and joins the same swarm.
 
 **Launcher updates:** Portalkeeper asks `version.php` every minute and updates itself when there's a newer release. The portal learns about a release in two ways:
 
@@ -316,6 +319,33 @@ curl -H "X-Portal-Key: $KEY" https://SERVICE_NAME.DOMAIN/api/combatlogs.php
 ### What the launcher sends
 
 Every request carries the player's launcher token. `GET api/launcher/combatlog.php` says whether the realm collects logs (404 when it doesn't), which is what makes the launcher show the setting. An upload is `POST ?action=begin` with the gzip file's size and SHA-256, then `?action=part&upload=<id>&offset=<n>` with at most 4 MiB at a time, then `?action=finish`, which checks the size and checksum. Sending the same file again resumes it or answers that it's already here, so the launcher simply retries after a failure.
+
+## Crash reports
+
+When World of Warcraft crashes, the launcher finds the error report the game wrote (`Errors/*.txt`) and asks the player whether to send it. They can also tick **Send crash reports** in its settings to always send them. The `User:` and `Computer:` lines and the user folder in every path (`C:\Users\<name>`) are taken out first, by the launcher and again by the portal. Each report gets a one-line summary such as `ERROR #132 · ACCESS_VIOLATION at 0081D559`.
+
+1. **`.env`:** set `CRASHREPORT_ENABLED=true` (the launcher API has to be on too). The reports open with `COMBATLOG_VIEW_KEY`, or set `CRASHREPORT_VIEW_KEY` for a key of their own. Run `docker compose up -d --build`.
+2. Read them with the key as `X-Portal-Key`:
+
+| Request | Answer |
+| --- | --- |
+| `GET api/crashreports.php` | The reports, newest first: account, when, summary, the files' names and sizes |
+| `GET api/crashreports.php?report=<id>` | One report, with each error file's text |
+
+Reports live in the `portal-crashreports` volume (or `CRASHREPORT_HOST_DIR`), one JSON file each, and are deleted after `CRASHREPORT_KEEP_DAYS` (90; 0 keeps them). An account can send 10 a day, each at most 4 files of 256 KB, and all reports together may take `CRASHREPORT_MAX_MB` (200). The launcher asks `GET api/launcher/crashreport.php` first and never offers to send when it answers 404.
+
+## Live info and what's new
+
+The launcher's home screen shows what is going on in the realm and what changed since the player last played. Both endpoints need only `LAUNCHER_ENABLED=true`, and each part simply stays off when its source isn't set up.
+
+`GET api/launcher/live.php`, cached for `LIVE_CACHE_SECONDS` (30) for every launcher together:
+
+- **Players online**, counted apart from bots (accounts matching `LIVE_BOT_ACCOUNTS`, default `RNDBOT%`).
+- **Uptime and a pending restart**, from `.server info` over SOAP (`SOAP_URL`, `SOAP_USER`, `SOAP_PASSWORD`, as for the coin shop). A shutdown or restart counting down shows as "Restart in 9 min".
+- **World events that are on**, from `.event activelist` over SOAP. With the `game_event` line of [docker/create-db-user.sql.example](docker/create-db-user.sql.example) granted, only holidays are listed. Add custom events with `LIVE_SHOW_EVENTS` and drop any with `LIVE_HIDE_EVENTS` (comma-separated ids).
+- **Rares up and world bosses**, from the rare tracker (`RARE_TRACKER_URL`).
+
+`GET api/launcher/whatsnew.php?since=<unix time or ISO 8601>` returns the [patch notes](#patch-notes-changelogphp) that are new since then, newest first, as plain text. A note counts from when it first showed in the patch notes (for a server module, once the realm runs it), not from its merge date; the first-seen times are kept next to the patch notes cache. It reads that cache only, never GitHub, so it answers 503 until `changelog.php` has been opened once after a deploy, and it only learns about new notes when `changelog.php` refreshes the cache.
 
 ## Coin shop
 

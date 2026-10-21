@@ -20,6 +20,8 @@ RUN apt-get update \
 RUN mkdir -p /var/cache/portal && chown www-data:www-data /var/cache/portal
 # Shared combat logs (COMBATLOG_DIR), a volume the same way.
 RUN mkdir -p /srv/combatlogs && chown www-data:www-data /srv/combatlogs
+# Crash reports from the launcher (CRASHREPORT_DIR), a volume the same way.
+RUN mkdir -p /srv/crashreports && chown www-data:www-data /srv/crashreports
 
 COPY docker/apache-security.conf /etc/apache2/conf-enabled/zz-security.conf
 COPY --chown=www-data:www-data . /var/www/html/
