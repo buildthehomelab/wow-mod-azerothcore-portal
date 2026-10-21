@@ -47,39 +47,14 @@ function shop_dir(): ?string
 }
 
 /**
- * Runs a console command on the worldserver over SOAP and returns the JSON line it answered,
- * or null when the worldserver couldn't be reached or answered something else. The worldserver
- * takes SOAP calls one at a time, each waiting for its next world update: `$timeout` keeps a
- * slow server from holding this request (and its Apache worker) for long.
+ * Runs a console command on the worldserver over SOAP (launcher_soap()) and returns the JSON line it
+ * answered, or null when the worldserver couldn't be reached or answered something else.
  */
 function shop_soap(string $command, int $timeout): ?array
 {
-    $user = launcher_env('SOAP_USER');
-    if ($user === '') {
-        error_log('shop: SOAP_USER is not set');
+    $answer = launcher_soap($command, $timeout);
+    if ($answer === null) {
         return null;
-    }
-
-    $previousTimeout = ini_set('default_socket_timeout', (string)$timeout);
-    try {
-        $client = new SoapClient(null, [
-            'location' => launcher_env('SOAP_URL', 'http://ac-worldserver:7878/'),
-            'uri' => 'urn:AC',
-            'style' => SOAP_RPC,
-            'login' => $user,
-            'password' => launcher_env('SOAP_PASSWORD'),
-            'connection_timeout' => 5,
-            'exceptions' => true,
-            'cache_wsdl' => WSDL_CACHE_NONE,
-        ]);
-        $answer = (string)$client->executeCommand(new SoapParam($command, 'command'));
-    } catch (Throwable $e) {
-        error_log('shop: SOAP command failed: ' . $e->getMessage());
-        return null;
-    } finally {
-        if ($previousTimeout !== false) {
-            ini_set('default_socket_timeout', $previousTimeout);
-        }
     }
 
     // The command prints one JSON line; anything around it (an empty line) is skipped.

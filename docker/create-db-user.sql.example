@@ -16,4 +16,7 @@ GRANT SELECT                 ON acore_auth.account_banned TO 'wow_register'@'%';
 -- creature data instead of guessing them from the log.
 GRANT SELECT                 ON acore_world.creature_template   TO 'wow_register'@'%';
 GRANT SELECT                 ON acore_world.instance_encounters TO 'wow_register'@'%';
+-- Launcher home screen (api/launcher/live.php), optional: shows only holidays among the world events
+-- that are on, instead of every active event (fishing pools, arena seasons and the like).
+GRANT SELECT                 ON acore_world.game_event          TO 'wow_register'@'%';
 FLUSH PRIVILEGES;

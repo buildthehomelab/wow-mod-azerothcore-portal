@@ -79,6 +79,16 @@ services:
       COMBATLOG_KEEP_DAYS: ${COMBATLOG_KEEP_DAYS:-60}
       COMBATLOG_MAX_MB: ${COMBATLOG_MAX_MB:-512}
       COMBATLOG_BOT_ACCOUNTS: ${COMBATLOG_BOT_ACCOUNTS:-RNDBOT%}
+      CRASHREPORT_ENABLED: ${CRASHREPORT_ENABLED:-false}
+      CRASHREPORT_DIR: /srv/crashreports
+      CRASHREPORT_VIEW_KEY: ${CRASHREPORT_VIEW_KEY:-}
+      CRASHREPORT_KEEP_DAYS: ${CRASHREPORT_KEEP_DAYS:-90}
+      CRASHREPORT_MAX_MB: ${CRASHREPORT_MAX_MB:-200}
+      LIVE_CACHE_SECONDS: ${LIVE_CACHE_SECONDS:-30}
+      LIVE_CACHE_DIR: /var/cache/portal/live
+      LIVE_BOT_ACCOUNTS: ${LIVE_BOT_ACCOUNTS:-RNDBOT%}
+      LIVE_SHOW_EVENTS: ${LIVE_SHOW_EVENTS:-}
+      LIVE_HIDE_EVENTS: ${LIVE_HIDE_EVENTS:-}
       SHOP_ENABLED: ${SHOP_ENABLED:-false}
       SHOP_CACHE_SECONDS: ${SHOP_CACHE_SECONDS:-15}
       SHOP_BUYS_PER_MINUTE: ${SHOP_BUYS_PER_MINUTE:-6}
@@ -101,6 +111,8 @@ services:
       - ${LAUNCHER_CLIENT_DIR:-./launcher-client}:/srv/launcher/client:ro
       # Combat logs players share from the launcher, and their digests
       - ${COMBATLOG_HOST_DIR:-portal-combatlogs}:/srv/combatlogs
+      # Crash reports players send from the launcher
+      - ${CRASHREPORT_HOST_DIR:-portal-crashreports}:/srv/crashreports
     networks:
       - ac-network   # to reach ac-database
       - traefik      # so Traefik can reach this container
@@ -108,6 +120,7 @@ services:
 volumes:
   portal-cache:
   portal-combatlogs:
+  portal-crashreports:
 
 networks:
   ac-network:

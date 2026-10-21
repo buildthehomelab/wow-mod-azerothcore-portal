@@ -588,3 +588,40 @@ function launcher_torrents(): array
     }
     return $torrents;
 }
+
+/**
+ * Runs a console command on the worldserver over SOAP (SOAP_URL, SOAP_USER, SOAP_PASSWORD) and returns
+ * what it printed, or null when SOAP isn't set up or the worldserver couldn't be reached. The
+ * worldserver takes SOAP calls one at a time, each waiting for its next world update: `$timeout` keeps
+ * a slow server from holding this request (and its Apache worker) for long.
+ */
+function launcher_soap(string $command, int $timeout): ?string
+{
+    $user = launcher_env('SOAP_USER');
+    if ($user === '') {
+        error_log('launcher: SOAP_USER is not set');
+        return null;
+    }
+
+    $previousTimeout = ini_set('default_socket_timeout', (string)$timeout);
+    try {
+        $client = new SoapClient(null, [
+            'location' => launcher_env('SOAP_URL', 'http://ac-worldserver:7878/'),
+            'uri' => 'urn:AC',
+            'style' => SOAP_RPC,
+            'login' => $user,
+            'password' => launcher_env('SOAP_PASSWORD'),
+            'connection_timeout' => 5,
+            'exceptions' => true,
+            'cache_wsdl' => WSDL_CACHE_NONE,
+        ]);
+        return (string)$client->executeCommand(new SoapParam($command, 'command'));
+    } catch (Throwable $e) {
+        error_log('launcher: SOAP command failed: ' . $e->getMessage());
+        return null;
+    } finally {
+        if ($previousTimeout !== false) {
+            ini_set('default_socket_timeout', $previousTimeout);
+        }
+    }
+}
