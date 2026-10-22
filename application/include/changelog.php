@@ -192,6 +192,153 @@ function cl_manifest(): ?array
     return $pins;
 }
 
+/** error_log() at most once an hour per key, for conditions every page view would otherwise repeat. */
+function cl_warn_hourly(string $key, string $message): void
+{
+    $marker = cl_cache_dir() . '/portal-changelog-warned-' . $key;
+    clearstatcache(true, $marker);
+    if (is_file($marker) && filemtime($marker) + 3600 > time()) {
+        return;
+    }
+    @touch($marker);
+    error_log($message);
+}
+
+/**
+ * The realm right now: when the world server last started ('start', from acore_auth.uptime, which
+ * needs the uptime grant in docker/create-db-user.sql.example) and whether it answers at
+ * WORLDSERVER_ADDRESS ('online'). Either is null when it can't be told. Asked once per request.
+ */
+function cl_realm_state(): array
+{
+    static $state = null;
+    if ($state !== null) {
+        return $state;
+    }
+    $state = ['start' => null, 'online' => null];
+
+    if (cl_env('DB_PASS') !== '') {
+        $realm = (int)cl_env('REALM_ID', '1');
+        try {
+            ini_set('mysqlnd.net_read_timeout', '2'); // ATTR_TIMEOUT only bounds the connect
+            $pdo = new PDO(
+                sprintf('mysql:host=%s;port=%s;dbname=%s', cl_env('DB_HOST', 'ac-database'), cl_env('DB_PORT', '3306'), cl_env('DB_AUTH_NAME', 'acore_auth')),
+                cl_env('DB_USER', 'wow_register'),
+                cl_env('DB_PASS'),
+                [PDO::ATTR_TIMEOUT => 2, PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+            );
+            $query = $pdo->prepare('SELECT MAX(starttime) FROM uptime WHERE realmid = ?');
+            $query->execute([$realm]);
+            $start = $query->fetchColumn();
+            if ($start === null || $start === false) {
+                cl_warn_hourly('realm-start', "changelog: acore_auth.uptime has no row for realm $realm (REALM_ID); server-module changes show when the modules folder changes instead of at the restart");
+            } else {
+                $state['start'] = (int)$start;
+            }
+        } catch (PDOException $e) {
+            cl_warn_hourly('realm-start', 'changelog: realm start time unknown (' . $e->getMessage()
+                . '); server-module changes show when the modules folder changes instead of at the restart');
+        }
+    }
+
+    $address = getenv('WORLDSERVER_ADDRESS');
+    if ($address === false) {
+        $address = 'ac-worldserver:8085'; // set but empty (or "off"): never probe
+    }
+    if (preg_match('/^(.+):(\d+)$/', $address, $match)) {
+        $socket = @fsockopen($match[1], (int)$match[2], $errno, $errstr, 1.0);
+        $state['online'] = $socket !== false;
+        if ($socket !== false) {
+            fclose($socket);
+        }
+    }
+    return $state;
+}
+
+/**
+ * What the realm runs, as of its last restart. The modules/ folder changes when the operator pulls,
+ * often hours before the build that uses it runs, so cl_manifest() is only read again when the world
+ * server is down (the restart that brings the new build: players locked out meanwhile can read what's
+ * coming) or has a new start time. While the start time can't be read, the folder is read once per
+ * cache period, as before.
+ *
+ * The snapshot (portal-changelog-live.json) keeps the pins with the start time they were read under,
+ * 'taken' and 'offline' (when and in which state they were read, for the once-per-period rules) and
+ * 'seen_online': the probe only counts as "down" once it has seen the realm up, so a wrong
+ * WORLDSERVER_ADDRESS degrades to start times alone (with a log line) instead of looking like a
+ * never-ending outage.
+ */
+function cl_live_manifest(): ?array
+{
+    static $pins = false;
+    if ($pins !== false) {
+        return $pins;
+    }
+    $file = cl_cache_dir() . '/portal-changelog-live.json';
+    $snapshot = is_file($file) ? json_decode((string)file_get_contents($file), true) : null;
+    $known = is_array($snapshot) && array_key_exists('pins', $snapshot);
+    $state = cl_realm_state();
+    $seenOnline = ($known && !empty($snapshot['seen_online'])) || $state['online'] === true;
+    $offline = cl_realm_offline($known && !empty($snapshot['seen_online']));
+    $ttl = max(60, (int)cl_env('CHANGELOG_CACHE_SECONDS', '600'));
+
+    // A snapshot is reused while it is from this session (or, without start times, this cache period).
+    // While the realm is down, one read per period is enough once a snapshot was taken down.
+    $young = ($snapshot['taken'] ?? 0) + $ttl > time();
+    $trusted = $known
+        && ($state['start'] !== null ? $state['start'] === ($snapshot['start'] ?? null) : $young)
+        && (!$offline || (!empty($snapshot['offline']) && $young));
+    $fresh = $trusted
+        ? ['start' => $snapshot['start'] ?? null, 'pins' => $snapshot['pins'], 'taken' => $snapshot['taken'] ?? time(), 'offline' => !empty($snapshot['offline'])]
+        : ['start' => $state['start'], 'pins' => cl_manifest(), 'taken' => time(), 'offline' => $offline];
+    $fresh['seen_online'] = $seenOnline;
+    if (!$known || array_diff_key($fresh, $snapshot) || array_intersect_key($snapshot, $fresh) != $fresh) {
+        // Write beside the target and rename, so a concurrent reader never gets a half-written file.
+        $temp = $file . '.' . getmypid() . '.tmp';
+        if (file_put_contents($temp, json_encode($fresh)) !== false && !@rename($temp, $file)) {
+            @unlink($temp);
+        }
+    }
+    return $pins = $fresh['pins'];
+}
+
+/**
+ * True while the world server is down for real: the probe fails and has seen the realm up before
+ * ($seenBefore, from the snapshot; cl_live_manifest() passes it, later callers reuse the answer).
+ * A probe that never saw the realm up is most likely a wrong WORLDSERVER_ADDRESS and is logged.
+ */
+function cl_realm_offline(?bool $seenBefore = null): bool
+{
+    static $offline = null;
+    if ($seenBefore === null) {
+        if ($offline === null) {
+            try {
+                cl_live_manifest();
+            } catch (RuntimeException $e) {
+                return false;
+            }
+        }
+        return (bool)$offline;
+    }
+    $state = cl_realm_state();
+    $offline = $state['online'] === false && $seenBefore;
+    if ($state['online'] === false && !$seenBefore) {
+        cl_warn_hourly('world-probe', 'changelog: no answer from WORLDSERVER_ADDRESS (' . getenv('WORLDSERVER_ADDRESS')
+            . ') and the realm has never been seen up from here: check the address; restarts are told by start time only until it answers');
+    }
+    return $offline;
+}
+
+/** A short name for a manifest, so a cache built for other module versions can be told apart. */
+function cl_manifest_hash(?array $pins): string
+{
+    if ($pins === null) {
+        return '';
+    }
+    ksort($pins);
+    return sha1(json_encode($pins));
+}
+
 /** Commit date of a pinned commit. Commits never change, so answers are kept forever. */
 function cl_commit_date(string $slug, string $sha, array &$known): ?string
 {
@@ -299,7 +446,7 @@ function cl_fetch(array &$memo): array
 
     // When the realm's manifest is known: [repo name => pinned commit date, or false = not installed].
     $live = [];
-    $pins = cl_manifest();
+    $pins = cl_live_manifest();
     if ($pins !== null) {
         foreach ($repos as $name => $repo) {
             $slug = strtolower($repo['full_name']);
@@ -359,7 +506,7 @@ function cl_fetch(array &$memo): array
         }
     }
 
-    return ['built' => time(), 'gated' => $pins !== null, 'entries' => $entries];
+    return ['built' => time(), 'manifest' => cl_manifest_hash($pins), 'gated' => $pins !== null, 'entries' => $entries];
 }
 
 /**
@@ -377,6 +524,9 @@ function cl_cache_dir(): string
  * GitHub fails. A failed build keeps the lookups that did work, and GitHub isn't asked again for
  * CL_RETRY_SECONDS, so a build that runs out of requests (60 an hour without GITHUB_TOKEN) gets
  * further each hour instead of starting over on every page view.
+ *
+ * A copy built for other module versions counts as stale whatever its age, so a restart that brings
+ * new modules shows on the page at once rather than at the end of the cache period.
  */
 function cl_data(): ?array
 {
@@ -388,9 +538,16 @@ function cl_data(): ?array
         clearstatcache(true, $failedFile);
         return is_file($failedFile) && filemtime($failedFile) + CL_RETRY_SECONDS > time();
     };
+    try {
+        $manifest = cl_manifest_hash(cl_live_manifest());
+    } catch (RuntimeException $e) {
+        $manifest = null; // an unreadable CHANGELOG_MANIFEST: the rebuild below reports it
+    }
+    $current = static fn(?array $data): bool => $data && $data['built'] + $ttl > time()
+        && ($manifest === null || ($data['manifest'] ?? null) === $manifest);
 
     $cached = is_file($file) ? json_decode((string)file_get_contents($file), true) : null;
-    if (($cached && $cached['built'] + $ttl > time()) || $failedLately()) {
+    if ($current($cached) || $failedLately()) {
         return $cached;
     }
 
@@ -401,7 +558,7 @@ function cl_data(): ?array
     }
     try {
         $fresh = is_file($file) ? json_decode((string)file_get_contents($file), true) : null;
-        if ($fresh && $fresh['built'] + $ttl > time()) {
+        if ($current($fresh)) {
             return $fresh;
         }
         if ($failedLately()) {

@@ -19,4 +19,8 @@ GRANT SELECT                 ON acore_world.instance_encounters TO 'wow_register
 -- Launcher home screen (api/launcher/live.php), optional: shows only holidays among the world events
 -- that are on, instead of every active event (fishing pools, arena seasons and the like).
 GRANT SELECT                 ON acore_world.game_event          TO 'wow_register'@'%';
+-- Patch notes (CHANGELOG_ORG with AC_MODULES_DIR), recommended: lets the page see when the world
+-- server last started, so server-module changes appear with the restart that brings them rather
+-- than when the modules folder is pulled.
+GRANT SELECT                 ON acore_auth.uptime               TO 'wow_register'@'%';
 FLUSH PRIVILEGES;

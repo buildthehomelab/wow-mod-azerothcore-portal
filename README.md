@@ -65,6 +65,7 @@ Generate a password, e.g. with `openssl rand -base64 24`. Put it in two places:
 | `DB_USER` / `DB_PASS` | Leave `DB_USER` as `wow_register` unless you changed it in the SQL file. |
 | `DB_PORT` | AzerothCore's MySQL port inside the Docker network. Leave at `3306` unless you changed it. |
 | `AC_MODULES_DIR` | Optional. AzerothCore's `modules/` folder on the host, so the [patch notes](#patch-notes-changelogphp) only show what the realm runs. |
+| `WORLDSERVER_ADDRESS` | Where the world server listens inside the Docker network, default `ac-worldserver:8085`. The [patch notes](#patch-notes-changelogphp) use it to tell when the realm is down for a restart. |
 | `REALM_CONFIG_DIR` | Optional. Host folder mod-realm-config writes `<realm_key>.realm.conf` to. See [below](#portalkeeper-and-mod-realm-config). |
 | `DEBUG_MODE` | Set to `true` to show PHP errors while troubleshooting. Turn it back off afterwards. |
 
@@ -437,6 +438,18 @@ of a GitHub user or organization, so nothing has to be written twice.
    show as soon as they're merged. Without `AC_MODULES_DIR`, everything shows as soon as it's
    merged. To read the versions from somewhere else, set `CHANGELOG_MANIFEST` to a `modules.tsv`
    file (folder, url, branch, commit) or `owner/repo:path/modules.tsv` on GitHub.
+
+   The versions are read again only when the world server restarts, not whenever the folder
+   changes: pulling the modules before a build doesn't put their changes on the page yet. They
+   appear the moment the server goes down for the restart that brings them, when players waiting to
+   log back in can read what's coming, and the page rebuilds right then instead of at the end of
+   `CHANGELOG_CACHE_SECONDS`. For that, grant the `uptime` line of
+   [docker/create-db-user.sql.example](docker/create-db-user.sql.example) (the realm's start time)
+   and leave `WORLDSERVER_ADDRESS` at `ac-worldserver:8085`, or set it to wherever the world server
+   listens inside the Docker network (empty or `off` never probes; a probe that has never seen the
+   realm up is ignored and logged, so a wrong address can't look like an outage). Without the grant,
+   the folder is read once per cache period, as before. Any restart counts, including one without a
+   new build, so pull the modules right before you build.
 
 ### Where the text comes from
 
