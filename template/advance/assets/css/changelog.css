@@ -103,6 +103,7 @@ img { flex: none; }
 }
 
 .pn-lede { margin: 12px 0 0; color: var(--pn-text); font-size: 16px; }
+.pn-offline { color: var(--pn-gold); font-style: italic; }
 
 .pn-empty { padding: 64px 24px; text-align: center; color: var(--pn-muted); }
 

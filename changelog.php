@@ -96,6 +96,10 @@ $printSection = static function (string $section, array $subs) use ($h, $icon, $
         <?php if ($latest) { ?>
             <p class="pn-lede">Latest update <a href="#<?php echo $h($latest); ?>"><?php echo $h($longDate($latest)); ?></a></p>
         <?php } ?>
+        <?php if ($enabled && cl_realm_offline()) { ?>
+            <p class="pn-lede pn-offline">The realm is offline right now, usually for an update.
+                <?php echo ($data && ($data['manifest'] ?? null) === cl_manifest_hash(cl_live_manifest())) ? 'These notes already include what&rsquo;s coming.' : 'The notes for it will be here in a few minutes.'; ?></p>
+        <?php } ?>
     </div>
 </header>
 
