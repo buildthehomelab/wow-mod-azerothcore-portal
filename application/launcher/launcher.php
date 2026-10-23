@@ -12,7 +12,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../include/functions.php'; // verifySRP6()
 require_once __DIR__ . '/bencode.php';
 
-const LAUNCHER_SCHEMA_VERSION = 3;
+const LAUNCHER_SCHEMA_VERSION = 4;
 
 // Failed password checks (launcher login and the website's Change Password form) share one counter.
 const LAUNCHER_FAILURE_WINDOW = 900;   // seconds
@@ -172,9 +172,19 @@ function launcher_schema(PDO $pdo): void
         mtime BIGINT NOT NULL,
         info_hash BINARY(20) NOT NULL,
         raw_info MEDIUMBLOB NOT NULL,
+        sha256 BINARY(32) NULL,
         created_at INT UNSIGNED NOT NULL,
         KEY info_hash (info_hash)
     ) ENGINE=InnoDB');
+    // Version 4: the file's SHA-256, checked against realm.conf (rows from before have none and are
+    // made again once).
+    try {
+        $pdo->exec('ALTER TABLE launcher_patch_torrent ADD COLUMN sha256 BINARY(32) NULL AFTER raw_info');
+    } catch (PDOException $e) {
+        if (($e->errorInfo[1] ?? 0) !== 1060) { // 1060: the column is there already
+            throw $e;
+        }
+    }
 
     @touch($flag);
 }
@@ -467,6 +477,57 @@ function launcher_patch_url(): string
     return rtrim(launcher_env('LAUNCHER_PATCH_URL', launcher_seed_url() . '/realm'), '/') . '/';
 }
 
+/** The folders searched for realm.conf files (mod-realm-config's output): the realm folder and the patch folder. */
+function launcher_realm_conf_dirs(): array
+{
+    $dirs = [rtrim(launcher_env('LAUNCHER_REALM_CONF_DIR', '/var/www/html/realm'), '/'), launcher_patch_dir()];
+    return array_values(array_unique($dirs));
+}
+
+/**
+ * The SHA-256s (lowercase hex) the realm.conf files give a patch file: every [Patch.*] section whose
+ * FileName, or the file name at the end of its SourceURL, is $name. Empty when no realm.conf names it.
+ */
+function launcher_patch_expected_sha256(string $name): array
+{
+    $hashes = [];
+    foreach (launcher_realm_conf_dirs() as $dir) {
+        foreach (glob($dir . '/*.realm.conf') ?: [] as $file) {
+            $section = null;
+            $fields = [];
+            $lines = @file($file, FILE_IGNORE_NEW_LINES) ?: [];
+            $lines[] = '[end]';
+            foreach ($lines as $line) {
+                $line = trim($line);
+                if (preg_match('/^\[(.+)\]$/', $line, $match)) {
+                    if ($section !== null && strncmp($section, 'Patch.', 6) === 0
+                        && (($fields['FileName'] ?? '') === $name
+                            || basename(rawurldecode((string)parse_url($fields['SourceURL'] ?? '', PHP_URL_PATH))) === $name)
+                        && preg_match('/^[0-9a-fA-F]{64}$/', $fields['SHA256'] ?? '')) {
+                        $hashes[strtolower($fields['SHA256'])] = true;
+                    }
+                    $section = $match[1];
+                    $fields = [];
+                    continue;
+                }
+                $pos = strpos($line, '=');
+                if ($line !== '' && $line[0] !== '#' && $line[0] !== ';' && $pos !== false) {
+                    $fields[trim(substr($line, 0, $pos))] = trim(substr($line, $pos + 1));
+                }
+            }
+        }
+    }
+    return array_keys($hashes);
+}
+
+/** A patch that can't get a torrent right now: still being copied in, or not the file realm.conf names (yet). */
+class LauncherPatchNotReady extends RuntimeException
+{
+}
+
+/** Seconds a patch file must sit unchanged before it is hashed: a copy still being written isn't. */
+const LAUNCHER_PATCH_SETTLE = 60;
+
 /** Lock files for patch hashing (only coordinates concurrent requests; the torrents live in the database). */
 function launcher_patch_lock_dir(): string
 {
@@ -475,12 +536,18 @@ function launcher_patch_lock_dir(): string
 
 /**
  * A single-file torrent for one patch MPQ in the realm folder, so players share patches with each
- * other. The realm folder stays the source of truth: the torrent is made from whatever file is there
- * now, stored in launcher_patch_torrent per file size and modification time (so it survives
- * restarts and the tracker keeps accepting it), and a replaced patch simply gets a new torrent.
- * Hashing a 2 GB patch takes a few seconds, once per version.
+ * other. The realm folder stays the source of truth: the torrent is made from the file there now,
+ * stored in launcher_patch_torrent per file size and modification time (so it survives restarts
+ * and the tracker keeps accepting it), and a replaced patch simply gets a new torrent. Hashing a
+ * 2 GB patch takes a few seconds, once per version.
+ *
+ * A torrent is only made from a finished file, and only kept when the file's SHA-256 is the one a
+ * realm.conf gives it: one hashed while a new patch was still being copied in described bytes that
+ * never existed, and every launcher that got it failed the SHA-256 check until the file was
+ * touched. A patch no realm.conf names gets its torrent unchecked.
  *
  * @return array{name:string, length:int, info_hash:string, raw_info:string}|null null when there's no such patch
+ * @throws LauncherPatchNotReady while the file is being written, or isn't the one realm.conf names
  */
 function launcher_patch_torrent(PDO $pdo, string $name): ?array
 {
@@ -494,11 +561,17 @@ function launcher_patch_torrent(PDO $pdo, string $name): ?array
     }
     $size = filesize($path);
     $mtime = filemtime($path);
+    $expected = launcher_patch_expected_sha256($name);
 
-    $find = $pdo->prepare('SELECT info_hash, raw_info FROM launcher_patch_torrent WHERE name = ? AND size = ? AND mtime = ?');
+    $find = $pdo->prepare('SELECT info_hash, raw_info, sha256 FROM launcher_patch_torrent WHERE name = ? AND size = ? AND mtime = ?');
+    $usable = static fn($row) => $row !== false && ($expected === []
+        || ($row['sha256'] !== null && in_array(bin2hex((string)$row['sha256']), $expected, true)));
     $find->execute([$name, $size, $mtime]);
-    if (($row = $find->fetch()) !== false) {
+    if ($usable($row = $find->fetch())) {
         return ['name' => $name, 'length' => $size, 'info_hash' => (string)$row['info_hash'], 'raw_info' => (string)$row['raw_info']];
+    }
+    if (time() - $mtime < LAUNCHER_PATCH_SETTLE) {
+        throw new LauncherPatchNotReady($name . ' is still being copied in.');
     }
 
     // One request hashes a new version; the others wait for it.
@@ -511,8 +584,13 @@ function launcher_patch_torrent(PDO $pdo, string $name): ?array
         flock($lock, LOCK_EX);
     }
     try {
+        // Another request may have hashed it while this one waited, or the file changed meanwhile.
+        clearstatcache(true, $path);
+        if (!is_file($path) || filesize($path) !== $size || filemtime($path) !== $mtime) {
+            throw new LauncherPatchNotReady($name . ' is being replaced.');
+        }
         $find->execute([$name, $size, $mtime]);
-        if (($row = $find->fetch()) !== false) {
+        if ($usable($row = $find->fetch())) {
             return ['name' => $name, 'length' => $size, 'info_hash' => (string)$row['info_hash'], 'raw_info' => (string)$row['raw_info']];
         }
 
@@ -524,24 +602,38 @@ function launcher_patch_torrent(PDO $pdo, string $name): ?array
 
         set_time_limit(0);
         $pieces = '';
+        $whole = hash_init('sha256');
+        $read = 0;
         $handle = fopen($path, 'rb');
-        while (!feof($handle)) {
+        while ($read < $size && !feof($handle)) {
             $piece = '';
-            while (strlen($piece) < $pieceLength && !feof($handle)) {
-                $piece .= (string)fread($handle, $pieceLength - strlen($piece));
+            while (strlen($piece) < $pieceLength && $read + strlen($piece) < $size && !feof($handle)) {
+                $piece .= (string)fread($handle, min($pieceLength - strlen($piece), $size - $read - strlen($piece)));
             }
             if ($piece !== '') {
                 $pieces .= sha1($piece, true);
+                hash_update($whole, $piece);
+                $read += strlen($piece);
             }
         }
         fclose($handle);
+        $sha256 = hash_final($whole, true);
+
+        clearstatcache(true, $path);
+        if ($read !== $size || !is_file($path) || filesize($path) !== $size || filemtime($path) !== $mtime) {
+            throw new LauncherPatchNotReady($name . ' changed while it was being hashed.');
+        }
+        if ($expected !== [] && !in_array(bin2hex($sha256), $expected, true)) {
+            // A new file before its realm.conf row, or a broken copy: no torrent until they agree.
+            throw new LauncherPatchNotReady($name . ' is not the file realm.conf names.');
+        }
 
         $rawInfo = bencode(['length' => $size, 'name' => $name, 'piece length' => $pieceLength, 'pieces' => $pieces, 'private' => 1]);
         $infoHash = sha1($rawInfo, true);
         // Older versions of this patch stop being tracked: their files are gone from the realm folder.
         $pdo->prepare('DELETE FROM launcher_patch_torrent WHERE name = ?')->execute([$name]);
-        $pdo->prepare('INSERT INTO launcher_patch_torrent (name, size, mtime, info_hash, raw_info, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-            ->execute([$name, $size, $mtime, $infoHash, $rawInfo, time()]);
+        $pdo->prepare('INSERT INTO launcher_patch_torrent (name, size, mtime, info_hash, raw_info, sha256, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+            ->execute([$name, $size, $mtime, $infoHash, $rawInfo, $sha256, time()]);
         return ['name' => $name, 'length' => $size, 'info_hash' => $infoHash, 'raw_info' => $rawInfo];
     } finally {
         if ($lock !== false) {
