@@ -254,6 +254,8 @@ The portal only names the release. The launcher still downloads the installer fr
 
 Patch torrents need nothing extra: they use the realm folder the portal already serves. Override `LAUNCHER_PATCH_DIR` (default `/var/www/html/realm`) or `LAUNCHER_PATCH_URL` (default `/realm` on the seed host, see below, or on `BASE_URL`) only if the patches live somewhere else.
 
+A patch's torrent is made the first time a launcher asks for it, and only from the file realm.conf names: the portal hashes the file, compares its SHA-256 with the `[Patch.*]` row whose `FileName` is that file, and keeps the torrent only when they match. A file changed in the last minute (still being copied in) or one that doesn't match yet gets a 503, and Portalkeeper downloads it the plain way meanwhile. So upload the new patch, update its realm row, and the torrent follows on its own; there's nothing to touch. The realm.conf files are looked for in `LAUNCHER_REALM_CONF_DIR` (default `/var/www/html/realm`) and the patch folder. A patch no realm.conf names gets its torrent unchecked.
+
 Check it with `curl -X POST -d 'username=you&password=...' https://SERVICE_NAME.DOMAIN/api/launcher/login.php`.
 
 The tracker reads the player's address from the last `X-Forwarded-For` entry, which Traefik adds. That entry is only trusted when the request comes from a private address (Traefik on the Docker network). If you put another proxy such as Cloudflare in front of Traefik, every player shows up with the proxy's address, peers get handed addresses nobody can connect to, and the login throttle counts all players as one address.
