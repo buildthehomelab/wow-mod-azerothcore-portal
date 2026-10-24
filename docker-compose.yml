@@ -97,6 +97,10 @@ services:
       SHOP_CACHE_DIR: /var/cache/portal/shop
       SHOP_PREVIEW_DIR: ${SHOP_PREVIEW_DIR:-/var/www/html/realm/shop}
       SHOP_PREVIEW_URL: ${SHOP_PREVIEW_URL:-}
+      LEGACY_ENABLED: ${LEGACY_ENABLED:-false}
+      LEGACY_CACHE_SECONDS: ${LEGACY_CACHE_SECONDS:-10}
+      LEGACY_SAVES_PER_MINUTE: ${LEGACY_SAVES_PER_MINUTE:-6}
+      LEGACY_CACHE_DIR: /var/cache/portal/legacy
       SOAP_URL: ${SOAP_URL:-http://ac-worldserver:7878/}
       SOAP_USER: ${SOAP_USER:-}
       SOAP_PASSWORD: ${SOAP_PASSWORD:-}

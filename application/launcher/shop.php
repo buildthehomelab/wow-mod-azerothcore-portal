@@ -47,32 +47,6 @@ function shop_dir(): ?string
 }
 
 /**
- * Runs a console command on the worldserver over SOAP (launcher_soap()) and returns the JSON line it
- * answered, or null when the worldserver couldn't be reached or answered something else.
- */
-function shop_soap(string $command, int $timeout): ?array
-{
-    $answer = launcher_soap($command, $timeout);
-    if ($answer === null) {
-        return null;
-    }
-
-    // The command prints one JSON line; anything around it (an empty line) is skipped.
-    foreach (array_reverse(preg_split('/\r?\n/', $answer)) as $line) {
-        $line = trim($line);
-        if ($line !== '' && $line[0] === '{') {
-            $data = json_decode($line, true);
-            if (is_array($data) && isset($data['ok'])) {
-                return $data;
-            }
-        }
-    }
-
-    error_log('shop: unexpected SOAP answer: ' . substr($answer, 0, 300));
-    return null;
-}
-
-/**
  * The pictures' folder and its public URL: the realm folder's shop/, served at /realm/shop/.
  * Not the patch folder (LAUNCHER_PATCH_DIR), which a realm may keep in a subfolder.
  */
@@ -172,7 +146,7 @@ function shop_list(array $session): never
     }
 
     $started = microtime(true);
-    $answer = shop_soap('.coinshop list ' . $accountId, 8);
+    $answer = launcher_soap_json('.coinshop list ' . $accountId, 8);
     if ($answer === null) {
         launcher_json(503, ['error' => 'The shop can\'t reach the game server right now. Try again in a minute.']);
     }
@@ -267,7 +241,7 @@ function shop_buy(array $session): never
     fflush($lock);
 
     try {
-        $answer = shop_soap(sprintf('.coinshop buy %d %d %d', $accountId, $offer, $character), 20);
+        $answer = launcher_soap_json(sprintf('.coinshop buy %d %d %d', $accountId, $offer, $character), 20);
     } finally {
         // Whatever happened, the balance and what is owned may have changed: drop the listing,
         // and stop a listing asked for meanwhile from being cached.

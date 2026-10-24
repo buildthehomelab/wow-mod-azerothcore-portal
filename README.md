@@ -384,6 +384,14 @@ A strip is `frames` pictures of the same size side by side, left to right, one p
 
 When the game server is down the shop answers 503 and the launcher says so. When a purchase gets no answer (502), it may or may not have gone through. Every wallet change is in the characters table `mod_boss_coins_ledger`.
 
+## Legacy
+
+With mod-legacy on the worldserver, challenges done on any character of an account earn it **Legacy points**, and the launcher gets a **Legacy** page where each character spends up to 16 of them in three perk trees (Adventure, Resourcefulness, Professions). A hardcore character can only spend the points hardcore characters earned. The module keeps the challenges, the trees and every character's build; the portal only asks it over SOAP, like the coin shop.
+
+Set it up like the [coin shop](#coin-shop) (steps 1 and 2: SOAP on the worldserver and a SOAP account), then set `LEGACY_ENABLED=true` in `.env` (the launcher API has to be on too) and run `docker compose up -d --build`.
+
+`GET api/launcher/legacy.php` with a player's token answers what `.legacy list <account>` does: the points earned (all and hardcore), the account's characters with their points and builds, the trees and the challenges, plus `cachedAt`. The launcher shows the Legacy page when it answers 200. `POST` with `{"character": <guid>, "ranks": {"well_rested": 5, "diplomat": 3}}` saves that character's whole build (`{}` resets it) and answers the character as it is now and a message. The portal only lets numbers and perk ids (`[a-z_]`, at most 40 perks, ranks 1 to 9) into the console command; the worldserver checks the rest and answers 409 with a reason when it refuses (`points`, `locked`, `combat`, `no_character`, `invalid`). A listing is reused for `LEGACY_CACHE_SECONDS` (10) and cleared by a save. An account can have one save on its way at a time, and at most `LEGACY_SAVES_PER_MINUTE` (6) a minute (429). When the game server is down or Legacy is closed it answers 503; when a save gets no answer (502), it may or may not have been saved.
+
 ## Rare map (mod-rare-tracker)
 
 `rares.php` is a live map of every open-world rare that's up right now. It has continent and zone
@@ -552,6 +560,7 @@ If you only changed `.env` (title, contact email, closing registration and so on
 - Can host [mod-realm-config](https://github.com/Hisha/mod-realm-config)'s `realm.conf` and [mod-realm-armory](https://github.com/Hisha/mod-realm-armory)'s JSON for Portalkeeper, and shows Portalkeeper setup steps.
 - **Launcher API** ([api/launcher/](api/launcher/)): game-account login for Portalkeeper, plus a private tracker and web seed for the client download.
 - **Coin shop** ([api/launcher/shop.php](api/launcher/shop.php)): the launcher's Shop window, spending mod-boss-coins' wallet over SOAP.
+- **Legacy** ([api/launcher/legacy.php](api/launcher/legacy.php)): the launcher's Legacy page, spending mod-legacy's challenge points on perks over SOAP.
 - **Rare map** ([rares.php](rares.php)): live open-world rares from mod-rare-tracker on the game's own maps.
 - **Patch notes** ([changelog.php](changelog.php)): Blizzard-style patch notes built from merged pull requests on GitHub.
 - **Vote system is off,** because it alters `acore_auth.account` and creates new tables.
