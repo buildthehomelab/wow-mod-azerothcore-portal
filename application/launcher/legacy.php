@@ -94,6 +94,30 @@ function legacy_ranks_argument(mixed $ranks): ?string
     return $parts === [] ? '-' : implode(',', $parts);
 }
 
+/**
+ * A character as the launcher reads it. PHP decodes mod-legacy's empty build {"ranks":{}} as [] and
+ * would send it on as a list, which the launcher can't read as a build: ranks always go out as an
+ * object.
+ */
+function legacy_character_out(array $character): array
+{
+    $ranks = $character['ranks'] ?? [];
+    $character['ranks'] = (object)(is_array($ranks) ? $ranks : []);
+    return $character;
+}
+
+/** A listing as the launcher reads it: every character through legacy_character_out(). */
+function legacy_listing_out(array $listing): array
+{
+    if (is_array($listing['characters'] ?? null)) {
+        $listing['characters'] = array_map(
+            static fn(mixed $character): mixed => is_array($character) ? legacy_character_out($character) : $character,
+            $listing['characters']
+        );
+    }
+    return $listing;
+}
+
 function legacy_handle_request(array $session): never
 {
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -120,7 +144,7 @@ function legacy_list(array $session): never
         if ($mtime !== false && time() - $mtime < legacy_cache_seconds()) {
             $cached = json_decode((string)@file_get_contents($path), true);
             if (is_array($cached)) {
-                launcher_json(200, $cached);
+                launcher_json(200, legacy_listing_out($cached));
             }
         }
     }
@@ -146,7 +170,7 @@ function legacy_list(array $session): never
         }
     }
 
-    launcher_json(200, $body);
+    launcher_json(200, legacy_listing_out($body));
 }
 
 /**
@@ -225,7 +249,7 @@ function legacy_save(array $session): never
 
     if (!empty($answer['ok'])) {
         launcher_json(200, [
-            'character' => $answer['character'],
+            'character' => legacy_character_out($answer['character']),
             'message' => (string)($answer['message'] ?? ''),
         ]);
     }
