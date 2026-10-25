@@ -717,3 +717,31 @@ function launcher_soap(string $command, int $timeout): ?string
         }
     }
 }
+
+/**
+ * Runs a console command that answers one line of JSON with an "ok" field (mod-boss-coins'
+ * .coinshop, mod-legacy's .legacy) and returns that line decoded, or null when the worldserver
+ * couldn't be reached or answered something else.
+ */
+function launcher_soap_json(string $command, int $timeout): ?array
+{
+    $answer = launcher_soap($command, $timeout);
+    if ($answer === null) {
+        return null;
+    }
+
+    // The command prints one JSON line; anything around it (an empty line) is skipped.
+    foreach (array_reverse(preg_split('/\r?\n/', $answer)) as $line) {
+        $line = trim($line);
+        if ($line !== '' && $line[0] === '{') {
+            $data = json_decode($line, true);
+            if (is_array($data) && isset($data['ok'])) {
+                return $data;
+            }
+        }
+    }
+
+    $name = implode(' ', array_slice(explode(' ', $command), 0, 2));
+    error_log('launcher: unexpected SOAP answer to ' . $name . ': ' . substr($answer, 0, 300));
+    return null;
+}
