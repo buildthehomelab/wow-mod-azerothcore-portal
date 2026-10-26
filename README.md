@@ -403,14 +403,14 @@ FLUSH PRIVILEGES;
 
 (Use your database user's name and your characters database. It's in [docker/create-db-user.sql.example](docker/create-db-user.sql.example), which is safe to run again.) Then set `CHARACTER_ORDER_ENABLED=true` in `.env` (the launcher API has to be on too) and run `docker compose up -d`.
 
-`GET api/launcher/characters.php` with a player's token answers the account's characters that aren't deleted, in the order the character select screen shows them:
+`GET api/launcher/characters.php` with a player's token answers the account's characters that aren't deleted, in the order the character select screen shows them (`ORDER BY COALESCE(order, guid), guid`: the guid breaks ties, e.g. a restored character that kept its old place, so the list comes back the same every time):
 
 ```json
 {"characters": [{"guid": 12, "name": "Nari", "race": 4, "class": 11, "gender": 1, "level": 60,
                  "lastPlayed": 1792900000, "online": false, "order": 0}]}
 ```
 
-`lastPlayed` is the last logout (unix time); `order` is null until an order is saved. `POST` with `{"order": [12, 7, 31]}` (or form fields `order[]=12&order[]=7`) saves a new order from the top: characters left out follow the listed ones in their current order, and every character of the account gets its place (0, 1, 2, ...) in one transaction. It answers 200 with the new order, like `GET`; 400 when the body isn't a list of guids; 409 `{"error": "duplicate"}` when a guid is listed twice and `{"error": "not_yours"}` when one isn't a character of the account; 429 while the account's last save is still going through. Without the grant a save answers 503 "Character ordering isn't set up on this realm yet." and the portal log names the missing grant. The per-account save lock lives in `CHARACTER_ORDER_CACHE_DIR`.
+`lastPlayed` is the last logout (unix time); `order` is null until an order is saved. `POST` with `{"order": [12, 7, 31]}` (or form fields `order[]=12&order[]=7`) saves a new order from the top: characters left out follow the listed ones in their current order, and every character of the account gets its place (0, 1, 2, ...) in one transaction. It answers 200 with the new order, like `GET`; 400 when the body isn't a list of guids; 409 `{"error": "duplicate"}` when a guid is listed twice and `{"error": "not_yours"}` when one isn't a character of the account; 429 while the account's last save is still going through, or after `CHARACTER_ORDER_SAVES_PER_MINUTE` (10) saves in a minute (with `Retry-After: 60`). An order that's already saved answers 200 without writing and doesn't count. Once the order is committed the answer is 200, even if reading it back fails (then the body is the order just written). Without the grant a save answers 503 "Character ordering isn't set up on this realm yet." and the portal log names the missing grant. The per-account save lock and the times of its recent saves live in `CHARACTER_ORDER_CACHE_DIR`.
 
 ## Rare map (mod-rare-tracker)
 

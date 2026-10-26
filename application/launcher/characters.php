@@ -10,7 +10,8 @@
  *
  *   GRANT UPDATE (`order`) ON acore_characters.characters TO 'wow_register'@'%';
  *
- * An account gets one save at a time: a lock file per account in CHARACTER_ORDER_CACHE_DIR.
+ * An account gets one save at a time and at most CHARACTER_ORDER_SAVES_PER_MINUTE of them: a lock
+ * file per account in CHARACTER_ORDER_CACHE_DIR.
  **/
 
 declare(strict_types=1);
@@ -23,6 +24,11 @@ const CHARACTER_ORDER_MAX = 127;
 function character_order_enabled(): bool
 {
     return launcher_enabled() && filter_var(launcher_env('CHARACTER_ORDER_ENABLED', 'false'), FILTER_VALIDATE_BOOLEAN);
+}
+
+function character_order_saves_per_minute(): int
+{
+    return max(1, (int)launcher_env('CHARACTER_ORDER_SAVES_PER_MINUTE', '10'));
 }
 
 /** The lock folder, made on first use. Null when it can't be written. */
@@ -69,7 +75,7 @@ function character_order_characters(PDO $db, int $accountId): array
 {
     $statement = $db->prepare(
         'SELECT guid, name, race, class, gender, level, logout_time, online, `order` FROM ' . character_order_table()
-        . ' WHERE account = ? AND deleteInfos_Name IS NULL ORDER BY COALESCE(`order`, guid)');
+        . ' WHERE account = ? AND deleteInfos_Name IS NULL ORDER BY COALESCE(`order`, guid), guid');
     $statement->execute([$accountId]);
 
     $characters = [];
@@ -108,11 +114,12 @@ function character_order_list(array $session): never
 
 /**
  * POST {"order": [<guid>, ...]} (JSON, or form fields order[]=<guid>): the account's characters
- * from the top. Characters left out keep their current order after the listed ones.
+ * from the top. Characters left out keep their current order after the listed ones. An order
+ * that's already saved answers 200 without writing.
  *   200 {"characters": [...]}   the new order, like GET
  *   400 malformed
  *   409 {"error", "message"}    duplicate: a guid twice; not_yours: not a character of this account
- *   429 another save of this account is still on its way
+ *   429 another save of this account is still on its way, or too many in the last minute
  *   503 the order can't be written (the column grant is missing, or the database is down)
  */
 function character_order_save(array $session): never
@@ -145,7 +152,7 @@ function character_order_save(array $session): never
     }
 
     $accountId = (int)$session['id'];
-    $lock = @fopen($dir . '/save-' . $accountId . '.lock', 'c');
+    $lock = @fopen($dir . '/save-' . $accountId . '.lock', 'c+');
     if ($lock === false) {
         error_log('characters: can\'t open the save lock of account ' . $accountId . ' in ' . $dir);
         launcher_json(503, ['error' => 'Character ordering isn\'t available right now.']);
@@ -157,7 +164,8 @@ function character_order_save(array $session): never
 
     $db = launcher_db();
     try {
-        $current = array_column(character_order_body($db, $accountId)['characters'], 'guid');
+        $characters = character_order_body($db, $accountId)['characters'];
+        $current = array_column($characters, 'guid');
 
         $foreign = array_diff($order, $current);
         if ($foreign !== []) {
@@ -169,6 +177,36 @@ function character_order_save(array $session): never
             error_log('characters: account ' . $accountId . ' has ' . count($all) . ' characters, more than `order` holds');
             launcher_json(503, ['error' => 'This account has too many characters to order.']);
         }
+
+        // The order as it will be, from the rows just read: the answer when nothing changes, and when
+        // the order is saved but can't be read back.
+        $byGuid = array_column($characters, null, 'guid');
+        $saved = [];
+        $unchanged = true;
+        foreach ($all as $place => $guid) {
+            $unchanged = $unchanged && $byGuid[$guid]['order'] === $place;
+            $saved[] = array_replace($byGuid[$guid], ['order' => $place]);
+        }
+        if ($unchanged) {
+            launcher_json(200, ['characters' => $saved]);
+        }
+
+        // The lock file holds the times of the account's saves in the last minute: each is a commit on
+        // the characters database.
+        $now = time();
+        $recent = array_values(array_filter(
+            array_map('intval', explode(',', (string)stream_get_contents($lock))),
+            static fn(int $at): bool => $at > $now - 60
+        ));
+        if (count($recent) >= character_order_saves_per_minute()) {
+            header('Retry-After: 60');
+            launcher_json(429, ['error' => 'That was a lot of saves at once. Wait a minute and try again.']);
+        }
+        $recent[] = $now;
+        ftruncate($lock, 0);
+        rewind($lock);
+        fwrite($lock, implode(',', $recent));
+        fflush($lock);
 
         try {
             $db->beginTransaction();
@@ -192,7 +230,13 @@ function character_order_save(array $session): never
             launcher_json(503, ['error' => 'Your order wasn\'t saved. Try again in a minute.']);
         }
 
-        $body = character_order_body($db, $accountId);
+        // Saved: answer 200 whatever happens now.
+        try {
+            $body = ['characters' => character_order_characters($db, $accountId)];
+        } catch (Throwable $e) {
+            error_log('characters: reading back the order of account ' . $accountId . ': ' . $e->getMessage());
+            $body = ['characters' => $saved];
+        }
     } finally {
         flock($lock, LOCK_UN);
         fclose($lock);

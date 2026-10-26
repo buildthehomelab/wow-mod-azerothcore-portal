@@ -102,6 +102,7 @@ services:
       LEGACY_SAVES_PER_MINUTE: ${LEGACY_SAVES_PER_MINUTE:-6}
       LEGACY_CACHE_DIR: /var/cache/portal/legacy
       CHARACTER_ORDER_ENABLED: ${CHARACTER_ORDER_ENABLED:-false}
+      CHARACTER_ORDER_SAVES_PER_MINUTE: ${CHARACTER_ORDER_SAVES_PER_MINUTE:-10}
       CHARACTER_ORDER_CACHE_DIR: /var/cache/portal/character-order
       SOAP_URL: ${SOAP_URL:-http://ac-worldserver:7878/}
       SOAP_USER: ${SOAP_USER:-}

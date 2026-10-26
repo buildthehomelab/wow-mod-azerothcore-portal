@@ -9,7 +9,8 @@
  *                        503 when the characters database can't be read
  *   POST characters.php  {"order": [guid, ...]} -> 200 the new order, like GET; 400 when malformed;
  *                        409 {"error": "duplicate"|"not_yours", "message"}; 429 while the account's
- *                        last save is still going through; 503 when the order can't be written
+ *                        last save is still going through or after too many in a minute; 503 when
+ *                        the order can't be written
  *
  * See application/launcher/characters.php.
  **/
