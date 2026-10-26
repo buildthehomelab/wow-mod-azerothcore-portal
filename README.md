@@ -392,6 +392,26 @@ Set it up like the [coin shop](#coin-shop) (steps 1 and 2: SOAP on the worldserv
 
 `GET api/launcher/legacy.php` with a player's token answers what `.legacy list <account>` does: the points earned (all and hardcore), the account's characters with their points and builds, the trees and the challenges, plus `cachedAt`. The launcher shows the Legacy page when it answers 200. `POST` with `{"character": <guid>, "ranks": {"well_rested": 5, "diplomat": 3}}` saves that character's whole build (`{}` resets it) and answers the character as it is now and a message. The portal only lets numbers and perk ids (`[a-z_]`, at most 40 perks, ranks 1 to 9) into the console command; the worldserver checks the rest and answers 409 with a reason when it refuses (`points`, `locked`, `combat`, `no_character`, `invalid`). A listing is reused for `LEGACY_CACHE_SECONDS` (10) and cleared by a save. An account can have one save on its way at a time, and at most `LEGACY_SAVES_PER_MINUTE` (6) a minute (429). When the game server is down or Legacy is closed it answers 503; when a save gets no answer (502), it may or may not have been saved.
 
+## Character order
+
+The launcher's **Characters** page lets players sort their characters for the character select screen, and pushes an order set in game. The order is the core's own `characters`.`order` column: the worldserver sends the character list `ORDER BY COALESCE(order, guid)` and never writes the column, so the portal can write it while the player is online (the new order shows the next time the list is asked for, e.g. back at character select). No module or SOAP is needed, only one more grant for the portal's database user, on that one column:
+
+```sql
+GRANT UPDATE (`order`) ON acore_characters.characters TO 'wow_register'@'%';
+FLUSH PRIVILEGES;
+```
+
+(Use your database user's name and your characters database. It's in [docker/create-db-user.sql.example](docker/create-db-user.sql.example), which is safe to run again.) Then set `CHARACTER_ORDER_ENABLED=true` in `.env` (the launcher API has to be on too) and run `docker compose up -d`.
+
+`GET api/launcher/characters.php` with a player's token answers the account's characters that aren't deleted, in the order the character select screen shows them (`ORDER BY COALESCE(order, guid), guid`: the guid breaks ties, e.g. a restored character that kept its old place, so the list comes back the same every time):
+
+```json
+{"characters": [{"guid": 12, "name": "Nari", "race": 4, "class": 11, "gender": 1, "level": 60,
+                 "lastPlayed": 1792900000, "online": false, "order": 0}]}
+```
+
+`lastPlayed` is the last logout (unix time); `order` is null until an order is saved. `POST` with `{"order": [12, 7, 31]}` (or form fields `order[]=12&order[]=7`) saves a new order from the top: characters left out follow the listed ones in their current order, and every character of the account gets its place (0, 1, 2, ...) in one transaction. It answers 200 with the new order, like `GET`; 400 when the body isn't a list of guids; 409 `{"error": "duplicate"}` when a guid is listed twice and `{"error": "not_yours"}` when one isn't a character of the account; 429 while the account's last save is still going through, or after `CHARACTER_ORDER_SAVES_PER_MINUTE` (10) saves in a minute (with `Retry-After: 60`). An order that's already saved answers 200 without writing and doesn't count. Once the order is committed the answer is 200, even if reading it back fails (then the body is the order just written). Without the grant a save answers 503 "Character ordering isn't set up on this realm yet." and the portal log names the missing grant. The per-account save lock and the times of its recent saves live in `CHARACTER_ORDER_CACHE_DIR`.
+
 ## Rare map (mod-rare-tracker)
 
 `rares.php` is a live map of every open-world rare that's up right now. It has continent and zone
@@ -561,6 +581,7 @@ If you only changed `.env` (title, contact email, closing registration and so on
 - **Launcher API** ([api/launcher/](api/launcher/)): game-account login for Portalkeeper, plus a private tracker and web seed for the client download.
 - **Coin shop** ([api/launcher/shop.php](api/launcher/shop.php)): the launcher's Shop window, spending mod-boss-coins' wallet over SOAP.
 - **Legacy** ([api/launcher/legacy.php](api/launcher/legacy.php)): the launcher's Legacy page, spending mod-legacy's challenge points on perks over SOAP.
+- **Character order** ([api/launcher/characters.php](api/launcher/characters.php)): the launcher's Characters page, saving the character select order in the core's `order` column.
 - **Rare map** ([rares.php](rares.php)): live open-world rares from mod-rare-tracker on the game's own maps.
 - **Patch notes** ([changelog.php](changelog.php)): Blizzard-style patch notes built from merged pull requests on GitHub.
 - **Vote system is off,** because it alters `acore_auth.account` and creates new tables.

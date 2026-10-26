@@ -23,4 +23,7 @@ GRANT SELECT                 ON acore_world.game_event          TO 'wow_register
 -- server last started, so server-module changes appear with the restart that brings them rather
 -- than when the modules folder is pulled.
 GRANT SELECT                 ON acore_auth.uptime               TO 'wow_register'@'%';
+-- Character order (CHARACTER_ORDER_ENABLED=true): lets the launcher save the order of a player's
+-- characters on the character select screen. Only that one column; the core never writes it.
+GRANT UPDATE (`order`)       ON acore_characters.characters     TO 'wow_register'@'%';
 FLUSH PRIVILEGES;
