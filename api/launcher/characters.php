@@ -5,9 +5,10 @@
  * Bearer <token>". Off (404) until CHARACTER_ORDER_ENABLED=true.
  *
  *   GET  characters.php  {"characters": [{"guid", "name", "race", "class", "gender", "level",
- *                        "lastPlayed", "online", "order"}]} in the current order;
+ *                        "lastPlayed", "online", "order", "favourite"}]} in the current order;
  *                        503 when the characters database can't be read
- *   POST characters.php  {"order": [guid, ...]} -> 200 the new order, like GET; 400 when malformed;
+ *   POST characters.php  {"order": [guid, ...], "favourites": [guid, ...]} ("favourites" optional)
+ *                        -> 200 the new order, like GET; 400 when malformed;
  *                        409 {"error": "duplicate"|"not_yours", "message"}; 429 while the account's
  *                        last save is still going through or after too many in a minute; 503 when
  *                        the order can't be written

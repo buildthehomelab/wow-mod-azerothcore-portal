@@ -394,10 +394,10 @@ Set it up like the [coin shop](#coin-shop) (steps 1 and 2: SOAP on the worldserv
 
 ## Character order
 
-The launcher's **Characters** page lets players sort their characters for the character select screen, and pushes an order set in game. The order is the core's own `characters`.`order` column: the worldserver sends the character list `ORDER BY COALESCE(order, guid)` and never writes the column, so the portal can write it while the player is online (the new order shows the next time the list is asked for, e.g. back at character select). No module or SOAP is needed, only one more grant for the portal's database user, on that one column:
+The launcher's **Characters** page lets players sort their characters for the character select screen, and pushes an order set in game. The order is the core's own `characters`.`order` column: the worldserver sends the character list `ORDER BY COALESCE(order, guid)` and never writes the column, so the portal can write it while the player is online (the new order shows the next time the list is asked for, e.g. back at character select). The Evermore core also has a `favourite` column (0 or 1), the star its character select screen shows beside a character, which the portal keeps the same way. No module or SOAP is needed, only one more grant for the portal's database user, on those columns (the core's characters update adds `favourite`, so grant it after that update has run; on a core without it, grant `order` alone, since the grant fails on a missing column):
 
 ```sql
-GRANT UPDATE (`order`) ON acore_characters.characters TO 'wow_register'@'%';
+GRANT UPDATE (`order`, `favourite`) ON acore_characters.characters TO 'wow_register'@'%';
 FLUSH PRIVILEGES;
 ```
 
@@ -407,10 +407,10 @@ FLUSH PRIVILEGES;
 
 ```json
 {"characters": [{"guid": 12, "name": "Nari", "race": 4, "class": 11, "gender": 1, "level": 60,
-                 "lastPlayed": 1792900000, "online": false, "order": 0}]}
+                 "lastPlayed": 1792900000, "online": false, "order": 0, "favourite": true}]}
 ```
 
-`lastPlayed` is the last logout (unix time); `order` is null until an order is saved. `POST` with `{"order": [12, 7, 31]}` (or form fields `order[]=12&order[]=7`) saves a new order from the top: characters left out follow the listed ones in their current order, and every character of the account gets its place (0, 1, 2, ...) in one transaction. It answers 200 with the new order, like `GET`; 400 when the body isn't a list of guids; 409 `{"error": "duplicate"}` when a guid is listed twice and `{"error": "not_yours"}` when one isn't a character of the account; 429 while the account's last save is still going through, or after `CHARACTER_ORDER_SAVES_PER_MINUTE` (10) saves in a minute (with `Retry-After: 60`). An order that's already saved answers 200 without writing and doesn't count. Once the order is committed the answer is 200, even if reading it back fails (then the body is the order just written). Without the grant a save answers 503 "Character ordering isn't set up on this realm yet." and the portal log names the missing grant. The per-account save lock and the times of its recent saves live in `CHARACTER_ORDER_CACHE_DIR`.
+`lastPlayed` is the last logout (unix time); `order` is null until an order is saved; `favourite` is false on a core without the column. `POST` with `{"order": [12, 7, 31]}` (or form fields `order[]=12&order[]=7`) saves a new order from the top: characters left out follow the listed ones in their current order, and every character of the account gets its place (0, 1, 2, ...) in one transaction. Add `"favourites": [12, 7]` (form fields `favourites[]=12`, or an empty `favourites=` for none) to set the account's favourites in the same transaction: exactly those characters are favourites afterwards. Without it the favourites stay as they are. On a core without the column they're ignored, and without the grant on `favourite` the order is still saved without them (the portal log says so). It answers 200 with the new order, like `GET`; 400 when the body isn't a list of guids; 409 `{"error": "duplicate"}` when a guid is in a list twice and `{"error": "not_yours"}` when one isn't a character of the account; 429 while the account's last save is still going through, or after `CHARACTER_ORDER_SAVES_PER_MINUTE` (10) saves in a minute (with `Retry-After: 60`). An order that's already saved answers 200 without writing and doesn't count. Once the order is committed the answer is 200, even if reading it back fails (then the body is the order just written). Without the grant a save answers 503 "Character ordering isn't set up on this realm yet." and the portal log names the missing grant. The per-account save lock and the times of its recent saves live in `CHARACTER_ORDER_CACHE_DIR`.
 
 ## Rare map (mod-rare-tracker)
 
