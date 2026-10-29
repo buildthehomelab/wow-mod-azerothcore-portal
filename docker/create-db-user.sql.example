@@ -24,6 +24,9 @@ GRANT SELECT                 ON acore_world.game_event          TO 'wow_register
 -- than when the modules folder is pulled.
 GRANT SELECT                 ON acore_auth.uptime               TO 'wow_register'@'%';
 -- Character order (CHARACTER_ORDER_ENABLED=true): lets the launcher save the order of a player's
--- characters on the character select screen. Only that one column; the core never writes it.
-GRANT UPDATE (`order`)       ON acore_characters.characters     TO 'wow_register'@'%';
+-- characters on the character select screen, and which are favourites (`favourite`, the Evermore
+-- core's column, added by its characters update: run this after that, or leave `favourite` out on a
+-- core without it, since the grant fails on a column that isn't there). Only those columns; the core
+-- never writes them.
+GRANT UPDATE (`order`, `favourite`) ON acore_characters.characters TO 'wow_register'@'%';
 FLUSH PRIVILEGES;
