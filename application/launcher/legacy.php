@@ -24,7 +24,7 @@ require_once __DIR__ . '/launcher.php';
 
 // What a build may hold. mod-legacy has far fewer perks and ranks; these only bound the command.
 const LEGACY_MAX_PERKS = 40;
-const LEGACY_MAX_RANK = 9;
+const LEGACY_MAX_RANK = 20;
 
 function legacy_enabled(): bool
 {
