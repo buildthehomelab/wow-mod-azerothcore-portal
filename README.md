@@ -429,6 +429,11 @@ browser, so the worldserver needs no published port.
    ```
 
    A **Rare Map** link appears in the top menu. Leave `RARE_TRACKER_URL` empty to hide the page.
+
+   With [mod-nemesis](https://github.com/buildthehomelab/wow-mod-nemesis) on the server, set
+   `NEMESIS_BOARD=1` for a **Nemesis Board** link and page: the weekly champion and this week's
+   race, who is being hunted, the longest streaks, and who has finished their nemesis. It reads the characters database, so the portal's
+   database user needs `SELECT` on the `mod_nemesis_*` tables and `characters`.
 3. **Add the map images** (optional but recommended). Build them from your WoW client with the
    module's `tools/build_worldmaps.py`, and copy the resulting `worldmap` folder into
    `REALM_CONFIG_DIR`, so they're served at `/realm/worldmap/`. Set `WORLDMAP_URL` to serve them

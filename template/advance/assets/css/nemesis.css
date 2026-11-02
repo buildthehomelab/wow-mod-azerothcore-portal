@@ -1,0 +1,119 @@
+/*--------------------------------------------------------------
+# Nemesis board (nemesis.php), in the "Forever" theme's colours
+--------------------------------------------------------------*/
+:root {
+  --nb-bg: #140d08;
+  --nb-panel: #1f1610;
+  --nb-parchment: #f3eee2;
+  --nb-text: rgba(243, 238, 226, 0.82);
+  --nb-muted: rgba(243, 238, 226, 0.55);
+  --nb-gold: #c9a45c;
+  --nb-gold-light: #e2c687;
+  --nb-line: rgba(201, 164, 92, 0.35);
+  --nb-serif: "Marcellus", Georgia, serif;
+  --nb-sans: "Open Sans", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--nb-bg);
+  color: var(--nb-text);
+  font-family: var(--nb-sans);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.nb-top {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 28px 16px 12px;
+}
+
+.nb-home { color: var(--nb-gold); text-decoration: none; font-size: 14px; }
+.nb-home:hover { color: var(--nb-gold-light); }
+
+.nb-top h1 {
+  margin: 12px 0 4px;
+  color: var(--nb-parchment);
+  font-family: var(--nb-serif);
+  font-size: 34px;
+  font-weight: 400;
+}
+
+.nb-top p { margin: 0; color: var(--nb-muted); }
+
+.nb-off { max-width: 980px; margin: 0 auto; padding: 24px 16px; }
+
+.nb-boards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.nb-board {
+  min-width: 0;
+  padding: 16px;
+  background: var(--nb-panel);
+  border: 1px solid var(--nb-line);
+  border-radius: 4px;
+}
+
+.nb-wide { grid-column: 1 / -1; }
+
+.nb-board h2 {
+  margin: 0 0 10px;
+  color: var(--nb-gold-light);
+  font-family: var(--nb-serif);
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.nb-empty { margin: 0; color: var(--nb-muted); }
+.nb-note { margin-bottom: 8px; }
+
+.nb-champion { border-color: var(--nb-gold); }
+.nb-label { margin: 0; color: var(--nb-gold); font-size: 13px; font-weight: 600; }
+.nb-name {
+  margin: 2px 0;
+  color: var(--nb-parchment);
+  font-family: var(--nb-serif);
+  font-size: 28px;
+  overflow-wrap: anywhere;
+}
+
+.nb-board table { width: 100%; border-collapse: collapse; }
+
+.nb-board th {
+  padding: 4px 8px 6px 0;
+  border-bottom: 1px solid var(--nb-line);
+  color: var(--nb-muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.nb-board td {
+  padding: 6px 8px 6px 0;
+  border-bottom: 1px solid rgba(201, 164, 92, 0.12);
+  overflow-wrap: anywhere;
+}
+
+.nb-board tr:last-child td { border-bottom: 0; }
+
+.nb-board .nb-num { padding-right: 0; text-align: right; font-variant-numeric: tabular-nums; }
+
+.nb-board .nb-rank { white-space: nowrap; overflow-wrap: normal; }
+
+.nb-rank-3 { color: #e2c687; }
+.nb-rank-4 { color: #e39a4e; }
+.nb-rank-5 { color: #e0533d; font-weight: 600; }
+
+@media (max-width: 640px) {
+  .nb-boards { grid-template-columns: minmax(0, 1fr); }
+  .nb-top h1 { font-size: 28px; }
+}
