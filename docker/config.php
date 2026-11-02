@@ -37,6 +37,7 @@ $config['disable_online_players'] = $bool('DISABLE_ONLINE_PLAYERS', false);
 $config['disable_changepassword'] = $bool('DISABLE_CHANGEPASSWORD', false);
 $config['disable_registration'] = $bool('DISABLE_REGISTRATION', false); // hide the register form and refuse sign-ups
 $config['rare_tracker_url'] = $env('RARE_TRACKER_URL', ''); // mod-rare-tracker's endpoint; empty hides the rare map
+$config['nemesis_board'] = $env('NEMESIS_BOARD', ''); // anything but empty shows mod-nemesis' board
 $config['changelog_org'] = $env('CHANGELOG_ORG', ''); // GitHub org/user the patch notes come from; empty hides them
 $config['require_email'] = false; // no email on this server: the register form doesn't ask for one
 $config['multiple_email_use'] = false; // unused: registration doesn't ask for an email

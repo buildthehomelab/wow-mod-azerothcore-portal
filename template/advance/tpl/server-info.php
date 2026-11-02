@@ -170,6 +170,12 @@ $longDate = static fn(string $day): string => (new DateTimeImmutable($day))->for
                     <span><b><?php elang('rare_map'); ?></b> Which rares are up right now, live from the server.</span>
                 </a>
                 <?php } ?>
+                <?php if (!empty(get_config('nemesis_board'))) { ?>
+                <a class="latest-rares" href="nemesis.php">
+                    <img src="<?php echo $tplUrl; ?>/assets/img/icons/spell_shadow_twilight.jpg" alt="" width="44" height="44">
+                    <span><b><?php elang('nemesis_board'); ?></b> This week's champion, who is being hunted, and the longest streaks.</span>
+                </a>
+                <?php } ?>
             </div>
         </div>
     </section>

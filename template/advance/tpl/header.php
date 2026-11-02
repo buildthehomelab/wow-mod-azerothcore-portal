@@ -81,6 +81,7 @@
                 <?php if (get_config('vote_system')) { ?><li><a href="#" data-toggle="modal" data-target="#vote-modal"><?php elang('vote_for_us'); ?></a></li><?php } ?>
                 <?php if (!get_config('disable_online_players') || !get_config('disable_top_players')) { ?><li><a href="#server-status"><?php elang('server_status');  ?></a></li><?php } ?>
                 <?php if (!empty(get_config('rare_tracker_url'))) { ?><li><a href="rares.php"><?php elang('rare_map');  ?></a></li><?php } ?>
+                <?php if (!empty(get_config('nemesis_board'))) { ?><li><a href="nemesis.php"><?php elang('nemesis_board');  ?></a></li><?php } ?>
                 <?php if (!empty(get_config('changelog_org'))) { ?><li><a href="changelog.php"><?php elang('patch_notes');  ?></a></li><?php } ?>
                 <?php if (!empty(get_config('contact_email'))) { ?><li><a href="#contact"><?php elang('contact');  ?></a></li><?php } ?>
             </ul>
