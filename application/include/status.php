@@ -7,6 +7,32 @@
 
 class status
 {
+    /** Where the characters table has `home_viewer`: a home screen viewer is a row nobody plays. */
+    private static function has_home_viewers($realmID)
+    {
+        static $has = [];
+        if (!isset($has[$realmID])) {
+            try {
+                database::$chars[$realmID]->executeQuery('SELECT `home_viewer` FROM characters LIMIT 0');
+                $has[$realmID] = true;
+            } catch (\Doctrine\DBAL\Exception\InvalidFieldNameException $e) {
+                $has[$realmID] = false;
+            }
+        }
+        return $has[$realmID];
+    }
+
+    /** Characters that are played, for a leaderboard reading the characters table. */
+    private static function top_characters($realmID)
+    {
+        $queryBuilder = database::$chars[$realmID]->createQueryBuilder();
+        $queryBuilder->from("characters");
+        if (self::has_home_viewers($realmID)) {
+            $queryBuilder->where("home_viewer = 0");
+        }
+        return $queryBuilder;
+    }
+
     public static function get_character_by_guid($realmID, $guid)
     {
         if (!empty($guid)) {
@@ -30,8 +56,11 @@ class status
     {
         $queryBuilder = database::$chars[$realmID]->createQueryBuilder();
         $queryBuilder->select("guid, COUNT(*) as total")
-            ->from("character_achievement")
-            ->groupBy("guid")
+            ->from("character_achievement");
+        if (self::has_home_viewers($realmID)) {
+            $queryBuilder->where("guid NOT IN (SELECT guid FROM characters WHERE home_viewer <> 0)");
+        }
+        $queryBuilder->groupBy("guid")
             ->orderBy("total", "DESC")
             ->setMaxResults(10);
 
@@ -63,9 +92,8 @@ class status
 
     public static function get_top_killers($realmID)
     {
-        $queryBuilder = database::$chars[$realmID]->createQueryBuilder();
+        $queryBuilder = self::top_characters($realmID);
         $queryBuilder->select("name, race, class, gender, level, totalKills")
-            ->from("characters")
             ->orderBy("totalKills", "DESC")
             ->setMaxResults(10);
         $statement = $queryBuilder->executeQuery();
@@ -79,9 +107,8 @@ class status
 
     public static function get_top_arenapoints($realmID)
     {
-        $queryBuilder = database::$chars[$realmID]->createQueryBuilder();
+        $queryBuilder = self::top_characters($realmID);
         $queryBuilder->select("name, race, class, gender, level, arenaPoints")
-            ->from("characters")
             ->orderBy("arenaPoints", "DESC")
             ->setMaxResults(10);
         $statement = $queryBuilder->executeQuery();
@@ -95,17 +122,15 @@ class status
 
     public static function get_top_honorpoints($realmID)
     {
-        $queryBuilder = database::$chars[$realmID]->createQueryBuilder();
+        $queryBuilder = self::top_characters($realmID);
 
         if (get_config('expansion') >= 6) {
             $queryBuilder->select("name, race, class, gender, level, honorLevel, honor")
-                ->from("characters")
                 ->orderBy("honorLevel", "DESC")
                 ->addOrderBy("honor", "DESC")
                 ->setMaxResults(10);
         } else {
             $queryBuilder->select("name, race, class, gender, level, totalHonorPoints")
-                ->from("characters")
                 ->orderBy("totalHonorPoints", "DESC")
                 ->setMaxResults(10);
         }
@@ -121,9 +146,8 @@ class status
 
     public static function get_top_playtime($realmID)
     {
-        $queryBuilder = database::$chars[$realmID]->createQueryBuilder();
+        $queryBuilder = self::top_characters($realmID);
         $queryBuilder->select("name, race, class, gender, level, totaltime")
-            ->from("characters")
             ->orderBy("totaltime", "DESC")
             ->setMaxResults(10);
 
@@ -138,9 +162,8 @@ class status
 
     public static function get_top_gold($realmID)
     {
-        $queryBuilder = database::$chars[$realmID]->createQueryBuilder();
+        $queryBuilder = self::top_characters($realmID);
         $queryBuilder->select("name, race, level, totaltime, money")
-            ->from("characters")
             ->orderBy("money", "DESC")
             ->setMaxResults(10);
 
