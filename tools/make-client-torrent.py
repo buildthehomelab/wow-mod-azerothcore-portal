@@ -9,8 +9,8 @@ the web seed serves, so keep the folder in LAUNCHER_CLIENT_DIR under exactly thi
 name without spaces, such as Evermore.
 
 Left out on purpose:
-- Files the launcher or the game writes to (realmlist.wtf, and the top-level WTF, Cache, Logs,
-  Interface, ... folders; Data/<locale>/Interface/Cinematics, the intro movies, stays in).
+- Files the launcher or the game writes to (realmlist.wtf, LuxVelum.ini, and the top-level WTF, Cache,
+  Logs, Interface, ... folders; Data/<locale>/Interface/Cinematics, the intro movies, stays in).
   If they were in the torrent, a player's copy would stop matching after the first launch and
   Portalkeeper would stop sharing it.
 - The realm's own patches: every [Patch.*] FileName in the realm.conf given with --realm-conf.
@@ -31,7 +31,7 @@ import sys
 PIECE_LENGTH = 4 * 1024 * 1024  # ~4,300 pieces for a 17 GB client
 
 SKIP_DIRS = {"wtf", "cache", "logs", "interface", "screenshots", "errors", ".portalkeeper"}
-SKIP_FILES = {"realmlist.wtf", "config.wtf", "thumbs.db", "desktop.ini", ".ds_store"}
+SKIP_FILES = {"realmlist.wtf", "config.wtf", "luxvelum.ini", "thumbs.db", "desktop.ini", ".ds_store"}
 SKIP_SUFFIXES = (".log", ".tmp", ".bak")
 
 
