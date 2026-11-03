@@ -93,13 +93,36 @@ function character_order_has_favourites(PDO $db): bool
     return $has;
 }
 
+/**
+ * Whether the characters table has the `home_viewer` column: an account's home screen viewer is a
+ * character row nobody plays, which the character select screen doesn't show. Asked once per request.
+ */
+function character_order_has_viewers(PDO $db): bool
+{
+    static $has = null;
+    if ($has === null) {
+        try {
+            $db->query('SELECT `home_viewer` FROM ' . character_order_table() . ' LIMIT 0');
+            $has = true;
+        } catch (PDOException $e) {
+            // 1054: unknown column. Anything else is the database's trouble, not the column's.
+            if ((int)($e->errorInfo[1] ?? 0) !== 1054) {
+                throw $e;
+            }
+            $has = false;
+        }
+    }
+    return $has;
+}
+
 /** The account's characters that aren't deleted, in the order the character select screen shows them. */
 function character_order_characters(PDO $db, int $accountId): array
 {
     $favourite = character_order_has_favourites($db) ? '`favourite`' : '0 AS `favourite`';
+    $players = character_order_has_viewers($db) ? ' AND `home_viewer` = 0' : '';
     $statement = $db->prepare(
         'SELECT guid, name, race, class, gender, level, logout_time, online, `order`, ' . $favourite . ' FROM '
-        . character_order_table() . ' WHERE account = ? AND deleteInfos_Name IS NULL ORDER BY COALESCE(`order`, guid), guid');
+        . character_order_table() . ' WHERE account = ? AND deleteInfos_Name IS NULL' . $players . ' ORDER BY COALESCE(`order`, guid), guid');
     $statement->execute([$accountId]);
 
     $characters = [];
