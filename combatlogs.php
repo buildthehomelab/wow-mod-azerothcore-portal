@@ -16,9 +16,29 @@ $n = static fn(int|float|null $number): string => $number === null ? '' : number
 $siteTitle = getenv('SITE_TITLE') ?: 'Simple Register';
 $assets = 'template/advance/assets';
 
+/** Deletes an upload for someone who holds the key. Answers with what to tell them. */
+$deleteLog = static function (string $id, string $given): string {
+    $token = (string)($_SESSION['combatlogs_token'] ?? '');
+    if ($token === '' || !hash_equals($token, $given)) {
+        return 'Nothing was deleted: that page was out of date. Try again.';
+    }
+    $meta = clog_log($id);
+    if ($meta === null) {
+        return 'That combat log was already gone.';
+    }
+    if (!clog_delete_log($id)) {
+        error_log('combat log ' . $id . ': could not be deleted');
+        return 'That combat log couldn\'t be deleted: the portal can\'t write to its folder.';
+    }
+    error_log('combat log ' . $id . ' from account ' . $meta['account'] . ': deleted with the view key');
+    return 'Deleted the combat log from ' . ($meta['summary']['logger'] ?? $meta['account']) . '.';
+};
+
 $enabled = clog_enabled() && clog_view_key() !== '';
 $allowed = false;
 $keyError = false;
+$notice = null;
+$token = '';
 if ($enabled) {
     session_set_cookie_params(['httponly' => true, 'samesite' => 'Strict',
         'secure' => str_starts_with(launcher_base_url(), 'https://')]);
@@ -29,6 +49,14 @@ if ($enabled) {
         exit;
     }
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+        if (isset($_POST['delete'])) {
+            // After the session lapses this lands on the key form with nothing deleted.
+            if (!empty($_SESSION['combatlogs'])) {
+                $_SESSION['combatlogs_notice'] = $deleteLog((string)$_POST['delete'], (string)($_POST['token'] ?? ''));
+            }
+            header('Location: combatlogs.php');
+            exit;
+        }
         if (clog_key_matches((string)($_POST['key'] ?? ''))) {
             session_regenerate_id(true);
             $_SESSION['combatlogs'] = true;
@@ -39,6 +67,13 @@ if ($enabled) {
         $keyError = true;
     }
     $allowed = !empty($_SESSION['combatlogs']);
+    if ($allowed) {
+        $token = $_SESSION['combatlogs_token'] ??= bin2hex(random_bytes(16));
+        $notice = $_SESSION['combatlogs_notice'] ?? null;
+        unset($_SESSION['combatlogs_notice']);
+    }
+    // Nothing below writes to the session: a long digest or download mustn't hold up this key's other tabs.
+    session_write_close();
 } else {
     http_response_code(404);
 }
@@ -80,6 +115,13 @@ $who = static function (array $by) use ($h): string {
 };
 $bots = array_fill_keys($digest['bots'] ?? [], true);
 $name = static fn(string $player): string => $h($player) . (isset($bots[$player]) ? ' <span class="cl-bot">bot</span>' : '');
+$deleteForm = static function (array $log) use ($h, $when, $token): string {
+    $question = 'Delete the combat log from ' . ($log['summary']['logger'] ?? $log['account']) . ', '
+        . $when($log['summary']['start'] ?? (int)$log['logged_until'], $log) . '? This can\'t be undone.';
+    return '<form class="cl-delete" method="post" action="combatlogs.php" data-confirm="' . $h($question) . '">'
+        . '<input type="hidden" name="token" value="' . $h($token) . '">'
+        . '<button type="submit" name="delete" value="' . $h($log['id']) . '">Delete</button></form>';
+};
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -117,7 +159,7 @@ $name = static fn(string $player): string => $h($player) . (isset($bots[$player]
 <main class="pn-empty"><p>No such combat log. It may have passed the realm's keep time.</p></main>
 
 <?php } elseif ($meta !== null && $digest === null) { ?>
-<main class="pn-empty"><p>This log is being digested. Reload in a moment.</p></main>
+<main class="pn-empty"><p>This log is being digested. Reload in a moment.</p><?php echo $deleteForm($meta); ?></main>
 
 <?php } elseif ($meta !== null) {
     $fights = $digest['fights']; ?>
@@ -133,6 +175,7 @@ $name = static fn(string $player): string => $h($player) . (isset($bots[$player]
             <?php if (($digest['bosses'] ?? '') !== 'realm') { ?>
             <p class="cl-meta">Which fights are bosses is a guess from the log: the portal can't read the realm's creature data.</p>
             <?php } ?>
+            <?php echo $deleteForm($meta); ?>
         </div>
         <dl class="cl-stats">
             <div><dt>Fights</dt><dd><?php echo count($fights); ?></dd></div>
@@ -320,11 +363,12 @@ $name = static fn(string $player): string => $h($player) . (isset($bots[$player]
 
 <?php } else { ?>
 <main class="cl-main">
+    <?php if ($notice !== null) { ?><p class="cl-notice" role="status"><?php echo $h($notice); ?></p><?php } ?>
     <?php if (!$logs) { ?>
     <p class="cl-none">No combat logs yet. Players turn on <strong>Share combat logs</strong> in the launcher's settings; a log arrives when they close the game after a dungeon or raid.</p>
     <?php } else { ?>
     <table class="cl-table cl-list">
-        <thead><tr><th>Logged</th><th>Character</th><th>Account</th><th class="num">Length</th><th class="num">Fights</th><th>Bosses</th><th class="num">Deaths</th><th class="num">Size</th></tr></thead>
+        <thead><tr><th>Logged</th><th>Character</th><th>Account</th><th class="num">Length</th><th class="num">Fights</th><th>Bosses</th><th class="num">Deaths</th><th class="num">Size</th><th></th></tr></thead>
         <tbody>
         <?php foreach ($logs as $log) {
             $summary = $log['summary'] ?? null;
@@ -344,12 +388,23 @@ $name = static fn(string $player): string => $h($player) . (isset($bots[$player]
                 <td class="num"><?php echo $n($summary['deaths']); ?></td>
                 <?php } ?>
                 <td class="num"><?php echo $bytes($log['raw_size'] ?? null); ?></td>
+                <td class="num"><?php echo $deleteForm($log); ?></td>
             </tr>
         <?php } ?>
         </tbody>
     </table>
     <?php } ?>
 </main>
+<?php } ?>
+<?php if ($allowed) { ?>
+<script>
+document.addEventListener('submit', function (event) {
+    var question = event.target.getAttribute('data-confirm');
+    if (question && !window.confirm(question)) {
+        event.preventDefault();
+    }
+});
+</script>
 <?php } ?>
 </body>
 </html>

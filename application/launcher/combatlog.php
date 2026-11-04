@@ -108,11 +108,20 @@ function clog_discard_incoming(string $id): void
     @unlink(clog_path('incoming', $id, '.json'));
 }
 
-function clog_delete_log(string $id): void
+/**
+ * Deletes a finished upload, log file first (clog_digest relies on that). False when a file stayed
+ * behind, which means COMBATLOG_DIR can't be written.
+ */
+function clog_delete_log(string $id): bool
 {
+    $gone = true;
     foreach (['.txt.gz', '.digest.json', '.digest.lock', '.json'] as $suffix) {
-        @unlink(clog_path('logs', $id, $suffix));
+        $path = clog_path('logs', $id, $suffix);
+        if (!@unlink($path) && file_exists($path)) {
+            $gone = false;
+        }
     }
+    return $gone;
 }
 
 /** Drops stalled uploads and logs past COMBATLOG_KEEP_DAYS. */
@@ -372,6 +381,13 @@ function clog_digest(string $id): ?array
 
         $meta['summary'] = clog_summary($digest);
         clog_write_json(clog_path('logs', $id, '.json'), $meta);
+
+        // Deleted while the digest was being made: those two writes brought the log back, so finish the job.
+        clearstatcache(true, clog_path('logs', $id, '.txt.gz'));
+        if (!is_file(clog_path('logs', $id, '.txt.gz'))) {
+            clog_delete_log($id);
+            return null;
+        }
         return $digest;
     } finally {
         flock($lock, LOCK_UN);
@@ -458,7 +474,10 @@ function clog_enrich(array &$digest): void
     }
 }
 
-/** COMBATLOG_VIEW_KEY: whoever has it may read the logs (combatlogs.php, api/combatlogs.php). Empty = nobody. */
+/**
+ * COMBATLOG_VIEW_KEY: whoever has it may read the logs (combatlogs.php, api/combatlogs.php) and delete
+ * them (combatlogs.php). Empty = nobody.
+ */
 function clog_view_key(): string
 {
     return trim(launcher_env('COMBATLOG_VIEW_KEY'));
