@@ -306,6 +306,12 @@ The digest is made in the background right after an upload, and on first view if
 docker exec -u www-data wow-register sh -c 'rm -f /srv/combatlogs/logs/*.digest.json && php application/launcher/combatlog_cli.php --all'
 ```
 
+An upload whose metadata is empty or corrupt doesn't appear in the list and is never deleted. `--damaged` lists those and changes nothing, `--repair-damaged` rebuilds them and `--remove-damaged` deletes them. Only the metadata held the uploader and their UTC offset, so a rebuilt upload shows the account as `unknown` and its times can be off by that offset. It also expires by the date of its file, so one past `COMBATLOG_KEEP_DAYS` goes at the next upload.
+
+```bash
+docker exec -u www-data wow-register php application/launcher/combatlog_cli.php --damaged
+```
+
 ### Reading the logs from a script
 
 Send the key as `X-Portal-Key`:
