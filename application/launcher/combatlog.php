@@ -18,6 +18,10 @@ require_once __DIR__ . '/combatlog_digest.php';
 const CLOG_PART_SIZE = 4194304;        // under PHP's default post_max_size (8M) and any proxy's body limit
 const CLOG_INCOMING_HOURS = 48;        // an upload that stalls longer than this starts over
 const CLOG_PENDING_PER_ACCOUNT = 4;
+const CLOG_LOGS_PER_ACCOUNT = 200;     // finished uploads kept per account: about three a day for COMBATLOG_KEEP_DAYS
+const CLOG_SUMMARY_BYTES = 8192;       // bytes of boss names per list in a summary
+const CLOG_SUMMARY_NAMES = 100;        // boss names per list in a summary: a raid night has a few dozen
+const CLOG_LIST_ROWS = 1000;           // uploads on the list and the API's list
 
 function clog_enabled(): bool
 {
@@ -77,7 +81,7 @@ function clog_read_json(string $path): ?array
  */
 function clog_write_json(string $path, array $data): bool
 {
-    $json = json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    $json = json_encode($data, CLOG_JSON_FLAGS);
     if ($json === false) {
         error_log('combat log: ' . basename($path) . ' not written: ' . json_last_error_msg());
         return false;
@@ -94,7 +98,10 @@ function clog_write_json(string $path, array $data): bool
     return true;
 }
 
-/** Every upload's metadata in a folder, newest first. */
+/**
+ * Every upload's metadata in a folder, newest first, without its summary: every upload begins by reading
+ * this, and the names in other players' summaries mustn't be able to stop that. clog_list has them.
+ */
 function clog_metas(string $folder): array
 {
     $metas = [];
@@ -104,6 +111,7 @@ function clog_metas(string $folder): array
         }
         $meta = clog_read_json($file);
         if ($meta !== null && clog_valid_id((string)($meta['id'] ?? ''))) {
+            unset($meta['summary']);
             $metas[] = $meta;
         }
     }
@@ -202,10 +210,15 @@ function clog_begin(array $session, array $input): never
     }
 
     $accountId = (int)$session['id'];
+    $finished = [];
     foreach (clog_metas('logs') as $meta) {
-        if ((int)$meta['account_id'] === $accountId && $meta['sha256'] === $sha256) {
+        if ((int)$meta['account_id'] !== $accountId) {
+            continue;
+        }
+        if ($meta['sha256'] === $sha256) {
             launcher_json(200, ['upload' => $meta['id'], 'complete' => true]);
         }
+        $finished[] = $meta['id'];
     }
 
     clog_prune();
@@ -251,6 +264,10 @@ function clog_begin(array $session, array $input): never
     if (!clog_write_json(clog_path('incoming', $id, '.json'), $meta) || @file_put_contents(clog_path('incoming', $id, '.part'), '') === false) {
         clog_discard_incoming($id);
         launcher_json(503, ['error' => 'The realm can\'t store combat logs right now.']);
+    }
+    // Newest first: the account's oldest logs make room, like its unfinished uploads above.
+    foreach (array_slice($finished, CLOG_LOGS_PER_ACCOUNT - 1) as $oldest) {
+        clog_delete_log($oldest);
     }
     launcher_json(200, ['upload' => $id, 'received' => 0, 'part_size' => CLOG_PART_SIZE]);
 }
@@ -352,10 +369,28 @@ function clog_spawn_digest(string $id): void
     @exec(sprintf('%s %s %s > /dev/null 2>&1 &', escapeshellarg($php), escapeshellarg(__DIR__ . '/combatlog_cli.php'), escapeshellarg($id)));
 }
 
+/** The newest finished uploads with their summaries, which are all in memory at once. */
+function clog_list(): array
+{
+    $logs = [];
+    foreach (array_slice(clog_metas('logs'), 0, CLOG_LIST_ROWS) as $meta) {
+        $log = clog_log($meta['id']);
+        if ($log === null) {
+            continue;
+        }
+        if (is_array($log['summary'] ?? null)) {
+            $log['summary'] = clog_cap_summary($log['summary']);
+        }
+        $logs[] = $log;
+    }
+    return $logs;
+}
+
 /** A finished upload's metadata, or null. */
 function clog_log(string $id): ?array
 {
-    return clog_valid_id($id) ? clog_read_json(clog_path('logs', $id, '.json')) : null;
+    $meta = clog_valid_id($id) ? clog_read_json(clog_path('logs', $id, '.json')) : null;
+    return ($meta['id'] ?? null) === $id ? $meta : null;
 }
 
 /**
@@ -431,6 +466,23 @@ function clog_repair_meta(string $id): bool
 }
 
 /**
+ * The version a digest was made by, from the start of the file, or 0 when it has lost its end: decoding
+ * the whole thing to find out could run out of memory, and one made before digests had limits can be too big to.
+ */
+function clog_digest_version(string $id): int
+{
+    $file = @fopen(clog_path('logs', $id, '.digest.json'), 'rb');
+    if ($file === false) {
+        return 0;
+    }
+    $start = (string)fread($file, 32);
+    fseek($file, -1, SEEK_END);
+    $end = fread($file, 1);
+    fclose($file);
+    return $end === '}' && preg_match('/^\{"version":(\d+),/', $start, $parts) === 1 ? (int)$parts[1] : 0;
+}
+
+/**
  * The digest of a finished upload, made now when it's missing or from an older digest version.
  * Null while another request is making it, or when the log can't be read.
  */
@@ -493,7 +545,7 @@ function clog_summary(array $digest): array
             $wipes[$fight['name']] = ($wipes[$fight['name']] ?? 0) + 1;
         }
     }
-    return [
+    return clog_cap_summary([
         'version' => $digest['version'],
         'logger' => $digest['logger'],
         'start' => $digest['start'], 'end' => $digest['end'],
@@ -503,7 +555,43 @@ function clog_summary(array $digest): array
         'players' => count($digest['players']),
         'kills' => array_keys($kills),
         'wipes' => $wipes,
-    ];
+    ]);
+}
+
+/**
+ * A summary as the list of uploads can take it, also for one stored before there were limits. The boss
+ * names are text even when one reads as a number, which as an array key it turned into.
+ */
+function clog_cap_summary(array $summary): array
+{
+    $room = CLOG_SUMMARY_BYTES;
+    $kills = [];
+    foreach ($summary['kills'] ?? [] as $name) {
+        $name = clog_cut_name((string)$name);
+        $room -= strlen($name);
+        if ($room < 0 || count($kills) >= CLOG_SUMMARY_NAMES) {
+            break;
+        }
+        $kills[] = $name;
+    }
+
+    $room = CLOG_SUMMARY_BYTES;
+    $wipes = [];
+    foreach ($summary['wipes'] ?? [] as $name => $times) {
+        $name = clog_cut_name((string)$name);
+        $room -= strlen($name);
+        if ($room < 0 || count($wipes) >= CLOG_SUMMARY_NAMES) {
+            break;
+        }
+        $wipes[$name] = $times;
+    }
+
+    $summary['kills'] = $kills;
+    $summary['wipes'] = $wipes;
+    if (is_string($summary['logger'] ?? null)) {
+        $summary['logger'] = clog_cut_name($summary['logger']);
+    }
+    return $summary;
 }
 
 /**
@@ -585,6 +673,45 @@ function clog_public_meta(array $meta): array
         'client' => $meta['client'] ?? '',
         'summary' => $meta['summary'] ?? null,
     ];
+}
+
+/**
+ * launcher_json for what's read from the logs. It writes non-ASCII names as they're stored, not as
+ * \\uXXXX at three times the size, which a digest that fits in memory could then run out on.
+ */
+function clog_json(array $body): never
+{
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    echo json_encode($body, CLOG_JSON_FLAGS);
+    exit;
+}
+
+/**
+ * Sends an upload's digest straight from its file and exits, with a 503 while it's being made. Decoding
+ * it to encode it again would hold it in memory twice, which is more than a digest that fits can take.
+ */
+function clog_send_digest(array $meta): never
+{
+    $id = $meta['id'];
+    if (clog_digest_version($id) !== CLOG_DIGEST_VERSION) {
+        clog_digest($id);
+    }
+    $handle = clog_digest_version($id) === CLOG_DIGEST_VERSION ? @fopen(clog_path('logs', $id, '.digest.json'), 'rb') : false;
+    if ($handle === false) {
+        header('Retry-After: 15');
+        launcher_json(503, ['error' => 'The digest is being made. Try again in a moment.']);
+    }
+    set_time_limit(0);
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    echo '{"log":', json_encode(clog_public_meta($meta), CLOG_JSON_FLAGS), ',"digest":';
+    fpassthru($handle);
+    echo '}';
+    exit;
 }
 
 /** Sends the log as the launcher uploaded it (gzip) and exits. */

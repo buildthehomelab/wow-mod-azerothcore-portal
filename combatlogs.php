@@ -93,14 +93,17 @@ if ($allowed) {
             $digest = clog_digest($id);
         }
     } else {
-        $logs = clog_metas('logs');
+        $logs = clog_list();
     }
 }
 
 /** A moment on the uploader's clock, the one the log's own stamps use. */
 $when = static fn(?int $time, array $meta, string $format = 'M j, H:i'): string =>
-    $time === null ? '' : gmdate($format, $time + 60 * (int)($meta['utc_offset_minutes'] ?? 0));
-$length = static function (int $seconds): string {
+    // A log stored before its stamps were checked can be near the end of what an int holds.
+    $time === null ? '' : gmdate($format, (int)max(-1e15, min($time + 60 * (int)($meta['utc_offset_minutes'] ?? 0), 1e15)));
+$length = static function (int|float $seconds): string {
+    // A log stored before its stamps were checked can span more seconds than an int holds.
+    $seconds = (int)max(0, min($seconds, 1e15));
     return $seconds >= 3600 ? sprintf('%dh %02dm', intdiv($seconds, 3600), intdiv($seconds % 3600, 60))
         : sprintf('%d:%02d', intdiv($seconds, 60), $seconds % 60);
 };
@@ -174,6 +177,9 @@ $deleteForm = static function (array $log) use ($h, $when, $token): string {
                 &middot; <a href="combatlogs.php?log=<?php echo $h($meta['id']); ?>&amp;raw=1">Download the log (<?php echo $bytes((int)$meta['size']); ?> gzip)</a></p>
             <?php if (($digest['bosses'] ?? '') !== 'realm') { ?>
             <p class="cl-meta">Which fights are bosses is a guess from the log: the portal can't read the realm's creature data.</p>
+            <?php } ?>
+            <?php if (!empty($digest['cut'])) { ?>
+            <p class="cl-meta">This log was too big to digest in full<?php echo $digest['last_clock'] === '' ? '' : ': this stops at ' . $h($digest['last_clock']); ?>. The download has all of it.</p>
             <?php } ?>
             <?php echo $deleteForm($meta); ?>
         </div>
@@ -367,6 +373,7 @@ $deleteForm = static function (array $log) use ($h, $when, $token): string {
     <?php if (!$logs) { ?>
     <p class="cl-none">No combat logs yet. Players turn on <strong>Share combat logs</strong> in the launcher's settings; a log arrives when they close the game after a dungeon or raid.</p>
     <?php } else { ?>
+    <?php if (count($logs) === CLOG_LIST_ROWS) { ?><p class="cl-meta">The newest <?php echo CLOG_LIST_ROWS; ?> logs.</p><?php } ?>
     <table class="cl-table cl-list">
         <thead><tr><th>Logged</th><th>Character</th><th>Account</th><th class="num">Length</th><th class="num">Fights</th><th>Bosses</th><th class="num">Deaths</th><th class="num">Size</th><th></th></tr></thead>
         <tbody>
@@ -384,7 +391,7 @@ $deleteForm = static function (array $log) use ($h, $when, $token): string {
                 <td class="num"><?php echo $length(max(0, (int)$summary['end'] - (int)$summary['start'])); ?></td>
                 <td class="num"><?php echo (int)$summary['fights']; ?></td>
                 <td><?php foreach ($summary['kills'] as $boss) { ?><span class="cl-kill"><?php echo $h($boss); ?><?php if (!empty($summary['wipes'][$boss])) { ?> <small>after <?php echo (int)$summary['wipes'][$boss]; ?></small><?php } ?></span> <?php } ?>
-                    <?php foreach ($summary['wipes'] as $boss => $times) { if (in_array($boss, $summary['kills'], true)) { continue; } ?><span class="cl-wipe"><?php echo $h((string)$boss); ?> &times;<?php echo (int)$times; ?></span> <?php } ?></td>
+                    <?php foreach ($summary['wipes'] as $boss => $times) { if (in_array((string)$boss, $summary['kills'], true)) { continue; } ?><span class="cl-wipe"><?php echo $h((string)$boss); ?> &times;<?php echo (int)$times; ?></span> <?php } ?></td>
                 <td class="num"><?php echo $n($summary['deaths']); ?></td>
                 <?php } ?>
                 <td class="num"><?php echo $bytes($log['raw_size'] ?? null); ?></td>
