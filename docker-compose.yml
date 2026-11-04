@@ -87,6 +87,11 @@ services:
       CRASHREPORT_VIEW_KEY: ${CRASHREPORT_VIEW_KEY:-}
       CRASHREPORT_KEEP_DAYS: ${CRASHREPORT_KEEP_DAYS:-90}
       CRASHREPORT_MAX_MB: ${CRASHREPORT_MAX_MB:-200}
+      LUAERROR_ENABLED: ${LUAERROR_ENABLED:-false}
+      LUAERROR_DIR: /srv/luaerrors
+      LUAERROR_VIEW_KEY: ${LUAERROR_VIEW_KEY:-}
+      LUAERROR_KEEP_DAYS: ${LUAERROR_KEEP_DAYS:-90}
+      LUAERROR_MAX_MB: ${LUAERROR_MAX_MB:-50}
       LIVE_CACHE_SECONDS: ${LIVE_CACHE_SECONDS:-30}
       LIVE_CACHE_DIR: /var/cache/portal/live
       LIVE_BOT_ACCOUNTS: ${LIVE_BOT_ACCOUNTS:-RNDBOT%}
@@ -123,6 +128,8 @@ services:
       - ${COMBATLOG_HOST_DIR:-portal-combatlogs}:/srv/combatlogs
       # Crash reports players send from the launcher
       - ${CRASHREPORT_HOST_DIR:-portal-crashreports}:/srv/crashreports
+      # Lua errors the launcher sends
+      - ${LUAERROR_HOST_DIR:-portal-luaerrors}:/srv/luaerrors
     networks:
       - ac-network   # to reach ac-database
       - traefik      # so Traefik can reach this container
@@ -131,6 +138,7 @@ volumes:
   portal-cache:
   portal-combatlogs:
   portal-crashreports:
+  portal-luaerrors:
 
 networks:
   ac-network:

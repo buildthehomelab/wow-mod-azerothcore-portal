@@ -122,3 +122,18 @@
   .cl-tag, .cl-outcome, .cl-len { display: none; }
   .cl-fight .cl-table, .cl-block > .cl-table { display: block; overflow-x: auto; }
 }
+
+/* Lua errors (luaerrors.php) */
+.le-text {
+  margin: 6px 0 12px;
+  padding: 10px 14px;
+  overflow-x: auto;
+  background: var(--pn-panel);
+  border: 1px solid var(--pn-line);
+  border-radius: 3px;
+  font: 12.5px/1.45 ui-monospace, Consolas, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.le-message { font-size: 14px; color: var(--pn-parchment); }
+.le-cell { overflow-wrap: anywhere; }

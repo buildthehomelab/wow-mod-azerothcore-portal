@@ -225,6 +225,7 @@ With it on, the home page's "How to connect" shows three steps instead of the ma
 | `POST api/launcher/version.php` | The launcher's release workflow announces a new release: `{"tag", "time"}`, signed with `LAUNCHER_RELEASE_SECRET` |
 | `api/launcher/combatlog.php` | Combat log uploads from players who opted in, see [Combat logs](#combat-logs) |
 | `api/launcher/crashreport.php` | Crash reports players agreed to send, see [Crash reports](#crash-reports) |
+| `api/launcher/luaerrors.php` | Lua errors from players' games, see [Lua errors](#lua-errors) |
 | `GET api/launcher/live.php` | Players online, uptime and a pending restart, events on, rares up. No login needed. See [Live info and what's new](#live-info-and-whats-new) |
 | `GET api/launcher/whatsnew.php?since=<time>` | The patch notes merged since then. No login needed. |
 | `api/launcher/announce.php/<passkey>` | Tracker announce URL, inside the player's torrent |
@@ -336,6 +337,22 @@ When World of Warcraft crashes, the launcher finds the error report the game wro
 | `GET api/crashreports.php?report=<id>` | One report, with each error file's text |
 
 Reports live in the `portal-crashreports` volume (or `CRASHREPORT_HOST_DIR`), one JSON file each, and are deleted after `CRASHREPORT_KEEP_DAYS` (90; 0 keeps them). An account can send 10 a day, each at most 4 files of 256 KB, and all reports together may take `CRASHREPORT_MAX_MB` (200). The launcher asks `GET api/launcher/crashreport.php` first and never offers to send when it answers 404.
+
+## Lua errors
+
+The launcher writes a small addon of its own into the client, `!PortalkeeperErrors`, which records the game's Lua errors and blocked actions: each distinct error once with a count, its stack, a few locals, and the character, client build and addons loaded. It keeps the file small and leaves out text players typed (no table contents or string values, 100 errors at most), and doesn't let an error storm reach the game's error window. Only frame scripts have locals: errors an addon passes on through `xpcall` arrive without them. After the game closes the launcher sends what was recorded and deletes it. The option is on by default; players can turn it off under **Send Lua errors to the realm** in the launcher's settings, which also removes the addon.
+
+1. **`.env`:** set `LUAERROR_ENABLED=true` (the launcher API has to be on too). The page and API open with `COMBATLOG_VIEW_KEY`, or set `LUAERROR_VIEW_KEY` for a key of their own. Run `docker compose up -d --build`.
+2. Open `https://SERVICE_NAME.DOMAIN/luaerrors.php` (not in the menu) and enter the key, or read them with the key as `X-Portal-Key`:
+
+| Request | Answer |
+|---|---|
+| `GET api/luaerrors.php` | Each distinct error, most recently seen first: addon, message, count, accounts, addon versions, first and last seen |
+| `GET api/luaerrors.php?error=<fingerprint>` | One error, with every sighting's stack, locals, character, build and loaded addons |
+| `GET api/luaerrors.php?batches=1` | The batches as they came in, newest first |
+| `GET api/luaerrors.php?batch=<id>` | One batch as it came in |
+
+The same error from different players and game runs is one row: errors are grouped by their message and the top three lines of their stack, with table addresses taken out. Batches live in the `portal-luaerrors` volume (or `LUAERROR_HOST_DIR`), one JSON file each, and are deleted after `LUAERROR_KEEP_DAYS` (90; 0 keeps them). An account can send 20 batches or 5 MB a day, each batch at most 1 MB, and all batches together may take `LUAERROR_MAX_MB` (50). The launcher asks `GET api/launcher/luaerrors.php` first; when it answers 404 the launcher doesn't write the addon. What a player's game already recorded stays on their PC until a portal takes it or they turn the option off.
 
 ## Live info and what's new
 
