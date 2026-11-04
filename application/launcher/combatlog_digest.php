@@ -20,7 +20,17 @@ const CLOG_RUN_GAP = 1200.0;        // seconds between fights that start a new r
 const CLOG_DEATH_WINDOW = 8.0;      // hits this long before a death are listed with it
 const CLOG_ACTIVITY_BUCKET = 5.0;   // a player is "active" in a bucket they did something in
 const CLOG_TABLE_ROWS = 40;         // rows kept per table per fight
+const CLOG_FIGHT_ROWS = 1000;       // rows per table a fight is summed up from: more than any real fight has
+const CLOG_BY_ROWS = 100;           // names kept per "interrupted by" and the like: a raid is 40
 const CLOG_MAX_RAW = 4294967296;    // bytes of log read before giving up: a real one is a few hundred MB
+const CLOG_NAME_MAX = 256;          // bytes kept of any one field: well past a real name, in any language
+const CLOG_KIND_CACHE = 4096;       // different flag values remembered: a real log has a few hundred
+const CLOG_MEMORY_SHARE = 0.4;      // of memory_limit, while reading the log: the same digest takes about 1.7 times this decoded again
+const CLOG_JSON_SHARE = 0.125;      // of memory_limit, for the digest's JSON: a real log reaches CLOG_MEMORY_SHARE long before this
+const CLOG_MEMORY_EVERY = 1024;     // lines between looks at those two
+const CLOG_MAYBE_ALIVE = 256;       // deaths waiting to see if the player acts again: every line looks through them
+const CLOG_BUFF_DROPS = 64;         // buffs lost remembered per player: copied for each one, and only CLOG_DEATH_BUFFS are ever asked for
+const CLOG_JSON_FLAGS = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE;
 const CLOG_FEIGN_DEATH = '5384';
 const CLOG_ALIVE_WINDOW = 15.0;     // a player who acts this soon after a UNIT_DIED, with no rez, didn't die
 const CLOG_IN_FLIGHT = 1.5;         // a shot landing this soon after a death was fired before it
@@ -83,6 +93,12 @@ function clog_unit_kind(string $hex): int
     return $kind;
 }
 
+/** At most CLOG_NAME_MAX bytes of text, not ending inside a character. */
+function clog_cut_name(string $name): string
+{
+    return strlen($name) > CLOG_NAME_MAX ? mb_strcut($name, 0, CLOG_NAME_MAX, 'UTF-8') : $name;
+}
+
 /** The creature entry inside a creature or vehicle GUID (0xF130EEEEEESSSSSS), or 0. */
 function clog_guid_entry(string $guid): int
 {
@@ -131,6 +147,7 @@ final class ClogDigest
     private array $strayDeaths = [];
     /** @var array<string, float> creature GUID => when its last death was counted */
     private array $enemyDiedAt = [];
+    private int $jsonBytes = 0;
 
     public function __construct(int $loggedUntil, int $utcOffsetMinutes)
     {
@@ -140,14 +157,20 @@ final class ClogDigest
         $this->month = (int)gmdate('n', $local);
     }
 
-    /** Unix time of a "10/12 18:03:21.123" stamp. The log has no year: it's the upload's, or the one before for later months. */
-    private function time(string $date, string $clock): float
+    /**
+     * Unix time of a "10/12 18:03:21.123" stamp, or null when its date isn't a day of the year.
+     * The log has no year: it's the upload's, or the one before for later months.
+     */
+    private function time(string $date, string $clock): ?float
     {
         $base = $this->dayBase[$date] ?? null;
         if ($base === null) {
-            $slash = strpos($date, '/');
-            $month = (int)substr($date, 0, (int)$slash);
-            $day = (int)substr($date, (int)$slash + 1);
+            // 2000 is a leap year, so 2/29 passes whichever year the log turns out to be from.
+            if (preg_match('~^(\d{1,2})/(\d{1,2})$~D', $date, $parts) !== 1 || !checkdate((int)$parts[1], (int)$parts[2], 2000)) {
+                return null;
+            }
+            $month = (int)$parts[1];
+            $day = (int)$parts[2];
             $year = $month > $this->month ? $this->year - 1 : $this->year;
             $base = (float)(gmmktime(0, 0, 0, $month, $day, $year) - $this->offsetSeconds);
             $this->dayBase[$date] = $base;
@@ -165,6 +188,10 @@ final class ClogDigest
         // The file came from a player. One byte that isn't UTF-8 would stop the digest going into JSON.
         if (!mb_check_encoding($line, 'UTF-8')) {
             $line = mb_scrub($line, 'UTF-8');
+        }
+        // No name has these, and most take six bytes of JSON.
+        if (strcspn($line, "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x7f") !== strlen($line)) {
+            $line = (string)preg_replace('/[\x00-\x1f\x7f]/', '', $line);
         }
         $split = strpos($line, '  ');
         $space = strpos($line, ' ');
@@ -190,14 +217,25 @@ final class ClogDigest
             }
         }
 
+        // The file came from a player: a 60 KB name would go into every table the name appears in.
+        if (strlen($line) > CLOG_NAME_MAX) {
+            foreach ($f as $index => $field) {
+                $f[$index] = clog_cut_name($field);
+            }
+        }
+
         $clock = substr($line, $space + 1, $split - $space - 1);
         // Digits only: a stamp like 18:03:1e999 reads as INF, and JSON can't hold that either.
         if (strspn($clock, '0123456789:.') !== strlen($clock)) {
             $this->skipped++;
             return;
         }
+        $t = $this->time(substr($line, 0, $space), $clock);
+        if ($t === null) {
+            $this->skipped++;
+            return;
+        }
         $this->clock = $clock;
-        $t = $this->time(substr($line, 0, $space), $this->clock);
         $this->lines++;
         if ($this->first === null) {
             $this->first = $t;
@@ -209,6 +247,10 @@ final class ClogDigest
         $event = $f[0];
         $src = $f[1];
         $dst = $f[4];
+        // A value worked out again costs nothing, so a log full of different ones just starts this over.
+        if (count($this->kindCache) >= CLOG_KIND_CACHE) {
+            $this->kindCache = [];
+        }
         $srcKind = $this->kindCache[$f[3]] ??= clog_unit_kind($f[3]);
         $dstKind = $this->kindCache[$f[6]] ??= clog_unit_kind($f[6]);
 
@@ -221,9 +263,11 @@ final class ClogDigest
 
         if ($srcPlayer && !isset($this->roster[$src])) {
             $this->roster[$src] = trim($f[2], '"');
+            $this->jsonBytes += strlen($f[2]);
         }
         if ($dstPlayer && !isset($this->roster[$dst])) {
             $this->roster[$dst] = trim($f[5], '"');
+            $this->jsonBytes += strlen($f[5]);
         }
         if ($this->logger === null && ($srcKind & CLOG_MINE) && ($srcKind & CLOG_PLAYER)) {
             $this->logger = trim($f[2], '"');
@@ -581,11 +625,12 @@ final class ClogDigest
             $this->lastDeath[$guid] = ['fight' => count($this->fights), 'index' => count($this->fight['deaths']) - 1, 't' => $t];
         } else {
             $this->strayDeaths[] = $death;
+            $this->jsonBytes += strlen((string)json_encode($death, CLOG_JSON_FLAGS));
             $this->lastDeath[$guid] = ['fight' => -1, 'index' => count($this->strayDeaths) - 1, 't' => $t];
         }
         // A killing blow with overkill is a real death, whatever comes after it.
         $overkill = $last !== null && $last[4] > 0 && $t - $last[0] <= 1.0;
-        if (!$death['feign'] && !$overkill) {
+        if (!$death['feign'] && !$overkill && count($this->maybeAlive) < CLOG_MAYBE_ALIVE) {
             $drops = 0;
             foreach ($this->buffDrops[$guid] ?? [] as $at) {
                 if ($t - $at <= 1.0) {
@@ -606,7 +651,7 @@ final class ClogDigest
             }
         }
         $drops[] = $t;
-        $this->buffDrops[$guid] = $drops;
+        $this->buffDrops[$guid] = array_slice($drops, -CLOG_BUFF_DROPS);
         if (isset($this->maybeAlive[$guid]) && $t - $this->maybeAlive[$guid]['t'] <= 1.0) {
             $this->maybeAlive[$guid]['drops']++;
         }
@@ -623,7 +668,10 @@ final class ClogDigest
         if ($death['fight'] === -1) {
             $this->strayDeaths[$death['index']][$flag] = true;
         } elseif ($death['fight'] === count($this->fights) && $this->fight !== null) {
-            $this->fight['deaths'][$death['index']][$flag] = true;
+            // Not there when it was past CLOG_FIGHT_ROWS in a fight that was then dropped: this is another fight.
+            if (isset($this->fight['deaths'][$death['index']])) {
+                $this->fight['deaths'][$death['index']][$flag] = true;
+            }
         } elseif (isset($this->fights[$death['fight']]['died'][$death['index']])) {
             // The fight is already summed up: take the death back out of its counts.
             $fight = &$this->fights[$death['fight']];
@@ -729,6 +777,12 @@ final class ClogDigest
         if ($fight === null) {
             return;
         }
+        // Each row is built again below, some several times their size, and a log can make millions.
+        foreach (['enemies', 'players', 'pets', 'taken', 'casts', 'debuffs', 'buffs', 'broken', 'deaths'] as $table) {
+            if (count($fight[$table]) > CLOG_FIGHT_ROWS) {
+                $fight[$table] = array_slice($fight[$table], 0, CLOG_FIGHT_ROWS, true);
+            }
+        }
         $duration = max(1.0, $fight['end'] - $fight['start']);
 
         $enemies = [];
@@ -743,6 +797,7 @@ final class ClogDigest
         if (!$enemies || ($totalTaken === 0 && !$fight['deaths'])) {
             foreach ($fight['deaths'] as $index => $death) {
                 $this->strayDeaths[] = $death;
+                $this->jsonBytes += strlen((string)json_encode($death, CLOG_JSON_FLAGS));
                 $this->moveDeathToStray($index);
             }
             return;
@@ -787,6 +842,7 @@ final class ClogDigest
                 continue;
             }
             arsort($cast['by']);
+            $cast['by'] = array_slice($cast['by'], 0, CLOG_BY_ROWS, true);
             $casts[] = ['id' => (string)$id] + $cast;
         }
         usort($casts, static fn(array $a, array $b): int => $b['start'] <=> $a['start']);
@@ -794,6 +850,7 @@ final class ClogDigest
         $debuffs = [];
         foreach ($fight['debuffs'] as $id => $debuff) {
             arsort($debuff['by']);
+            $debuff['by'] = array_slice($debuff['by'], 0, CLOG_BY_ROWS, true);
             $debuffs[] = ['id' => (string)$id, 'name' => $debuff['name'], 'src' => $debuff['src'], 'applied' => $debuff['applied'],
                 'victims' => count($debuff['victims']), 'dispelled' => $debuff['dispelled'],
                 'wait' => $debuff['waited'] ? round($debuff['wait'] / $debuff['waited'], 1) : null, 'by' => $debuff['by']];
@@ -803,6 +860,7 @@ final class ClogDigest
         $buffs = [];
         foreach ($fight['buffs'] as $id => $buff) {
             arsort($buff['by']);
+            $buff['by'] = array_slice($buff['by'], 0, CLOG_BY_ROWS, true);
             $buffs[] = ['id' => (string)$id] + $buff;
         }
         usort($buffs, static fn(array $a, array $b): int => $b['applied'] <=> $a['applied']);
@@ -836,11 +894,22 @@ final class ClogDigest
             'buffs' => array_slice($buffs, 0, CLOG_TABLE_ROWS),
             'broken' => array_slice($broken, 0, CLOG_TABLE_ROWS),
         ];
+        $this->jsonBytes += strlen((string)json_encode($this->fights[count($this->fights) - 1], CLOG_JSON_FLAGS));
     }
 
-    public function finish(): array
+    /** Whether the digest is as big as it may get: clog_digest_file stops reading the log. */
+    public function full(int $memory, int $json): bool
     {
+        return memory_get_usage() > $memory || $this->jsonBytes > $json;
+    }
+
+    /** @param bool $cut the log was left unread from some point on, by clog_digest_file */
+    public function finish(bool $cut = false): array
+    {
+        // A log that reached the memory limit needs the room, so nothing below holds two copies of anything.
+        $this->kindCache = $this->dayBase = $this->recent = $this->feignAt = $this->buffDrops = $this->enemyDiedAt = [];
         $this->closeFight();
+        $this->lastDeath = $this->maybeAlive = [];
 
         // Runs: fights with no long break between them, e.g. one raid night or one dungeon.
         $runs = [];
@@ -876,17 +945,18 @@ final class ClogDigest
             $topKillers[] = ['spell' => $spell, 'src' => $source, 'kills' => $kills];
         }
 
-        $stray = [];
-        foreach ($this->strayDeaths as $death) {
+        foreach ($this->strayDeaths as &$death) {
             unset($death['t']);
             if ($death['by'] !== null) {
                 unset($death['by']['key']);
             }
-            $stray[] = $death;
         }
+        unset($death);
 
         $names = array_values($this->roster);
+        $this->roster = [];
         sort($names);
+        $bosses = clog_guess_bosses($this->fights);
         $digest = [
             'version' => CLOG_DIGEST_VERSION,
             'logger' => $this->logger,
@@ -898,13 +968,17 @@ final class ClogDigest
             'bots' => [],
             'deaths' => $deaths,
             'killers' => $topKillers,
-            'stray_deaths' => $stray,
+            'stray_deaths' => $this->strayDeaths,
             'runs' => $runs,
             // 'guess' until the realm's database says which creatures are bosses ('realm').
             'bosses' => 'guess',
             'fights' => $this->fights,
         ];
-        clog_apply_bosses($digest, clog_guess_bosses($this->fights));
+        if ($cut) {
+            $digest['cut'] = true;
+        }
+        $this->strayDeaths = $this->fights = [];
+        clog_apply_bosses($digest, $bosses);
         return $digest;
     }
 }
@@ -994,10 +1068,22 @@ function clog_apply_bosses(array &$digest, array $bossEntries): void
     unset($fight);
 }
 
+/** memory_limit in bytes, or what to go by when there's none. */
+function clog_memory_limit(): int
+{
+    $limit = ini_parse_quantity((string)ini_get('memory_limit'));
+    return $limit > 0 ? $limit : 536870912;
+}
+
 /**
  * Digests one log file (gzip or plain). $loggedUntil and $utcOffsetMinutes come from the upload:
  * the log's last write on the player's PC and that PC's offset from UTC, which give the stamps a
  * year and a time zone.
+ *
+ * Running out of memory can't be caught, and it would stop combatlog_cli.php --all at this log every
+ * time, whether it happened here, writing the digest or reading it back. So a log stops being read at
+ * CLOG_MEMORY_SHARE or CLOG_JSON_SHARE of memory_limit, or at CLOG_MAX_RAW, and gets a digest of what
+ * fit with 'cut' set, which isn't made again.
  */
 function clog_digest_file(string $path, int $loggedUntil, int $utcOffsetMinutes): array
 {
@@ -1006,17 +1092,26 @@ function clog_digest_file(string $path, int $loggedUntil, int $utcOffsetMinutes)
         throw new RuntimeException('The log could not be opened.');
     }
     $digest = new ClogDigest($loggedUntil, $utcOffsetMinutes);
+    $memory = (int)(clog_memory_limit() * CLOG_MEMORY_SHARE);
+    $json = (int)(clog_memory_limit() * CLOG_JSON_SHARE);
     $read = 0;
+    $lines = 0;
+    $cut = false;
     try {
         while (($line = gzgets($handle, 65536)) !== false) {
             $read += strlen($line);
             if ($read > CLOG_MAX_RAW) {
-                throw new RuntimeException('The log unpacks to more than ' . (CLOG_MAX_RAW >> 30) . ' GB.');
+                $cut = true;
+                break;
             }
             $digest->line($line);
+            if (++$lines % CLOG_MEMORY_EVERY === 0 && $digest->full($memory, $json)) {
+                $cut = true;
+                break;
+            }
         }
     } finally {
         gzclose($handle);
     }
-    return $digest->finish();
+    return $digest->finish($cut);
 }

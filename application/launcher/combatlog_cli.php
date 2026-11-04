@@ -67,8 +67,7 @@ if (count($ids) === 1 && in_array($ids[0], ['--damaged', '--repair-damaged', '--
 } elseif ($ids === ['--all']) {
     $ids = [];
     foreach (clog_metas('logs') as $meta) {
-        $digest = clog_read_json(clog_path('logs', $meta['id'], '.digest.json'));
-        if ((int)($digest['version'] ?? 0) !== CLOG_DIGEST_VERSION) {
+        if (clog_digest_version($meta['id']) !== CLOG_DIGEST_VERSION) {
             $ids[] = $meta['id'];
         }
     }
@@ -90,5 +89,7 @@ foreach ($ids as $id) {
         continue;
     }
     printf("%s: %d lines, %d fights, %d deaths\n", $id, $digest['lines'], count($digest['fights']), $digest['deaths']);
+    // Held through the next call otherwise, whose log would get less of the memory limit.
+    unset($digest);
 }
 exit($failed > 0 ? 1 : 0);
