@@ -36,6 +36,21 @@
 .cl-key button:hover { background: var(--pn-gold-light); }
 .cl-error { color: #e8836f; margin: 0; }
 
+.cl-notice { margin: 0 0 18px; padding: 8px 14px; background: var(--pn-panel); border: 1px solid var(--pn-line); border-radius: 3px; color: var(--pn-parchment); }
+.cl-delete { margin: 0; }
+.cl-summary .cl-delete, .pn-empty .cl-delete { margin-top: 12px; }
+.cl-delete button {
+  font: inherit;
+  font-size: 12px;
+  padding: 2px 9px;
+  background: none;
+  border: 1px solid rgba(232, 131, 111, 0.4);
+  border-radius: 2px;
+  color: #e8836f;
+  cursor: pointer;
+}
+.cl-delete button:hover, .cl-delete button:focus-visible { background: rgba(232, 131, 111, 0.14); border-color: #e8836f; }
+
 .cl-summary { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
 .cl-kicker { margin: 0; color: var(--pn-gold); text-transform: uppercase; letter-spacing: 0.12em; font-size: 12px; }
 .cl-summary h2 { font-size: 34px; }
@@ -120,7 +135,7 @@
   .cl-main { padding: 16px 12px 60px; }
   .cl-fight summary { grid-template-columns: 64px minmax(0, 1fr) 70px; }
   .cl-tag, .cl-outcome, .cl-len { display: none; }
-  .cl-fight .cl-table, .cl-block > .cl-table { display: block; overflow-x: auto; }
+  .cl-fight .cl-table, .cl-block > .cl-table, .cl-list { display: block; overflow-x: auto; }
 }
 
 /* Lua errors (luaerrors.php) */

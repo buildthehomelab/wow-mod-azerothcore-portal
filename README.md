@@ -298,7 +298,7 @@ The 3.3.5 combat log has no zone or encounter lines, so a fight is a stretch of 
 2. **Optional, better boss names:** run the combat log lines of [docker/create-db-user.sql.example](docker/create-db-user.sql.example) as root, so the digest reads which creatures are bosses from the realm's database. Without them it guesses from the log (a creature that only ever shows up alone and soaks up far more damage than the rest), and the page says so.
 3. Open `https://SERVICE_NAME.DOMAIN/combatlogs.php` and enter the key.
 
-Logs live in the `portal-combatlogs` volume (or `COMBATLOG_HOST_DIR`) as the gzip file the launcher sent, plus a JSON digest. They're deleted after `COMBATLOG_KEEP_DAYS` (60; 0 keeps them). An upload can be at most `COMBATLOG_MAX_MB` (512) of gzip; a 4-hour 40-player raid is about 10 MB.
+Logs live in the `portal-combatlogs` volume (or `COMBATLOG_HOST_DIR`) as the gzip file the launcher sent, plus a JSON digest. They're deleted after `COMBATLOG_KEEP_DAYS` (60; 0 keeps them), or sooner with the **Delete** button on the list and on each log, which anyone with the view key can use and which can't be undone. An upload can be at most `COMBATLOG_MAX_MB` (512) of gzip; a 4-hour 40-player raid is about 10 MB.
 
 The digest is made in the background right after an upload, and on first view if that didn't happen. To redo them all, for instance after granting the database access:
 
