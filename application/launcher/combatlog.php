@@ -33,10 +33,26 @@ function clog_dir(): string
     return rtrim(launcher_env('COMBATLOG_DIR', '/srv/combatlogs'), '/');
 }
 
-/** Largest upload accepted, in bytes of gzip (COMBATLOG_MAX_MB, default 512). */
+/**
+ * A size setting in bytes. 0, or anything but a whole number of MB such as "2G", is no limit: the launcher
+ * deletes logs it's told are too big, so a mistake here mustn't make the limit small.
+ */
+function clog_megabytes(string $key, string $default): int
+{
+    $mb = launcher_env($key, $default);
+    return preg_match('/^\d+$/D', $mb) === 1 && (int)$mb > 0 && (int)$mb <= PHP_INT_MAX >> 20 ? (int)$mb * 1048576 : PHP_INT_MAX;
+}
+
+/** Bytes one account may keep (COMBATLOG_MAX_MB_PER_ACCOUNT, default 2048): about 200 4-hour raids. */
+function clog_account_limit(): int
+{
+    return clog_megabytes('COMBATLOG_MAX_MB_PER_ACCOUNT', '2048');
+}
+
+/** Largest upload accepted, in bytes of gzip (COMBATLOG_MAX_MB, default 512), and never more than an account may keep. */
 function clog_max_size(): int
 {
-    return max(1, (int)launcher_env('COMBATLOG_MAX_MB', '512')) * 1048576;
+    return min(clog_megabytes('COMBATLOG_MAX_MB', '512'), clog_account_limit());
 }
 
 /** Days a log is kept (COMBATLOG_KEEP_DAYS, default 60; 0 keeps them forever). */
@@ -142,6 +158,77 @@ function clog_delete_log(string $id): bool
     return $gone;
 }
 
+/**
+ * The account's lock, or a 503 answer when another of its requests has it. Held until it's closed or the
+ * request ends, so begin and finish each see the account's uploads as they are. It doesn't wait, because
+ * waiting requests would hold web workers: the launcher sends one at a time and tries again on its next run.
+ *
+ * @return resource
+ */
+function clog_lock_account(int $accountId)
+{
+    $lock = @fopen(clog_path('incoming', 'account-' . $accountId, '.lock'), 'c');
+    if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
+        launcher_json(503, ['error' => 'The realm can\'t store combat logs right now.']);
+    }
+    return $lock;
+}
+
+/**
+ * About the most a digest takes on disk, which a small crafted gzip can reach. It's more than CLOG_JSON_SHARE
+ * because reading only stops after passing that, with the fight it's in still added.
+ */
+function clog_digest_reserve(): int
+{
+    return (int)(clog_memory_limit() * CLOG_JSON_SHARE * 1.5);
+}
+
+/** What a finished upload holds on disk, with a digest still to come counted at its largest. */
+function clog_log_bytes(string $id): int
+{
+    $gzip = @filesize(clog_path('logs', $id, '.txt.gz'));
+    if ($gzip === false) {
+        return 0;
+    }
+    $digest = @filesize(clog_path('logs', $id, '.digest.json'));
+    return $gzip + ($digest === false ? clog_digest_reserve() : $digest);
+}
+
+/**
+ * Makes room for an account's new upload of $size bytes, from its finished logs' ids and its unfinished
+ * uploads' metadata, both newest first. Unfinished uploads go first, by what they announced they'd grow
+ * to and their digest: the launcher still has those and sends them again, while the only copy of a
+ * finished log is here.
+ */
+function clog_make_room(array $logs, array $uploads, int $size): void
+{
+    foreach (array_splice($uploads, CLOG_PENDING_PER_ACCOUNT - 1) as $meta) {
+        clog_discard_incoming($meta['id']);
+    }
+    foreach (array_splice($logs, CLOG_LOGS_PER_ACCOUNT - 1) as $id) {
+        clog_delete_log($id);
+    }
+
+    $over = $size + clog_digest_reserve() - clog_account_limit() + array_sum(array_map('clog_log_bytes', $logs));
+    foreach ($uploads as $meta) {
+        $over += (int)$meta['size'] + clog_digest_reserve();
+    }
+    foreach (array_reverse($uploads) as $meta) {
+        if ($over <= 0) {
+            return;
+        }
+        $over -= (int)$meta['size'] + clog_digest_reserve();
+        clog_discard_incoming($meta['id']);
+    }
+    foreach (array_reverse($logs) as $id) {
+        if ($over <= 0) {
+            return;
+        }
+        $over -= clog_log_bytes($id);
+        clog_delete_log($id);
+    }
+}
+
 /** Drops stalled uploads and logs past COMBATLOG_KEEP_DAYS. */
 function clog_prune(): void
 {
@@ -210,6 +297,9 @@ function clog_begin(array $session, array $input): never
     }
 
     $accountId = (int)$session['id'];
+    // Uploads begun together would each count the room the others are about to use.
+    $lock = clog_lock_account($accountId);
+
     $finished = [];
     foreach (clog_metas('logs') as $meta) {
         if ((int)$meta['account_id'] !== $accountId) {
@@ -222,7 +312,7 @@ function clog_begin(array $session, array $input): never
     }
 
     clog_prune();
-    $pending = 0;
+    $unfinished = [];
     foreach (clog_metas('incoming') as $meta) {
         if ((int)$meta['account_id'] !== $accountId) {
             continue;
@@ -230,12 +320,14 @@ function clog_begin(array $session, array $input): never
         if ($meta['sha256'] === $sha256 && (int)$meta['size'] === $size) {
             clearstatcache(true, clog_path('incoming', $meta['id'], '.part'));
             $received = @filesize(clog_path('incoming', $meta['id'], '.part'));
-            launcher_json(200, ['upload' => $meta['id'], 'received' => $received === false ? 0 : $received, 'part_size' => CLOG_PART_SIZE]);
-        }
-        // Newest first: the oldest unfinished uploads make room.
-        if (++$pending >= CLOG_PENDING_PER_ACCOUNT) {
+            if ($received !== false) {
+                launcher_json(200, ['upload' => $meta['id'], 'received' => $received, 'part_size' => CLOG_PART_SIZE]);
+            }
+            // A crash left the metadata without its file. No part could ever be written, so it starts over.
             clog_discard_incoming($meta['id']);
+            continue;
         }
+        $unfinished[] = $meta;
     }
 
     $free = @disk_free_space(clog_dir());
@@ -265,10 +357,8 @@ function clog_begin(array $session, array $input): never
         clog_discard_incoming($id);
         launcher_json(503, ['error' => 'The realm can\'t store combat logs right now.']);
     }
-    // Newest first: the account's oldest logs make room, like its unfinished uploads above.
-    foreach (array_slice($finished, CLOG_LOGS_PER_ACCOUNT - 1) as $oldest) {
-        clog_delete_log($oldest);
-    }
+    // Only now: nothing is deleted for an upload that's refused above.
+    clog_make_room($finished, $unfinished, $size);
     launcher_json(200, ['upload' => $id, 'received' => 0, 'part_size' => CLOG_PART_SIZE]);
 }
 
@@ -292,8 +382,9 @@ function clog_part(array $session, string $id, string $offset): never
         launcher_json(413, ['error' => 'That part is larger than part_size.']);
     }
 
-    // The lock is held until the request ends, so two parts for one upload can't interleave.
-    $file = @fopen(clog_path('incoming', $id, '.part'), 'c+b');
+    // The lock is held until the request ends, so two parts for one upload can't interleave. Begin made the
+    // file: making it here would bring back one that was dropped, with no metadata to ever find it by.
+    $file = @fopen(clog_path('incoming', $id, '.part'), 'r+b');
     if ($file === false || !flock($file, LOCK_EX)) {
         launcher_json(503, ['error' => 'The realm can\'t store combat logs right now.']);
     }
@@ -339,6 +430,8 @@ function clog_finish(array $session, string $id): never
             launcher_json(422, ['error' => 'The upload doesn\'t match its size and checksum. Send it again.']);
         }
 
+        // Only around the move, not the hash: begin must find this upload as unfinished or as finished.
+        $lock = clog_lock_account((int)$meta['account_id']);
         $meta['completed_at'] = time();
         if (!@rename($part, clog_path('logs', $id, '.txt.gz')) || !clog_write_json(clog_path('logs', $id, '.json'), $meta)) {
             clog_delete_log($id);
@@ -346,6 +439,7 @@ function clog_finish(array $session, string $id): never
             launcher_json(503, ['error' => 'The realm can\'t store combat logs right now.']);
         }
         @unlink(clog_path('incoming', $id, '.json'));
+        fclose($lock);
     } finally {
         flock($file, LOCK_UN);
         fclose($file);
