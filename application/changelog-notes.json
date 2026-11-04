@@ -796,6 +796,77 @@
       ],
       "fix": true,
       "sub": "Transmogrification"
+    },
+    "wow-LuxVelum#1": {
+      "notes": [
+        "Duskwood's fog is now dim and gloomy instead of bright blue.",
+        "Trees now use WoW Forever's sharper versions.",
+        "Smaller trees now draw as far away as larger ones, so tree lines pop in far less."
+      ],
+      "section": "World"
+    },
+    "wow-LuxVelum#2": {
+      "notes": [
+        "Weather now changes the whole scene, not just the falling particles. Rain, snow, sandstorms, fog and ash each have their own look, with changes to the sun, the fog and the water.",
+        "Each area now has its own storm fog, which rolls in over about 30 seconds as weather builds.",
+        "Rain now makes rings on water around you.",
+        "The ground stays wet for several minutes after rain or snow, leaving mist behind, and rays of light break through as a front clears.",
+        "Clear mornings now have mist around sunrise, and god rays appear when the sun or moon is low."
+      ],
+      "devnote": "Press Ctrl+F7 and open Weather to adjust these effects or turn them off.",
+      "section": "World"
+    },
+    "wow-LuxVelum#3": {
+      "notes": [
+        "**Storm clouds** now grow, merge and darken as a storm comes in, and show through the storm's fog.",
+        "**Thunderstorms** now have lightning bolts behind the hills, flashes through the clouds, and thunder that follows each strike."
+      ],
+      "devnote": "Sensitive to flashing light? Press Ctrl+F7, open Weather and set Lightning to 0 to turn off the flashes and bolts.",
+      "section": "World"
+    },
+    "wow-LuxVelum#4": {
+      "hide": true
+    },
+    "wow-LuxVelum#5": {
+      "notes": [
+        "Waves and foam now run downhill on sloped water, faster on steeper stretches, with whitewater on the steepest parts."
+      ],
+      "section": "World"
+    },
+    "wow-Portalkeeper#64": {
+      "notes": [
+        "The launcher now notices a new client update even when no file changes size.",
+        "Your client checks all of its files once after this update. You can't enter the realm until that finishes, and stopping it starts the check over. It only downloads a small amount."
+      ]
+    },
+    "wow-Portalkeeper#65": {
+      "notes": [
+        "The launcher now waits to change game files while a game it didn't start is running."
+      ]
+    },
+    "wow-mod-weather#8": {
+      "hide": true
+    },
+    "wow-azerothcore#37": {
+      "hide": true
+    },
+    "wow-server#516": {
+      "hide": true
+    },
+    "wow-server#517": {
+      "hide": true
+    },
+    "wow-server#521": {
+      "hide": true
+    },
+    "wow-server#523": {
+      "hide": true
+    },
+    "wow-server#524": {
+      "hide": true
+    },
+    "wow-server#525": {
+      "hide": true
     }
   },
   "launches": {
