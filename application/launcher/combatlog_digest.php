@@ -162,6 +162,10 @@ final class ClogDigest
         if ($line === '') {
             return;
         }
+        // The file came from a player. One byte that isn't UTF-8 would stop the digest going into JSON.
+        if (!mb_check_encoding($line, 'UTF-8')) {
+            $line = mb_scrub($line, 'UTF-8');
+        }
         $split = strpos($line, '  ');
         $space = strpos($line, ' ');
         if ($split === false || $space === false || $space >= $split || $split > 20 || $line[0] < '0' || $line[0] > '9') {
@@ -186,7 +190,13 @@ final class ClogDigest
             }
         }
 
-        $this->clock = substr($line, $space + 1, $split - $space - 1);
+        $clock = substr($line, $space + 1, $split - $space - 1);
+        // Digits only: a stamp like 18:03:1e999 reads as INF, and JSON can't hold that either.
+        if (strspn($clock, '0123456789:.') !== strlen($clock)) {
+            $this->skipped++;
+            return;
+        }
+        $this->clock = $clock;
         $t = $this->time(substr($line, 0, $space), $this->clock);
         $this->lines++;
         if ($this->first === null) {

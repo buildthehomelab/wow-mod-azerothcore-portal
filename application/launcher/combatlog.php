@@ -70,11 +70,21 @@ function clog_read_json(string $path): ?array
     return is_array($data) ? $data : null;
 }
 
-/** Writes through a temp file, so a reader never sees half a file. */
+/**
+ * Writes through a temp file, so a reader never sees half a file. False when $data can't be written,
+ * and whatever was at $path stays as it was. A byte that isn't UTF-8 is no reason to fail: it's stored
+ * as a replacement character.
+ */
 function clog_write_json(string $path, array $data): bool
 {
+    $json = json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    if ($json === false) {
+        error_log('combat log: ' . basename($path) . ' not written: ' . json_last_error_msg());
+        return false;
+    }
     $temp = $path . '.' . bin2hex(random_bytes(6)) . '.tmp';
-    if (@file_put_contents($temp, json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) === false) {
+    if (@file_put_contents($temp, $json) === false) {
+        @unlink($temp);
         return false;
     }
     if (!@rename($temp, $path)) {
@@ -346,6 +356,78 @@ function clog_spawn_digest(string $id): void
 function clog_log(string $id): ?array
 {
     return clog_valid_id($id) ? clog_read_json(clog_path('logs', $id, '.json')) : null;
+}
+
+/**
+ * Whether a finished upload's <id>.json holds something other than its metadata, which keeps it off
+ * the list and away from clog_prune. clog_write_json used to leave an empty one when a log's names
+ * weren't valid UTF-8. A file that can't be read says nothing about its contents, so it doesn't count.
+ * Nor does no <id>.json at all: that's an upload between its two steps in clog_finish.
+ */
+function clog_meta_damaged(string $id): bool
+{
+    $path = clog_path('logs', $id, '.json');
+    clearstatcache(true, $path);
+    $json = @file_get_contents($path);
+    if ($json === false || strlen($json) !== @filesize($path)) {
+        return false;
+    }
+    $meta = json_decode($json, true);
+    return !is_array($meta) || (string)($meta['id'] ?? '') !== $id;
+}
+
+/** @return list<string> ids of the uploads clog_meta_damaged() is true for */
+function clog_damaged_logs(): array
+{
+    $damaged = [];
+    foreach (glob(clog_dir() . '/logs/*.txt.gz') ?: [] as $file) {
+        $id = basename($file, '.txt.gz');
+        if (clog_valid_id($id) && clog_meta_damaged($id)) {
+            $damaged[] = $id;
+        }
+    }
+    return $damaged;
+}
+
+/**
+ * Writes a damaged upload's metadata again from what's left. The account that sent it and its PC's
+ * offset from UTC are lost, so the account reads "unknown" and the log's times can be off by that offset.
+ */
+function clog_repair_meta(string $id): bool
+{
+    $path = clog_path('logs', $id, '.txt.gz');
+    clearstatcache(true, $path);
+    $size = @filesize($path);
+    $time = @filemtime($path);
+    $sha256 = @hash_file('sha256', $path);
+    if ($size === false || $time === false || $sha256 === false) {
+        return false;
+    }
+    $meta = [
+        'id' => $id,
+        'account_id' => 0,
+        'account' => 'unknown',
+        'size' => $size,
+        'sha256' => $sha256,
+        'raw_size' => null,
+        'logged_until' => $time,
+        'utc_offset_minutes' => 0,
+        'client' => '',
+        'created_at' => $time,
+        'completed_at' => $time,
+    ];
+    // clog_digest won't touch a current digest, so the summary it would have written goes in here.
+    // One that can't give a summary is corrupt too: without it, clog_digest makes a new one.
+    $digestPath = clog_path('logs', $id, '.digest.json');
+    $digest = clog_read_json($digestPath);
+    if ($digest !== null && (int)($digest['version'] ?? 0) === CLOG_DIGEST_VERSION) {
+        try {
+            $meta['summary'] = clog_summary($digest);
+        } catch (Throwable) {
+            @unlink($digestPath);
+        }
+    }
+    return clog_write_json(clog_path('logs', $id, '.json'), $meta);
 }
 
 /**
