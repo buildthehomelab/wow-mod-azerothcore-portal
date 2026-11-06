@@ -65,7 +65,6 @@ const CL_CLASSES = [
 const CL_REPO_SECTIONS = [
     '/forever-(druid|hunter|mage|paladin|priest|rogue|shaman|warlock|warrior)$/' => ['Classes', '$1'],
     '/druid-/' => ['Classes', 'Druid'],
-    '/addon-MinimalHunter$/' => ['User Interface', 'MinimalHunter'],
     '/forever-racials$/' => ['Races', null],
     '/(class-combos|talent-per-level|learn-spells|dualspec|periodic-crit)$/' => ['Classes', 'All Classes'],
     '/(professions|gathering|specializations|tier0-trainers|reagent-bank|mass-|craft-cd|cursor-fishing)/' => ['Professions', null],

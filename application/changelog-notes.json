@@ -957,14 +957,6 @@
         "Item tooltips now show the median auction price."
       ]
     },
-    "wow-addon-MinimalHunter": {
-      "title": "MinimalHunter",
-      "notes": [
-        "A clean, minimal interface for Hunters: restyled action bars, unit frames, cast bars and minimap with hunter-specific touches.",
-        "Type /mh unlock to drag the pieces where you want them, /mh lock to fix them and /mh reset to start over.",
-        "Turns itself off if DragonUI is loaded."
-      ]
-    },
     "wow-addon-RareAlert-Dungeon": {
       "title": "RareAlert Dungeons",
       "notes": [
